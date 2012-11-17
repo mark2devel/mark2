@@ -63,6 +63,9 @@ class Manager:
             p = properties.Properties('mark2.properties', p)
         
         self.cfg = p
+        
+        if self.cfg['havent_read_conf']:
+            self.fatal_error("Read your configuration file, then try again. (hint: havent_read_conf)")
 
     def run_forever(self):
         reactor.run()
