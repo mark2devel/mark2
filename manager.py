@@ -160,6 +160,8 @@ class Manager:
         self.clients[user] = protocol
         for l in self.console_log[-lines:]:
             protocol.send_output(l)
+        
+        self.update_userlist()
     
     def handle_detach(self, user):
         #TODO: check this code over
@@ -168,6 +170,12 @@ class Manager:
             #p = self.clients[user]
             #p.stop() #TODO
             del self.clients[user]
+            
+            self.update_userlist()
+    
+    def update_userlist(self):
+        for name, user in self.clients.items():
+            user.send_helper('userlist', users=self.clients.keys())
     
     def handle_chat(self, user, text):
         self.console("#"+text, prompt='>', user=user)

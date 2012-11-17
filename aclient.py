@@ -17,6 +17,8 @@ class AManager:
     tab_cache = None
     tab_count = 0
     index = 0
+    users = []
+    last_users = []
     
     
     def __init__(self):
@@ -50,22 +52,52 @@ class AManager:
         #print "prompt refresh"
         self.printer()
     
+    def draw_serverlist(self):
+        servers = [x[0] for x in self.sockets]
+        current = self.sockets[self.index][0]
+        servers.append(servers.pop(self.index))
+        
+        spaces = len(max(servers + self.users, key=len))
+        erase_spaces = max(0, len(max(servers + self.last_users, key=len)) - spaces) * ' '
+        
+        erase = max(0, len(self.last_users) - len(self.users))
+        
+        with self.term.location(0, 0):
+            for s in servers:
+                fmt = self.term.bold_green_on_black if s==current else self.term.green_on_black
+                print '{fmt} {s} '.format(**locals()) + ' ' * (spaces-len(s)) + self.term.normal + erase_spaces
+            for u in self.users:
+                fmt2 = self.term.bold_blue_on_black if u==self.user else self.term.blue_on_black
+                print '{fmt2} {u} '.format(**locals()) + ' ' * (spaces-len(u)) + self.term.normal + erase_spaces
+            if erase:
+                sys.stdout.write((' ' * (spaces + 2) + erase_spaces + '\n') * erase)
+        
+        self.last_users = self.users
+    
     def server_output(self, line):
         self.printer(line)
     
     def tab_response(self, line):
         self.prompt.set_prompt(line)
-        self.printer()
     
     def printer(self, data=None):
-        data = data+"\n" if data else ""
-        #print "PRINTING!"
-        sys.stdout.write("\r%s%s%s" % (self.term.clear_eol, data, str(self.prompt)))
+        # beginning of line
+        sys.stdout.write('\r')
+        
+        # if there is any data, write it then get a new line
+        sys.stdout.write(data + '\n' if data else '')
+        
+        # self-explanatory
+        self.draw_serverlist()
+        
+        # make sure we're at the bottom of the terminal
+        sys.stdout.write(self.term.move(self.term.height - 1, 0) + self.term.clear_eol)
+        
+        # draw our prompt
+        sys.stdout.write(str(self.prompt))
+        
+        # self-explanatory
         sys.stdout.flush()
-        #if data:
-        #    print data
-        #print self.prompt,
-            
     
     def load_servers(self):
         self.sockets = []
@@ -114,6 +146,10 @@ class AClientProtocol(LineReceiver):
         
         if ty == "tab":
             self.manager.tab_response(msg["candidate"])
+        
+        if ty == "userlist":
+            self.manager.users = msg["users"]
+            self.manager.refresh_prompt()
     
     def send_helper(self, ty, **k):
         k["type"] = ty
