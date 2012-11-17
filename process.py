@@ -5,12 +5,6 @@ import glob
 import subprocess
 
 
-#nice = self.parent.profile('nice')
-#if nice != 0:
-#    kwargs['preexec_fn'] = lambda : os.nice(nice)
-
-
-
 class ProcessProtocol(protocol.ProcessProtocol):
     obuff = ""
     def __init__(self, parent):

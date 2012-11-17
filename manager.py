@@ -35,12 +35,13 @@ class Manager(MultiService):
     ### Useful things
     ###
     
-    def __init__(self, path):
+    def __init__(self, path, output):
         MultiService.__init__(self)
         self.path = path
         self.name = os.path.basename(path)
         self.clients = {}
         self.console_log = []
+        self.output = output
     
     def startService(self):
         MultiService.startService(self)
@@ -58,10 +59,23 @@ class Manager(MultiService):
         self.socket = os.path.join(SOCKET_BASE, "%s.sock" % self.name)
         
         self.reset_registers()
-        self.load_profile()
-        self.load_plugins()
-        self.start_process()
-        self.start_terminal()
+        
+        try:
+            self.load_profile()
+            self.load_plugins()
+            self.start_process()
+            self.start_terminal()
+        except Exception as e:
+            self.fatal_error(str(e))
+        
+        self.startup_output("Server started successfully at {}".format(self.socket))
+        
+        os.close(self.output)
+        self.output = 0
+    
+    def startup_output(self, line):
+        if not self.output: return
+        os.write(self.output, '{}\n'.format(line))
     
     def load_profile(self):
         p = properties.Properties(os.path.join(RESOURCE_BASE, 'mark2.default.properties'))
@@ -74,8 +88,8 @@ class Manager(MultiService):
             self.fatal_error("Read your configuration file, then try again. (hint: havent_read_conf)")
 
     def fatal_error(self, message):
-        print >> sys.stderr, "[ERROR] %s" % message
-        raise Exception(message)
+        self.startup_output("[ERROR] {}".format(message))
+        self.shutdown('fatal_error', message)
     
     def server_started(self, match):
         p = properties.Properties(os.path.join(RESOURCE_BASE, 'server.default.properties'))
@@ -100,10 +114,12 @@ class Manager(MultiService):
         for name, doc in o:
             self.console("  ~%s | %s" % (name.ljust(m), doc))
     
-    def shutdown(self):
+    def shutdown(self, caller, reason='(no reason)'):
         #self.process.shutdown()
-        print "shutdown completed!"
-        sys.exit(1)
+        #print "shutdown completed!"
+        if self.output:
+            os.close(self.output)
+        raise Exception("shutdown() called for {}: {}".format(caller, reason))
     
     ###
     ### process

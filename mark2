@@ -1,25 +1,44 @@
 #!/usr/bin/python
 
+import os
 import os.path
+import signal
 import subprocess
 import sys
 
 import aclient
 
-print sys.path[0]
-
 def run_server():
     # let twistd run our our server
-    server_cmd = 'twistd mark2'.split(' ')
     
     # we need the path to pass to twistd as absolute
     path = os.path.abspath(' '.join(args) if args else '.')
+    pidfile = os.path.join(path, 'mark2.pid')
     
     # move to the directory this script is in
     os.chdir(sys.path[0])
     
+    # look at output
+    r, w = os.pipe()
+    
     # run everything
-    return subprocess.call(server_cmd + ['--dir', path])
+    subprocess.call(['twistd'] + ['--pidfile', pidfile, '--logfile', '/dev/null'] + ['mark2'] + ['--dir', path, '--fd', str(w)])
+    
+    # close our copy of the write end of the pipe
+    os.close(w)
+    
+    # write output
+    while True:
+        read = os.read(r, 512)
+        if not read: break
+        sys.stdout.write(read)
+
+def kill_server():
+    path = os.path.abspath(' '.join(args) if args else '.')
+    pidfile = os.path.join(path, 'mark2.pid')
+    with open(pidfile, 'r') as f:
+        pid = int(f.readline())
+    os.kill(pid, signal.SIGINT)
 
 def run_client():
     # run the client in our own context, why not
@@ -27,7 +46,7 @@ def run_client():
         return aclient.main(args[0])
     else:
         return aclient.main()
-
+TERM
 # never mind how someone managed to import this, stop them
 if __name__ != '__main__':
     print "You're doing it wrong."
@@ -45,6 +64,8 @@ if command.lower() == 'attach':
     run_client()
 elif command.lower() == 'start':
     run_server()
+elif command.lower() == 'kill':
+    kill_server()
 else:
     print '''
 

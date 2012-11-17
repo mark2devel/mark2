@@ -7,9 +7,14 @@ from twisted.application import internet
 
 from manager import Manager
 
+import os
+import sys
+
+stderr = sys.stderr
 
 class Options(usage.Options):
-    optParameters = [["dir", "d", ".", "The directory in which to find a server."]]
+    optParameters = [["dir", "d", ".", "The directory in which to find a server."],
+                     ["fd", None, None, "File descriptor to write startup output."]]
 
 
 class Mark2ServiceMaker(object):
@@ -19,7 +24,9 @@ class Mark2ServiceMaker(object):
     options = Options
 
     def makeService(self, options):
-        return Manager(str(options["dir"]))
+        dir = str(options["dir"])
+        fd = int(options["fd"])
+        return Manager(dir, fd)
 
 
 serviceMaker = Mark2ServiceMaker()

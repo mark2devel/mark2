@@ -103,10 +103,14 @@ class AManager:
         sys.stdout.write(str(self.prompt))
         
         # self-explanatory
-        sys.stdout.flush()
+        try:
+            sys.stdout.flush()
+        except IOError:
+            pass
     
     def load_servers(self):
         self.sockets = []
+        
         for f in glob.glob('/tmp/mcpitch/*.sock'):
             name = os.path.splitext(os.path.basename(f))[0]
             self.sockets.append((name, f))
