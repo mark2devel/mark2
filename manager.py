@@ -69,6 +69,9 @@ class Manager(MultiService):
             p = properties.Properties('mark2.properties', p)
         
         self.cfg = p
+        
+        if self.cfg['havent_read_conf']:
+            self.fatal_error("Read your configuration file, then try again. (hint: havent_read_conf)")
 
     def fatal_error(self, message):
         print >> sys.stderr, "[ERROR] %s" % message

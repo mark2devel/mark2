@@ -95,4 +95,3 @@ def get_usage(pid):
         'mem': int(out[1])
     }
 
-print get_usage(2490)
