@@ -43,6 +43,13 @@ else:
 
 if command.lower() == 'attach':
     run_client()
-else:
+elif command.lower() == 'start':
     run_server()
+else:
+    print '''
+
+mark2 start [path/to/server]
+mark2 attach [servername]
+
+'''
 
