@@ -79,6 +79,7 @@ class AManager:
     
     def tab_response(self, line):
         self.prompt.set_prompt(line)
+        self.printer()
     
     def printer(self, data=None):
         # beginning of line
