@@ -10,6 +10,8 @@ import properties
 import query
 
 from twisted.internet import protocol, reactor
+from twisted.application.service import MultiService
+from twisted.application.internet import UNIXServer
 
 SOCKET_BASE   = '/tmp/mcpitch/'
 RESOURCE_BASE = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources')
@@ -20,7 +22,7 @@ This is the 'main' class that handles most of the logic
 
 """
 
-class Manager:
+class Manager(MultiService):
     
     protocol = None
     process = None
@@ -34,10 +36,14 @@ class Manager:
     ###
     
     def __init__(self, path):
+        MultiService.__init__(self)
         self.path = path
         self.name = os.path.basename(path)
         self.clients = {}
         self.console_log = []
+    
+    def startService(self):
+        MultiService.startService(self)
         
         #Change to server directory
         if not (os.path.exists(self.path) and os.path.isdir(self.path)):
@@ -64,12 +70,9 @@ class Manager:
         
         self.cfg = p
 
-    def run_forever(self):
-        reactor.run()
-
     def fatal_error(self, message):
-        print "[ERROR] %s" % message
-        self.shutdown()
+        print >> sys.stderr, "[ERROR] %s" % message
+        raise Exception(message)
     
     def server_started(self, match):
         p = properties.Properties(os.path.join(RESOURCE_BASE, 'server.default.properties'))
@@ -77,16 +80,12 @@ class Manager:
         self.server_properties = p
         
         if not self.query and self.server_properties['enable-query']:
-            self.query = query.Query(self.query_callback, self.server_properties['server-ip'], self.server_properties['query.port'])
-        
-        #self.handle_plugin("bg6g09", "~stop-warn")
+            self.query = query.Query(self, self.query_callback, self.server_properties['server-ip'], self.server_properties['query.port'])
     
     def query_callback(self, d):
         self.players = d['players']
-        #pass
     
     def plugin_commands(self, *a):
-        
         o = []
         m = 0
         for name, command in sorted(self.commands.items(), key=lambda m: m[0]):
@@ -98,7 +97,6 @@ class Manager:
         for name, doc in o:
             self.console("  ~%s | %s" % (name.ljust(m), doc))
     
-    
     def shutdown(self):
         #self.process.shutdown()
         print "shutdown completed!"
@@ -107,7 +105,6 @@ class Manager:
     ###
     ### process
     ###
-    
     
     def kill_process(self):
         self.protocol.transport.signalProcess('KILL')
@@ -154,7 +151,6 @@ class Manager:
     def start_terminal(self):
         self.aserver = aserver.AServer(self)
     
-    
     def handle_attach(self, protocol, user, lines):
         self.console('%s attached' % user, prompt="#")
         self.clients[user] = protocol
@@ -164,11 +160,8 @@ class Manager:
         self.update_userlist()
     
     def handle_detach(self, user):
-        #TODO: check this code over
         if user in self.clients:
             self.console('%s detached' % user, prompt="#")
-            #p = self.clients[user]
-            #p.stop() #TODO
             del self.clients[user]
             
             self.update_userlist()
@@ -258,12 +251,3 @@ class Manager:
         #print text
         self.p_in(text+"\n")
 
-def main():
-    m = Manager('/home/ed/mark2/testserver')
-    try:
-        m.run_forever()
-    except KeyboardInterrupt:
-        m.shutdown()
-        
-if __name__ == '__main__':
-    main()

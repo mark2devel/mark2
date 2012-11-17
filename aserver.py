@@ -1,6 +1,7 @@
 from twisted.internet.protocol import Factory
 from twisted.protocols.basic import LineReceiver
 from twisted.internet import reactor
+from twisted.application.internet import UNIXServer
 
 import json
 
@@ -80,5 +81,7 @@ class AServerFactory(Factory):
 
 def AServer(parent):
     factory = AServerFactory(parent)
-    reactor.listenUNIX(parent.socket, factory)
+    service = UNIXServer(parent.socket, factory)
+    service.setServiceParent(parent)
     return factory
+

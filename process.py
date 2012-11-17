@@ -1,4 +1,5 @@
 from twisted.internet import protocol, reactor
+from twisted.application.service import Service
 import os
 import glob
 import subprocess
@@ -60,10 +61,27 @@ class ProcessProtocol(protocol.ProcessProtocol):
         self.parent.p_stop()
     
 
+class ProcessService(Service):
+    
+    def __init__(self, protocol):
+        self.protocol = protocol
+    
+    def startService(self):
+        Service.startService(self)
+        cmd = self.protocol.build_command()
+        self.process = reactor.spawnProcess(self.protocol, cmd[0], cmd)
+    
+    def stopService(self):
+        Service.stopService(self)
+        self.process.signalProcess('KILL')
+
+
 def Process(parent):
     proto = ProcessProtocol(parent)
-    cmd   = proto.build_command()
-    return proto, reactor.spawnProcess(proto, cmd[0], cmd)
+    service = ProcessService(proto)
+    service.setServiceParent(parent)
+    return proto, service.process
+
 
 def get_usage(pid):
     c = ['ps', '-p', str(pid), '-o', 'pcpu=', '-o', 'vsz=']

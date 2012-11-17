@@ -21,7 +21,7 @@ class AManager:
     last_users = []
     
     
-    def __init__(self):
+    def __init__(self, server):
         self.user = getpass.getuser()
         self.load_servers()
         self.term = blessings.Terminal()
@@ -29,7 +29,12 @@ class AManager:
         
         print self.term.enter_fullscreen,
         
-        self.focus()
+        if server:
+            self.index = ([s[0] for s in self.sockets]).index(server) or 0
+        else:
+            self.index = 0
+        
+        self.focus(self.index)
 
         stdin = Protocol()
         stdin.dataReceived = self.s_in
@@ -187,9 +192,11 @@ def AClient(parent, name, socket):
     reactor.connectUNIX(socket, factory)
     return factory
 
-def main():
-    m = AManager()
+def main(use_server=None):
+    m = AManager(use_server)
     reactor.run()
 
 if __name__ == '__main__':
-    main()
+    print 'Use `mark2 attach` to start this program.'
+    sys.exit(0)
+

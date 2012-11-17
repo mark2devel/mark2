@@ -1,0 +1,48 @@
+#!/usr/bin/python
+
+import os.path
+import subprocess
+import sys
+
+import aclient
+
+print sys.path[0]
+
+def run_server():
+    # let twistd run our our server
+    server_cmd = 'twistd mark2'.split(' ')
+    
+    # we need the path to pass to twistd as absolute
+    path = os.path.abspath(' '.join(args) if args else '.')
+    
+    # move to the directory this script is in
+    os.chdir(sys.path[0])
+    
+    # run everything
+    return subprocess.call(server_cmd + ['--dir', path])
+
+def run_client():
+    # run the client in our own context, why not
+    if len(args) >= 1:
+        return aclient.main(args[0])
+    else:
+        return aclient.main()
+
+# never mind how someone managed to import this, stop them
+if __name__ != '__main__':
+    print "You're doing it wrong."
+    sys.exit(1)
+
+# process arguments
+if len(sys.argv) >= 2:
+    command = sys.argv[1]
+    args = sys.argv[2:]
+else:
+    command = ''
+    args = []
+
+if command.lower() == 'attach':
+    run_client()
+else:
+    run_server()
+
