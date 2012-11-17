@@ -165,8 +165,8 @@ class Manager:
         #TODO: check this code over
         if user in self.clients:
             self.console('%s detached' % user, prompt="#")
-            p = self.clients[user]
-            p.stop() #TODO
+            #p = self.clients[user]
+            #p.stop() #TODO
             del self.clients[user]
     
     def handle_chat(self, user, text):
@@ -251,7 +251,7 @@ class Manager:
         self.p_in(text+"\n")
 
 def main():
-    m = Manager('/home/barney/mark2/testserver')
+    m = Manager('/home/ed/mark2/testserver')
     try:
         m.run_forever()
     except KeyboardInterrupt:

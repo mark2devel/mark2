@@ -9,15 +9,17 @@ TYPE_CHAR = 1
 TYPE_SPECIAL = 2
 
 keys = {
-    '\x1B[A' : 'arrow_up',
-    '\x1B[B' : 'arrow_down',
-    '\x1B[C' : 'arrow_right',
-    '\x1B[D' : 'arrow_left',
-    '\x1BOH' : 'home',
-    '\x1BOF' : 'end',
-    '\x1B[1~': 'home',
-    '\x1B[3~': 'delete',
-    '\x1B[4~': 'end'
+    '\x1B[A'    : 'arrow_up',
+    '\x1B[B'    : 'arrow_down',
+    '\x1B[C'    : 'arrow_right',
+    '\x1B[D'    : 'arrow_left',
+    '\x1B[1;5C' : 'control_right',
+    '\x1B[1;5D' : 'control_left',
+    '\x1BOH'    : 'home',
+    '\x1BOF'    : 'end',
+    '\x1B[1~'   : 'home',
+    '\x1B[3~'   : 'delete',
+    '\x1B[4~'   : 'end'
 }
 
 class TermMode:

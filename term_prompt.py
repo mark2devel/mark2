@@ -12,10 +12,11 @@ class Prompt:
     tab_accepted = True
     tab_index = 0
     
-    def __init__(self, callback_refresh, callback_enter, callback_tab):
+    def __init__(self, callback_refresh, callback_enter, callback_tab, callback_switch):
         self.callback_refresh = callback_refresh
         self.callback_enter = callback_enter
         self.callback_tab = callback_tab
+        self.callback_switch = callback_switch
         self.echo = term_raw.TermMode((3, termios.ECHO), (3, termios.ICANON))
         self.echo.disable()
     
@@ -114,6 +115,12 @@ class Prompt:
                 self.history.append('')
                 self.history_pos += 1
                 self.load_prompt()
+        
+        ### server switch
+        elif key == 'control_right':
+            self.callback_switch(1)
+        elif key == 'control_left':
+            self.callback_switch(-1)
         
         if not tab:
             self.tab_accepted = True

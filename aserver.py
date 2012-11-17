@@ -14,10 +14,9 @@ class AServerProtocol(LineReceiver):
     def connectionMade(self):
         #print "client connected!"
         pass
-
+    
     def connectionLost(self, reason):
-        pass
-
+        self.manager.handle_detach(self.user)
     
     def send_helper(self, ty, **k):
         k["type"] = ty
@@ -25,7 +24,6 @@ class AServerProtocol(LineReceiver):
     
     def send_output(self, line):
         self.send_helper("output", data=line)
-    
     
     def lineReceived(self, line):
         msg = json.loads(str(line))
@@ -38,8 +36,8 @@ class AServerProtocol(LineReceiver):
             self.manager.handle_attach(self, msg["user"], msg["line_count"])
         #elif not self.user:
         #    return {"ty": "error", "data": "not identified."}
-        if ty == "detach":
-            self.manager.handle_detach(self, msg["user"])
+        #if ty == "detach":
+        #    self.manager.handle_detach(self, msg["user"])
         
         #Tab-complete player name
         if ty == "tab":

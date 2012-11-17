@@ -16,15 +16,18 @@ class AManager:
     client = None
     tab_cache = None
     tab_count = 0
+    index = 0
     
     
     def __init__(self):
         self.user = getpass.getuser()
         self.load_servers()
-        self.focus()
         self.term = blessings.Terminal()
+        self.prompt = term_prompt.Prompt(self.refresh_prompt, self.command, self.tab, self.next)
+        
         print self.term.enter_fullscreen,
-        self.prompt = term_prompt.Prompt(self.refresh_prompt, self.command, self.tab)
+        
+        self.focus()
 
         stdin = Protocol()
         stdin.dataReceived = self.s_in
@@ -74,11 +77,20 @@ class AManager:
         
     def focus(self, n=0):
         if self.client:
-            self.client.shutdown()
+            self.client.alive = False
+            self.client.proto.transport.loseConnection()
         
-        self.client = AClient(self, *self.sockets[n])
-
-    def factory_stopped(self):
+        self.index = n
+        self.client = AClient(self, *self.sockets[self.index])
+        with self.term.location(0, 0):
+            print 'focused on {}'.format(self.index)
+    
+    def next(self, step=1):
+        self.focus((self.index + step) % len(self.sockets))
+    
+    def factory_stopped(self, f):
+        if not f.alive:
+            return
         self.prompt.clean_up()
         print self.term.exit_fullscreen,
 
@@ -102,8 +114,6 @@ class AClientProtocol(LineReceiver):
         
         if ty == "tab":
             self.manager.tab_response(msg["candidate"])
-        
-        
     
     def send_helper(self, ty, **k):
         k["type"] = ty
@@ -117,6 +127,9 @@ class AClientProtocol(LineReceiver):
 
 class AClientFactory(ClientFactory):
     protocol = AClientProtocol
+    
+    alive = True
+    
     def __init__(self, parent, name):
         self.parent = parent
         self.name = name
@@ -130,7 +143,7 @@ class AClientFactory(ClientFactory):
         return p
     
     def stopFactory(self):
-        self.parent.factory_stopped()
+        self.parent.factory_stopped(self)
         
 def AClient(parent, name, socket):
     factory = AClientFactory(parent, name)

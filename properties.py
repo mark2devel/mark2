@@ -1,5 +1,4 @@
 import re
-import pyjavaproperties
 
 class Properties(dict):
     def __init__(self, path, parent=None):
