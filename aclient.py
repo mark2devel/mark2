@@ -1,6 +1,6 @@
 from twisted.internet.protocol import ClientFactory, Protocol
 from twisted.protocols.basic import LineReceiver
-from twisted.internet import reactor, stdio
+from twisted.internet import reactor, stdio, task
 
 import blessings
 
@@ -19,11 +19,21 @@ class AManager:
     index = 0
     users = []
     last_users = []
+    sockets = []
+    last_sockets = []
     
     
-    def __init__(self, server):
+    def __init__(self, server, socketdir):
         self.user = getpass.getuser()
+        
+        self.socketdir = socketdir
+        
         self.load_servers()
+        
+        if not self.sockets:
+            print 'No servers available. Press Ctrl-C to exit.'
+            return
+        
         self.term = blessings.Terminal()
         self.prompt = term_prompt.Prompt(self.refresh_prompt, self.command, self.tab, self.next)
         
@@ -35,6 +45,9 @@ class AManager:
             self.index = 0
         
         self.focus(self.index)
+        
+        t = task.LoopingCall(self.load_servers)
+        t.start(10)
 
         stdin = Protocol()
         stdin.dataReceived = self.s_in
@@ -59,12 +72,13 @@ class AManager:
     
     def draw_serverlist(self):
         servers = [x[0] for x in self.sockets]
+        last_servers = [x[0] for x in self.last_sockets]
         current = self.sockets[self.index][0]
         
         spaces = len(max(servers + self.users, key=len))
-        erase_spaces = max(0, len(max(servers + self.last_users, key=len)) - spaces) * ' '
+        erase_spaces = max(0, len(max(self.last_users + last_servers + servers, key=len)) - spaces) * ' '
         
-        erase = max(0, len(self.last_users) - len(self.users))
+        erase = max(0, len(self.last_users) + len(last_servers) - len(self.users) - len(self.sockets))
         
         with self.term.location(0, 0):
             for s in servers:
@@ -77,6 +91,7 @@ class AManager:
                 sys.stdout.write((' ' * (spaces + 2) + erase_spaces + '\n') * erase)
         
         self.last_users = self.users
+        self.last_sockets = self.sockets
     
     def server_output(self, line):
         self.printer(line)
@@ -108,25 +123,33 @@ class AManager:
             pass
     
     def load_servers(self):
+        current = self.sockets[self.index] if self.sockets else None
+        old = self.sockets if self.sockets else []
         self.sockets = []
         
-        for f in glob.glob('/tmp/mcpitch/*.sock'):
+        for f in glob.glob(os.path.join(self.socketdir, '*.sock')):
             name = os.path.splitext(os.path.basename(f))[0]
             self.sockets.append((name, f))
-
+        
+        if current and current not in self.sockets: self.sockets.append(current)
         self.sockets = sorted(self.sockets, key=lambda e: e[0])
+        if current: self.index = self.sockets.index(current)
+        if old and self.sockets != old: self.refresh_prompt()
+        
+        if self.client: assert self.sockets[self.index][1] == self.client.socket
         
     def focus(self, n=0):
         print self.term.clear
         
-        if self.client:
+        if self.client and self.client.alive:
             self.client.alive = False
-            self.client.proto.transport.loseConnection()
+            try:
+                self.client.proto.transport.loseConnection()
+            except:
+                pass
         
         self.index = n
         self.client = AClient(self, *self.sockets[self.index])
-        with self.term.location(0, 0):
-            print 'focused on {}'.format(self.index)
     
     def next(self, step=1):
         self.focus((self.index + step) % len(self.sockets))
@@ -146,7 +169,11 @@ class AClientProtocol(LineReceiver):
         self.send_helper("attach", user=self.manager.user, line_count=self.manager.term.height)
 
     def connectionLost(self, reason):
-        print "client disconnected!"
+        if len(self.manager.sockets) <= 1:
+            print "client disconnected!"
+            #reactor.stop()
+        elif self.factory.alive:
+            self.manager.next()
 
     def lineReceived(self, line):
         msg = json.loads(line)
@@ -194,11 +221,12 @@ class AClientFactory(ClientFactory):
         
 def AClient(parent, name, socket):
     factory = AClientFactory(parent, name)
+    factory.socket = socket
     reactor.connectUNIX(socket, factory)
     return factory
 
-def main(use_server=None):
-    m = AManager(use_server)
+def main(socketdir, use_server=None):
+    m = AManager(use_server, socketdir)
     reactor.run()
 
 if __name__ == '__main__':
