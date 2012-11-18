@@ -6,7 +6,7 @@ import re
 
 from twisted.internet import task, reactor
 
-""" plugin api: 
+""" plugin api:
 
  - register (regex, callback) pairs on server output
  - send commands to server
@@ -14,14 +14,15 @@ from twisted.internet import task, reactor
  - register tasks (name, time, callback)
  - delete tasks by name (del1, delall?)
 
-
 """
+
 
 class Consumer:
     ty = "consumer"
+    
     def __init__(self, callback, level, pattern):
         self.callback = callback
-        self.regex    = re.compile('^(?:\d{4}-\d{2}-\d{2} )?\d{2}:\d{2}:\d{2} \[%s\] %s$' % (level, pattern))
+        self.regex = re.compile('^(?:\d{4}-\d{2}-\d{2} )?\d{2}:\d{2}:\d{2} \[%s\] %s$' % (level, pattern))
     
     def act(self, line):
         m = self.regex.match(line)
@@ -31,19 +32,24 @@ class Consumer:
         self.callback(m)
         return True
 
+
 class Interest(Consumer):
     ty = "interest"
 
 
 class ConsoleInterest:
     ty = "console_interest"
+    
     def __init__(self, callback):
         self.callback = callback
+    
     def act(self, line):
         self.callback(line)
 
+
 class Command:
     ty = "command"
+    
     def __init__(self, callback, command, doc=None):
         self.callback = callback
         self.command = command
@@ -54,21 +60,26 @@ class Command:
     def __repr__(self):
         o = "  ~%s" % self.command
         if self.doc:
-            o+=": %s" % self.doc
+            o += ": %s" % self.doc
         return o
     
     def act(self, user, line):
         self.callback(user, line)
 
+
 class ShutdownTask:
     ty = "shutdown_task"
+    
     def __init__(self, callback):
         self.callback = callback
+    
     def act(self, reason):
         self.callback(reason)
 
+
 class Plugin:
     passed_up = {}
+    
     def __init__(self, parent, name, **kwargs):
         self.parent = parent
         self.name = name
@@ -93,7 +104,7 @@ class Plugin:
             raise AttributeError
     
     def setup(self):
-        pass 
+        pass
 
     def delayed_task(self, callback, delay):
         t = reactor.callLater(delay, callback)
@@ -104,8 +115,9 @@ class Plugin:
         t.start(interval, now=False)
         return t
 
+
 def load(name, **kwargs):
-    p = path.join(path.dirname(path.realpath(__file__)), name+'.py')
+    p = path.join(path.dirname(path.realpath(__file__)), name + '.py')
     module = imp.load_source(name, p)
     return module.ref
         
@@ -116,11 +128,10 @@ def get_plugins():
         module_name, ext = path.splitext(path.basename(d))
         if ext == '.py' and not module_name.startswith('_'):
             try:
-                module  = imp.load_source(module_name, d)
-                name    = module.name
-                plugin  = module.ref
+                module = imp.load_source(module_name, d)
+                name = module.name
+                plugin = module.ref
                 yield name, plugin
             except:
                 print 'The plugin "%s" failed to load! Stack trace follows:' % module_name
                 traceback.print_exc()
-
