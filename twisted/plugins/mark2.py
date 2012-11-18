@@ -13,8 +13,10 @@ import sys
 stderr = sys.stderr
 
 class Options(usage.Options):
-    optParameters = [["dir", "d", ".", "The directory in which to find a server."],
-                     ["fd", None, None, "File descriptor to write startup output."]]
+    optParameters = [["dir", None, "", "The directory in which to find a server."],
+                     ["fd", None, None, "File descriptor to write startup output."],
+                     ["sockets", None, "/tmp/mcpitch/", "Socket base directory"],
+                     ["jarfile", None, None, "Name of the server jar"]]
 
 
 class Mark2ServiceMaker(object):
@@ -24,9 +26,11 @@ class Mark2ServiceMaker(object):
     options = Options
 
     def makeService(self, options):
-        dir = str(options["dir"])
         fd = int(options["fd"])
-        return Manager(dir, fd)
+        return Manager(options["dir"],
+                       output=fd,
+                       socketdir=options["sockets"],
+                       jarfile=options["jarfile"])
 
 
 serviceMaker = Mark2ServiceMaker()
