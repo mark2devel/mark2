@@ -14,6 +14,7 @@ def run_server():
     # we need the path to pass to twistd as absolute
     path = os.path.abspath(' '.join(args) if args else '.')
     pidfile = os.path.join(path, 'mark2.pid')
+    logfile = os.path.join(path, 'mark2.log')
     
     # move to the directory this script is in
     os.chdir(sys.path[0])
@@ -22,7 +23,7 @@ def run_server():
     r, w = os.pipe()
     
     # run everything
-    subprocess.call(['twistd'] + ['--pidfile', pidfile, '--logfile', '/dev/null'] + ['mark2'] + ['--dir', path, '--fd', str(w)])
+    subprocess.call(['twistd'] + ['--pidfile', pidfile, '--logfile', logfile] + ['mark2'] + ['--dir', path, '--fd', str(w)])
     
     # close our copy of the write end of the pipe
     os.close(w)

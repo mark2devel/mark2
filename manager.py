@@ -212,8 +212,6 @@ class Manager(MultiService):
         user = user.rjust(w) if len(user) < w else user[-w:]
         line = "{user} {prompt} {text}".format(user=user, prompt=prompt, text=text)
         
-        print line
-        
         self.console_log.append(line)
         for proto in self.clients.values():
             proto.send_output(line)
