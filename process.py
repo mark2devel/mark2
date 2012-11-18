@@ -7,11 +7,41 @@ import subprocess
 
 class ProcessProtocol(protocol.ProcessProtocol):
     obuff = ""
-    def __init__(self, parent, jarfile=None):
+
+    def __init__(self, parent):
         self.parent = parent
-        self.check_dependencies()
+
+    def errReceived(self, data):
+        data = data.split("\n")
+        data[0] = self.obuff + data[0]
+        self.obuff = data.pop()
+        for l in data:
+            self.parent.p_out(l)
+
+    def processEnded(self, reason):
+        self.parent.p_stop()
+
+
+class ProcessService(Service):
+    protocol = None
+
+    def __init__(self, jarfile=None):
         self.jarfile = jarfile
-        
+
+    def startService(self):
+        Service.startService(self)
+
+        self.check_dependencies()
+
+        self.protocol = ProcessProtocol(self.parent)
+
+        cmd = self.build_command()
+        self.process = reactor.spawnProcess(self.protocol, cmd[0], cmd)
+
+    def stopService(self):
+        Service.stopService(self)
+        self.process.signalProcess('KILL')
+
     def check_dependencies(self):
         if os.name != 'posix':
             self.parent.fatal_error("this program requires a posix environment (linux, bsd, os x, etc)")
@@ -41,39 +71,12 @@ class ProcessProtocol(protocol.ProcessProtocol):
         cmd.append(self.find_jar())
         cmd.append('nogui')
         return cmd
-    
-    
-    def errReceived(self, data):
-        data = data.split("\n")
-        data[0] = self.obuff + data[0]
-        self.obuff = data.pop()
-        for l in data:
-            self.parent.p_out(l)
-    
-    def processEnded(self, reason):
-        self.parent.p_stop()
-    
-
-class ProcessService(Service):
-    
-    def __init__(self, protocol):
-        self.protocol = protocol
-    
-    def startService(self):
-        Service.startService(self)
-        cmd = self.protocol.build_command()
-        self.process = reactor.spawnProcess(self.protocol, cmd[0], cmd)
-    
-    def stopService(self):
-        Service.stopService(self)
-        self.process.signalProcess('KILL')
 
 
 def Process(parent, jarfile=None):
-    proto = ProcessProtocol(parent, jarfile)
-    service = ProcessService(proto)
+    service = ProcessService(jarfile)
     service.setServiceParent(parent)
-    return proto, service.process
+    return service.protocol, service
 
 
 def get_usage(pid):
@@ -82,9 +85,8 @@ def get_usage(pid):
         out = subprocess.check_output(c).strip().split(" ")
     except subprocess.CalledProcessError:
         out = ("0", "0")
-    
+
     return {
         'cpu': float(out[0]),
         'mem': int(out[1])
     }
-
