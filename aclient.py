@@ -14,6 +14,7 @@ import sys
 
 import term_prompt
 
+
 class AManager:
     client = None
     tab_cache = None
@@ -23,7 +24,6 @@ class AManager:
     sockets = []
     logged_in = set()
     last_size = (0, 0)
-    
     
     def __init__(self, server, socketdir):
         self.user = getpass.getuser()
@@ -57,11 +57,11 @@ class AManager:
         
         t = task.LoopingCall(self.refresh_data)
         t.start(10)
-
+        
         stdin = Protocol()
         stdin.dataReceived = self.s_in
         stdio.StandardIO(stdin)
-
+    
     def s_in(self, d):
         self.prompt.write(d)
         self.printer()
@@ -102,18 +102,18 @@ class AManager:
         
         erase_spaces = ' ' * max(0, self.last_size[0] - size[0])
         
-        erase = '{}{}  \n'.format(' '*(spaces+2), erase_spaces) * max(0, self.last_size[1] - size[1])
+        erase = '{}{}  \n'.format(' ' * (spaces + 2), erase_spaces) * max(0, self.last_size[1] - size[1])
         
         with self.term.location(0, 0):
             for s in servers:
-                fmt = self.term.bold_green_on_black if s==current else self.term.green_on_black
-                print '{0} {1} '.format(fmt, s) + ' ' * (spaces-len(s)) + self.term.normal + erase_spaces
+                fmt = self.term.bold_green_on_black if s == current else self.term.green_on_black
+                print '{0} {1} '.format(fmt, s) + ' ' * (spaces - len(s)) + self.term.normal + erase_spaces
             for u in self.users:
-                fmt = self.term.bold_blue_on_black if u==self.user else self.term.blue_on_black
-                print '{0} {1} '.format(fmt, u) + ' ' * (spaces-len(u)) + self.term.normal + erase_spaces
+                fmt = self.term.bold_blue_on_black if u == self.user else self.term.blue_on_black
+                print '{0} {1} '.format(fmt, u) + ' ' * (spaces - len(u)) + self.term.normal + erase_spaces
             for u in detached:
                 fmt = self.term.white_on_black
-                print '{0} {1} '.format(fmt, u) + ' ' * (spaces-len(u)) + self.term.normal + erase_spaces
+                print '{0} {1} '.format(fmt, u) + ' ' * (spaces - len(u)) + self.term.normal + erase_spaces
             if erase:
                 sys.stdout.write(erase)
         
@@ -157,13 +157,19 @@ class AManager:
             name = os.path.splitext(os.path.basename(f))[0]
             self.sockets.append((name, f))
         
-        if current and current not in self.sockets: self.sockets.append(current)
+        if current and current not in self.sockets:
+            self.sockets.append(current)
+
         self.sockets = sorted(self.sockets, key=lambda e: e[0])
-        if current: self.index = self.sockets.index(current)
         
-        if self.client: assert self.sockets[self.index][1] == self.client.socket
+        if current:
+            self.index = self.sockets.index(current)
         
-        if old and self.sockets != old: return True
+        if self.client:
+            assert self.sockets[self.index][1] == self.client.socket
+        
+        if old and self.sockets != old:
+            return True
         
     def focus(self, n=0):
         print self.term.clear
