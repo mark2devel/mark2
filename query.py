@@ -1,13 +1,14 @@
+import re
 import struct
 
 from twisted.application.internet import UDPClient
 from twisted.internet.protocol import DatagramProtocol
-from twisted.internet import reactor, task
-from sys import stdout
+from twisted.internet import task
+
 
 class QueryProtocol(DatagramProtocol):
-    interval   = 10
-    challenge  = None
+    interval = 10
+    challenge = None
     
     def __init__(self, host, port, callback):
         self.host = host
@@ -79,7 +80,5 @@ class QueryProtocol(DatagramProtocol):
 
 def Query(parent, callback, host, port):
     proto = QueryProtocol(host, port, callback)
-    reactor.listenUDP(0, proto)
     service = UDPClient(0, proto)
     return proto
-
