@@ -46,7 +46,7 @@ def run_client():
         return aclient.main(args[0])
     else:
         return aclient.main()
-TERM
+
 # never mind how someone managed to import this, stop them
 if __name__ != '__main__':
     print "You're doing it wrong."
