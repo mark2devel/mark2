@@ -60,7 +60,6 @@ class AManager:
     def draw_serverlist(self):
         servers = [x[0] for x in self.sockets]
         current = self.sockets[self.index][0]
-        servers.append(servers.pop(self.index))
         
         spaces = len(max(servers + self.users, key=len))
         erase_spaces = max(0, len(max(servers + self.last_users, key=len)) - spaces) * ' '
@@ -118,6 +117,8 @@ class AManager:
         self.sockets = sorted(self.sockets, key=lambda e: e[0])
         
     def focus(self, n=0):
+        print self.term.clear
+        
         if self.client:
             self.client.alive = False
             self.client.proto.transport.loseConnection()
