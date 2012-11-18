@@ -13,7 +13,7 @@ from twisted.internet import protocol, reactor
 from twisted.application.service import MultiService
 from twisted.application.internet import UNIXServer
 
-SOCKET_BASE   = '/tmp/mcpitch/'
+#SOCKET_BASE   = '/tmp/mcpitch/'
 RESOURCE_BASE = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources')
 
 """
@@ -35,13 +35,15 @@ class Manager(MultiService):
     ### Useful things
     ###
     
-    def __init__(self, path, output):
+    def __init__(self, path, output, socketdir, jarfile=None):
         MultiService.__init__(self)
         self.path = path
         self.name = os.path.basename(path)
         self.clients = {}
         self.console_log = []
         self.output = output
+        self.socketdir = socketdir
+        self.jarfile = jarfile
     
     def startService(self):
         MultiService.startService(self)
@@ -53,10 +55,10 @@ class Manager(MultiService):
         os.chdir(self.path)
         
         #Set up /tmp folder
-        if not os.path.isdir(SOCKET_BASE):
-            os.mkdir(SOCKET_BASE)
+        if not os.path.isdir(self.socketdir):
+            os.mkdir(self.socketdir)
         
-        self.socket = os.path.join(SOCKET_BASE, "%s.sock" % self.name)
+        self.socket = os.path.join(self.socketdir, "%s.sock" % self.name)
         
         self.reset_registers()
         
@@ -129,7 +131,7 @@ class Manager(MultiService):
         self.protocol.transport.signalProcess('KILL')
     
     def start_process(self):
-        self.protocol, self.process = process.Process(self)
+        self.protocol, self.process = process.Process(self, self.jarfile)
     
     #Called when the server process gives us a line
     def p_out(self, data):
