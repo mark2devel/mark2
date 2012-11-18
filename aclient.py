@@ -6,8 +6,10 @@ import blessings
 
 import json
 import glob
+import os
 import os.path
 import getpass
+import subprocess
 import sys
 
 import term_prompt
@@ -18,9 +20,9 @@ class AManager:
     tab_count = 0
     index = 0
     users = []
-    last_users = []
     sockets = []
-    last_sockets = []
+    logged_in = set()
+    last_size = (0, 0)
     
     
     def __init__(self, server, socketdir):
@@ -30,11 +32,18 @@ class AManager:
         
         self.load_servers()
         
+        os.environ['PROCPS_USERLEN'] = '32'
+        
         if not self.sockets:
-            print 'No servers available. Press Ctrl-C to exit.'
-            return
+            print 'No servers available.'
+            sys.exit(1)
         
         self.term = blessings.Terminal()
+        
+        if not self.term.is_a_tty:
+            print 'I need a tty.'
+            sys.exit(1)
+        
         self.prompt = term_prompt.Prompt(self.refresh_prompt, self.command, self.tab, self.next)
         
         print self.term.enter_fullscreen,
@@ -46,7 +55,7 @@ class AManager:
         
         self.focus(self.index)
         
-        t = task.LoopingCall(self.load_servers)
+        t = task.LoopingCall(self.refresh_data)
         t.start(10)
 
         stdin = Protocol()
@@ -70,28 +79,45 @@ class AManager:
         #print "prompt refresh"
         self.printer()
     
+    def all_users(self):
+        w = [line.split(' ', 1)[0] for line in subprocess.check_output(['w', '-sh']).splitlines()]
+        return set(w)
+    
+    def refresh_data(self):
+        server_refresh = self.load_servers()
+        o = self.logged_in
+        self.logged_in = self.all_users()
+        if server_refresh or self.logged_in != o:
+            self.refresh_prompt()
+    
     def draw_serverlist(self):
         servers = [x[0] for x in self.sockets]
-        last_servers = [x[0] for x in self.last_sockets]
         current = self.sockets[self.index][0]
         
-        spaces = len(max(servers + self.users, key=len))
-        erase_spaces = max(0, len(max(self.last_users + last_servers + servers, key=len)) - spaces) * ' '
+        detached = list(sorted(self.logged_in - set(self.users)))
         
-        erase = max(0, len(self.last_users) + len(last_servers) - len(self.users) - len(self.sockets))
+        spaces = len(max(servers + self.users + detached, key=len))
+        
+        size = (spaces + 2, len(servers) + len(self.users) + len(detached))
+        
+        erase_spaces = ' ' * max(0, self.last_size[0] - size[0])
+        
+        erase = '{}{}  \n'.format(' '*(spaces+2), erase_spaces) * max(0, self.last_size[1] - size[1])
         
         with self.term.location(0, 0):
             for s in servers:
                 fmt = self.term.bold_green_on_black if s==current else self.term.green_on_black
-                print '{fmt} {s} '.format(**locals()) + ' ' * (spaces-len(s)) + self.term.normal + erase_spaces
+                print '{0} {1} '.format(fmt, s) + ' ' * (spaces-len(s)) + self.term.normal + erase_spaces
             for u in self.users:
-                fmt2 = self.term.bold_blue_on_black if u==self.user else self.term.blue_on_black
-                print '{fmt2} {u} '.format(**locals()) + ' ' * (spaces-len(u)) + self.term.normal + erase_spaces
+                fmt = self.term.bold_blue_on_black if u==self.user else self.term.blue_on_black
+                print '{0} {1} '.format(fmt, u) + ' ' * (spaces-len(u)) + self.term.normal + erase_spaces
+            for u in detached:
+                fmt = self.term.white_on_black
+                print '{0} {1} '.format(fmt, u) + ' ' * (spaces-len(u)) + self.term.normal + erase_spaces
             if erase:
-                sys.stdout.write((' ' * (spaces + 2) + erase_spaces + '\n') * erase)
+                sys.stdout.write(erase)
         
-        self.last_users = self.users
-        self.last_sockets = self.sockets
+        self.last_size = size
     
     def server_output(self, line):
         self.printer(line)
@@ -134,9 +160,10 @@ class AManager:
         if current and current not in self.sockets: self.sockets.append(current)
         self.sockets = sorted(self.sockets, key=lambda e: e[0])
         if current: self.index = self.sockets.index(current)
-        if old and self.sockets != old: self.refresh_prompt()
         
         if self.client: assert self.sockets[self.index][1] == self.client.socket
+        
+        if old and self.sockets != old: return True
         
     def focus(self, n=0):
         print self.term.clear
@@ -186,7 +213,7 @@ class AClientProtocol(LineReceiver):
             self.manager.tab_response(msg["candidate"])
         
         if ty == "userlist":
-            self.manager.users = msg["users"]
+            self.manager.users = list(sorted(msg["users"]))
             self.manager.refresh_prompt()
     
     def send_helper(self, ty, **k):
