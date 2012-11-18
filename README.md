@@ -82,6 +82,13 @@ Similarly, you can stop a server with:
 
     $ mark2 kill /path/to/server
 
+If mark2 doesn't notice your server jarfile because it's got an unrecognized name,
+
+    $ mark2 start /path/to/server/an_oddly_named_server.jar
+
+Note that when using this form, mark2 still calls the server by the directory it is in, i.e. `server` in
+this example.
+
 ### attach
 
 To attach to a wrapped server:
@@ -112,7 +119,7 @@ Users are displayed in the top right corner.
 Prefixing something with "#" makes it a comment that isn't run, but is added to the console output. This is useful
 for chatting to other attached admins.
 
-You can also run mark2 plugin commands by prefixing "~". See "~help" for a list of available commands.
+You can also run mark2 plugin commands by prefixing "~". See "~commands" for a list of available commands.
 
 If you run more than one server, you can switch between them with the function keys.
 
