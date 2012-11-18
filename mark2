@@ -36,9 +36,19 @@ def run_server():
 def kill_server():
     path = os.path.abspath(' '.join(args) if args else '.')
     pidfile = os.path.join(path, 'mark2.pid')
+    if not os.path.exists(path):
+        print 'Invalid path specified.'
+        return
+    elif not os.path.exists(pidfile):
+        print 'Server is not running.'
+        return
     with open(pidfile, 'r') as f:
         pid = int(f.readline())
-    os.kill(pid, signal.SIGINT)
+        print 'Server at {} terminated.'.format(path)
+    try:
+        os.kill(pid, signal.SIGINT)
+    except OSError:
+        print 'Failed!'
 
 def run_client():
     # run the client in our own context, why not
@@ -68,9 +78,8 @@ elif command.lower() == 'kill':
     kill_server()
 else:
     print '''
-
 mark2 start [path/to/server]
+mark2 kill path/to/server
 mark2 attach [servername]
-
 '''
 
