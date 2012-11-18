@@ -3,18 +3,60 @@
 import os
 import os.path
 import signal
+import stat
 import subprocess
 import sys
 
 import aclient
 
-def run_server():
+SOCKET_BASE = '/tmp/mcpitch/'
+
+class Mark2Error(Exception):
+    error = ''
+    def __init__(self, error):
+        self.error = error
+    def __str__(self):
+        return self.error
+
+def ensure_basedir(dir, need_write=False):
+    need_modes = stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
+    if need_write:
+        need_modes |= stat.S_IRWXG | stat.S_IRWXO
+    good_modes = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO | stat.S_ISVTX
+    
+    if not os.path.exists(dir):
+        os.makedirs(dir, good_modes)
+    
+    st = os.stat(dir)
+    if (st.st_mode & need_modes) == need_modes:
+        return True
+    
+    try:
+        os.chmod(dir, good_modes)
+        return True
+    except Exception:
+        raise Mark2Error('{} does not have the necessary modes to run mark2 and I do not have\npermission to change them!'.format(dir))
+
+def run_server(*args):
     # let twistd run our our server
     
+    # first make sure we can properly run
+    ensure_basedir(SOCKET_BASE, need_write=True)
+    
     # we need the path to pass to twistd as absolute
-    path = os.path.abspath(' '.join(args) if args else '.')
-    pidfile = os.path.join(path, 'mark2.pid')
-    logfile = os.path.join(path, 'mark2.log')
+    path = os.path.abspath(' '.join(args) if args else '')
+    
+    # target has to at least exist
+    if not os.path.exists(path):
+        raise Mark2Error('{} does not exist.'.format(path))
+    
+    # if it's a file and its extension is .jar, take the directory as the path
+    # and tell mark2 to use its name as the jarfile
+    if os.path.isfile(path):
+        if os.path.splitext(path)[1] != '.jar': raise Mark2Error('{} is not a directory or jarfile'.format(path))
+        path, jarfile = os.path.split(path)
+    else:
+        jarfile = None
     
     # move to the directory this script is in
     os.chdir(sys.path[0])
@@ -22,8 +64,18 @@ def run_server():
     # look at output
     r, w = os.pipe()
     
-    # run everything
-    subprocess.call(['twistd'] + ['--pidfile', pidfile, '--logfile', logfile] + ['mark2'] + ['--dir', path, '--fd', str(w)])
+    # set up options for twistd
+    pidfile = os.path.join(path, 'mark2.pid')
+    logfile = os.path.join(path, 'mark2.log')
+    twistd_options = ['--pidfile', pidfile, '--logfile', logfile]
+    mark2_options = ['--fd', str(w), '--sockets', SOCKET_BASE]
+    if path:
+        mark2_options += ['--dir', path]
+    if jarfile:
+        mark2_options += ['--jarfile', jarfile]
+    
+    # run!
+    subprocess.call(['twistd'] + twistd_options + ['mark2'] + mark2_options)
     
     # close our copy of the write end of the pipe
     os.close(w)
@@ -34,29 +86,34 @@ def run_server():
         if not read: break
         sys.stdout.write(read)
 
-def kill_server():
+def kill_server(*args):
+    # send SIGINT to the twistd running at a given path
     path = os.path.abspath(' '.join(args) if args else '.')
     pidfile = os.path.join(path, 'mark2.pid')
     if not os.path.exists(path):
-        print 'Invalid path specified.'
-        return
+        raise Mark2Error('Invalid path specified.')
     elif not os.path.exists(pidfile):
-        print 'Server is not running.'
+        raise Mark2Error('Server is not running.')
+    try:
+        with open(pidfile, 'r') as f:
+            pid = int(f.readline())
+    except IOError:
+        raise Mark2Error('Can\'t read {}.'.format(pidfile))
         return
-    with open(pidfile, 'r') as f:
-        pid = int(f.readline())
-        print 'Server at {} terminated.'.format(path)
+    except ValueError:
+        raise Mark2Error('Invalid pidfile: {}.'.format(pidfile))
     try:
         os.kill(pid, signal.SIGINT)
+        print 'Server at {} terminated.'.format(path)
     except OSError:
-        print 'Failed!'
+        raise Mark2Error('Failed to signal process {}.'.format(pid))
 
-def run_client():
+def run_client(use_server=None):
+    # first make sure we can properly run
+    ensure_basedir(SOCKET_BASE, need_write=False)
+    
     # run the client in our own context, why not
-    if len(args) >= 1:
-        return aclient.main(args[0])
-    else:
-        return aclient.main()
+    return aclient.main(SOCKET_BASE, use_server)
 
 # never mind how someone managed to import this, stop them
 if __name__ != '__main__':
@@ -71,16 +128,22 @@ else:
     command = ''
     args = []
 
-if command.lower() == 'attach':
-    run_client()
-elif command.lower() == 'start':
-    run_server()
-elif command.lower() == 'kill':
-    kill_server()
-else:
-    print '''
-mark2 start [path/to/server]
-mark2 kill path/to/server
-mark2 attach [servername]
+def main(command, args):
+    try:
+        if command == 'attach':
+            run_client(*args)
+        elif command == 'start':
+            run_server(*args)
+        elif command == 'kill':
+            kill_server(*args)
+        else:
+            print '''
+mark2 start  path/to/server
+mark2 kill   path/to/server
+mark2 attach server
 '''
+    except Mark2Error as e:
+        print 'Failed to {}: {}'.format(command, e)
+
+main(command.lower(), args)
 
