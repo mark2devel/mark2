@@ -7,19 +7,16 @@ import subprocess
 
 class ProcessProtocol(protocol.ProcessProtocol):
     obuff = ""
-    def __init__(self, parent):
+    def __init__(self, parent, jarfile=None):
         self.parent = parent
-    
-    
         self.check_dependencies()
+        self.jarfile = jarfile
         
     def check_dependencies(self):
         if os.name != 'posix':
             self.parent.fatal_error("this program requires a posix environment (linux, bsd, os x, etc)")
         if not self.check_executable('java'):
             self.parent.fatal_error("couldn't find java executable")
-        #if not self.check_executable('socat'):
-        #    self.parent.fatal_error("couldn't find socat executable")
 
     def check_executable(self, name):
         return self.find_executable(name) != ''
@@ -29,6 +26,8 @@ class ProcessProtocol(protocol.ProcessProtocol):
 
     def find_jar(self):
         candidates = glob.glob('craftbukkit*.jar') + glob.glob('minecraft_server.jar')
+        if self.jarfile:
+            candidates = glob.glob(self.jarfile) + candidates
         if candidates:
             return candidates[0]
         else:
@@ -70,8 +69,8 @@ class ProcessService(Service):
         self.process.signalProcess('KILL')
 
 
-def Process(parent):
-    proto = ProcessProtocol(parent)
+def Process(parent, jarfile=None):
+    proto = ProcessProtocol(parent, jarfile)
     service = ProcessService(proto)
     service.setServiceParent(parent)
     return proto, service.process
