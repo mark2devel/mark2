@@ -1,6 +1,4 @@
 import os
-import sys
-import re
 import traceback
 
 import process
@@ -9,11 +7,9 @@ import aserver
 import properties
 import query
 
-from twisted.internet import protocol, reactor
+from twisted.internet import reactor
 from twisted.application.service import MultiService
-from twisted.application.internet import UNIXServer
 
-#SOCKET_BASE   = '/tmp/mcpitch/'
 RESOURCE_BASE = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources')
 
 """
@@ -21,6 +17,7 @@ RESOURCE_BASE = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resou
 This is the 'main' class that handles most of the logic
 
 """
+
 
 class Manager(MultiService):
     
@@ -68,7 +65,7 @@ class Manager(MultiService):
             self.start_process()
             self.start_terminal()
         except Exception as e:
-            self.fatal_error(str(e))
+            self.fatal_error(str(e), exception=e)
         
         self.startup_output("Server started successfully at {}".format(self.socket))
         
@@ -76,7 +73,8 @@ class Manager(MultiService):
         self.output = 0
     
     def startup_output(self, line):
-        if not self.output: return
+        if not self.output:
+            return
         os.write(self.output, '{}\n'.format(line))
     
     def load_profile(self):
@@ -88,10 +86,13 @@ class Manager(MultiService):
         
         if self.cfg['havent_read_conf']:
             self.fatal_error("Read your configuration file, then try again. (hint: havent_read_conf)")
-
-    def fatal_error(self, message):
+    
+    def fatal_error(self, message, exception=None):
         self.startup_output("[ERROR] {}".format(message))
-        self.shutdown('fatal_error', message)
+        if exception:
+            raise exception
+        else:
+            self.shutdown('fatal_error', message)
     
     def server_started(self, match):
         p = properties.Properties(os.path.join(RESOURCE_BASE, 'server.default.properties'))
@@ -111,14 +112,11 @@ class Manager(MultiService):
             o.append((name, command.doc))
             m = max(m, len(name))
         
-        
         self.console("The following commands are available:")
         for name, doc in o:
             self.console("  ~%s | %s" % (name.ljust(m), doc))
     
     def shutdown(self, caller, reason='(no reason)'):
-        #self.process.shutdown()
-        #print "shutdown completed!"
         if self.output:
             os.close(self.output)
         raise Exception("shutdown() called for {}: {}".format(caller, reason))
@@ -128,7 +126,8 @@ class Manager(MultiService):
     ###
     
     def kill_process(self):
-        self.protocol.transport.signalProcess('KILL')
+        self.console('Stopping service: {}'.format(self.process))
+        self.process.stopService()
     
     def start_process(self):
         self.protocol, self.process = process.Process(self, self.jarfile)
@@ -192,16 +191,16 @@ class Manager(MultiService):
             user.send_helper('userlist', users=self.clients.keys())
     
     def handle_chat(self, user, text):
-        self.console("#"+text, prompt='>', user=user)
+        self.console("#" + text, prompt='>', user=user)
     
     def handle_plugin(self, user, text):
-        self.console("~"+text, prompt='>', user=user)
+        self.console("~" + text, prompt='>', user=user)
         
         t = text.split(" ", 1)
         cmd = t[0]
         
         if cmd in self.commands:
-            self.commands[cmd].act(user, t[1] if len(t)==2 else "")
+            self.commands[cmd].act(user, t[1] if len(t) == 2 else "")
         else:
             self.console("unknown command.")
     
@@ -220,11 +219,9 @@ class Manager(MultiService):
         for console_interest in self.console_interests:
             console_interest.act(line)
     
-        
-    
     ###
     ### plugin
-    ### 
+    ###
 
     def reset_registers(self):
         self.plugins   = {}
@@ -239,7 +236,7 @@ class Manager(MultiService):
     def load_plugins(self):
        
         pl = self.cfg.get_plugins()
-        m = max([len(n) for n, a in pl])
+        #m = max([len(n) for n, a in pl])
         loaded = []
         
         for name, kwargs in pl:
@@ -268,5 +265,4 @@ class Manager(MultiService):
     
     def send(self, text):
         #print text
-        self.p_in(text+"\n")
-
+        self.p_in(text + "\n")
