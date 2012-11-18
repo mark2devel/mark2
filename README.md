@@ -60,7 +60,7 @@ Allows a user to run "!teamspeak", for example, and for the server to /msg or /s
 * config TODO
 * twisted
 
-##usage
+## usage
 
 ### configure
 
@@ -77,6 +77,10 @@ To start a minecraft server:
     $ mark2 start /path/to/server
 
 If you're already in the right directory, you can omit the last parameter.
+
+Similarly, you can stop a server with:
+
+    $ mark2 kill /path/to/server
 
 ### attach
 
