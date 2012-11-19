@@ -1,0 +1,3 @@
+!trigger,Example trigger response
+!longer,Response spanning
+!longer,multiple lines
