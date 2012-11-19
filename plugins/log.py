@@ -2,7 +2,8 @@ import time
 import gzip
 import os
 
-from plugins import Plugin, ConsoleInterest, ShutdownTask
+from plugins import Plugin, ConsoleInterest, ShutdownTask, register
+
 
 class Log(Plugin):
     gzip      = True
@@ -10,14 +11,11 @@ class Log(Plugin):
     
     log = ""
     
-    def setup(self):
-        self.register(ConsoleInterest(self.logger))
-        self.register(ShutdownTask(self.shutdown))
-            
-
+    @register(ConsoleInterest)
     def logger(self, line):
-        self.log+=line+"\n"
+        self.log += line + "\n"
     
+    @register(ShutdownTask)
     def shutdown(self, reason):
         if reason == None:
             reason = "ok"
@@ -35,5 +33,3 @@ class Log(Plugin):
         f.close()
         self.console("server.log written to %s" % os.path.realpath(path))
         self.log = ""
-
-ref = Log

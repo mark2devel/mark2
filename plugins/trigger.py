@@ -3,11 +3,13 @@ import re
 
 from plugins import Plugin, Interest
 
+
 class Trigger(Plugin):
-    command  = "msg {user} {message}"
-    path     = "triggers.txt"
+    command = "msg {user} {message}"
+    path = "triggers.txt"
     
     triggers = {}
+    
     def setup(self):
         if self.path and os.path.exists(self.path):
             f = open(self.path, 'r')
@@ -28,5 +30,3 @@ class Trigger(Plugin):
         if trigger in self.triggers:
             for line in self.triggers[trigger]:
                 self.send(self.command.format(user=user, message=line))
-            
-ref = Trigger

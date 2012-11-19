@@ -3,14 +3,13 @@ import tarfile
 import glob
 import os
 
-from plugins import Plugin, ShutdownTask
+from plugins import Plugin, ShutdownTask, register
+
 
 class Backup(Plugin):
     path = "backups/{timestamp}.tar.gz"
     
-    def setup(self):
-        self.register(ShutdownTask(self.shutdown))
-
+    @register(ShutdownTask)
     def shutdown(self, reason):
         timestamp = time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime())
         path = self.path.format(timestamp=timestamp, name=self.parent.name)
@@ -19,5 +18,3 @@ class Backup(Plugin):
             tar.add(world)
         tar.close()
         self.console("map data backed up to %s" % os.path.realpath(path))
-        
-ref = Backup

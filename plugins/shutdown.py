@@ -1,5 +1,6 @@
 from plugins import Plugin, Command, ShutdownTask
 
+
 class Shutdown(Plugin):
     repeat          = True
     repeat_interval = 30
@@ -66,5 +67,3 @@ class Shutdown(Plugin):
         self.parent.resurrect = resurrect
         self.soft(resurrect)
         self.failsafe = self.delayed_task(lambda s: s.hard(resurrect), self.soft_timeout)
-    
-ref = Shutdown

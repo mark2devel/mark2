@@ -102,5 +102,3 @@ class IRC(Plugin):
     def irc_message(self, user, message):
         if self.irc_to_game_enabled:
             self.send(self.irc_to_game_command.format(nickname=user, message=message))
-
-ref = IRC

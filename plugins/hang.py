@@ -1,6 +1,7 @@
-from plugins import Plugin, Interest, Consumer, ShutdownTask
+from plugins import Plugin, Interest, Consumer, ShutdownTask, register
 
 #TODO: aggressive (FE)
+
 
 class HangChecker(Plugin):
     crash_enabled = True
@@ -17,19 +18,18 @@ class HangChecker(Plugin):
     pcount_interval = 60
     pcount_fail_limit = 10
     
-    
     def setup(self):
         self.reset_counts()
-        self.register(ShutdownTask(self.reset_counts))
         if self.crash_enabled:
             self.repeating_task(self.crash_loop, self.crash_interval)
         if self.oom_enabled:
             self.register(Interest(self.out_of_memory, 'SEVERE', 'java\.lang\.OutOfMemoryError.*'))
         if self.ping_enabled:
-            pass #TODO
+            pass  # TODO
         if self.pcount_enabled:
-            pass #TODO
-      
+            pass  # TODO
+    
+    @register(ShutdownTask)
     def reset_counts(self, *a):
         self.crash_alive  = True
         self.crash_fails  = 0
@@ -58,6 +58,4 @@ class HangChecker(Plugin):
         
         self.crash_alive = False
         self.register(Consumer(self.crash_ok, 'INFO', 'Unknown command.*'))
-        self.send('') #Blank command to trigger 'Unknown command'
-
-ref = HangChecker
+        self.send('')  # Blank command to trigger 'Unknown command'

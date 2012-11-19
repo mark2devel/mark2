@@ -3,9 +3,10 @@ import random
 
 from plugins import Plugin
 
+
 class Alert(Plugin):
     interval = 200
-    command  = "say {message}"
+    command = "say {message}"
     path = "alerts.txt"
     
     messages = []
@@ -24,5 +25,3 @@ class Alert(Plugin):
 
     def repeater(self):
         self.send(self.command.format(message=random.choice(self.messages)))
-
-ref = Alert
