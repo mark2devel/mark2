@@ -254,9 +254,9 @@ class Manager(MultiService):
                 self.plugins[name] = ref(self, name, **kwargs)
                 loaded.append(name)
             except:
-                self.console("plugin '%s' failed to load. stack trace follows" % name)
+                self.console("plugin '%s' failed to load. stack trace follows" % name, kind='error')
                 for l in traceback.format_exc().split("\n"):
-                    self.console(l)
+                    self.console(l, kind='error')
         
         self.console("loaded plugins: " + ", ".join(loaded))
     
