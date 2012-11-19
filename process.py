@@ -8,6 +8,7 @@ import subprocess
 
 class ProcessProtocol(protocol.ProcessProtocol):
     obuff = ""
+    alive = True
 
     def __init__(self, parent):
         self.parent = parent
@@ -20,6 +21,7 @@ class ProcessProtocol(protocol.ProcessProtocol):
             self.parent.p_out(l)
 
     def processEnded(self, reason):
+        self.alive = False
         self.parent.p_stop()
 
 
@@ -41,7 +43,8 @@ class ProcessService(Service):
 
     def stopService(self):
         Service.stopService(self)
-        self.process.signalProcess('KILL')
+        if self.protocol.alive:
+            self.process.signalProcess('KILL')
 
     def check_dependencies(self):
         if os.name != 'posix':
