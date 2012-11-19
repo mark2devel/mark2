@@ -204,9 +204,12 @@ class Manager(MultiService):
         else:
             self.console("unknown command.")
     
+    def expand_command(self, user, text):
+        return self.cfg['command_format'].format(user=user, command=text)
+    
     def handle_command(self, user, text):
         self.console(text, prompt=">", user=user)
-        self.send(text)
+        self.send(self.expand_command(user, text))
 
     def console(self, text, prompt="#", user=""):
         w = 10
