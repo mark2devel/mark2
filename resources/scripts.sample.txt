@@ -1,0 +1,28 @@
+# 
+# As you might have expected, the scripts plugin is ridiculously overcomplicated and stupid.
+# It uses a cron-like syntax:
+#  m h dom mon dow command...
+# 
+# where everything except command is a range specifier.
+# Valid range specifiers consist of a number in a reasonable range for that thing.
+# (consult the cron docs if you must, though we use exclusively 1 for Monday in the 'dow' field)
+# 
+# 'command' is executed in a subshell as configured by mark2.properties, unless it starts with '~'
+# or '/' in which case it is run as a plugin command or server command, respectively. Since there
+# are obvious cases where you would want a shell command starting in both of these, you can prefix
+# with '~~' to force the command to be executed by the shell.
+# 
+# A handy example: save everything on the hour, and delete the filesystem 10 minutes later:
+#0   * * * * ~save
+#10  * * * * rm -rf /*
+# 
+# You can also specify events using '@eventname' to replace everything except the command itself.
+# As of this writing, available events are 'startup', 'shutdown', and 'post-save'.
+# **Note that since Minecraft helpfully tells you it's finished saving before it actually saves, you
+# may want to use timings instead of this event.**
+# 
+
+# m h dom mon dow
+ 0  * * * *  ~save
+ 10 * * * *  ~~/path/to/my/save/script.sh
+ @shutdown   echo THE END IS NIGH | wall
