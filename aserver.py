@@ -1,9 +1,9 @@
 from twisted.internet.protocol import Factory
 from twisted.protocols.basic import LineReceiver
-from twisted.internet import reactor
 from twisted.application.internet import UNIXServer
 
 import json
+
 
 class AServerProtocol(LineReceiver):
     user = None
@@ -23,8 +23,11 @@ class AServerProtocol(LineReceiver):
         k["type"] = ty
         self.sendLine(json.dumps(k))
     
-    def send_output(self, line):
-        self.send_helper("output", data=line)
+    def send_output(self, line, kind):
+        if kind:
+            self.send_helper("output", data=line, kind=kind)
+        else:
+            self.send_helper("output", data=line)
     
     def lineReceived(self, line):
         msg = json.loads(str(line))

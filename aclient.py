@@ -14,6 +14,18 @@ import sys
 
 import term_prompt
 
+FORMAT = {
+    'attached_server':  'bold green on black',
+    'detached_server':  'green on black',
+    'current_user':     'bold blue on black',
+    'attached_user':    'blue on black',
+    'detached_user':    'white on black',
+    'console':          'normal',
+    'prompt':           'normal',
+    'joinpart':         'green',
+    'error':            'red'
+}
+
 
 class AManager:
     client = None
@@ -40,6 +52,8 @@ class AManager:
         
         self.term = blessings.Terminal()
         
+        self.format = dict(FORMAT)
+        
         if not self.term.is_a_tty:
             print 'I need a tty.'
             sys.exit(1)
@@ -61,6 +75,9 @@ class AManager:
         stdin = Protocol()
         stdin.dataReceived = self.s_in
         stdio.StandardIO(stdin)
+    
+    def cap(self, name):
+        return getattr(self.term, self.format.get(name, 'normal').replace(' ', '_'))
     
     def s_in(self, d):
         self.prompt.write(d)
@@ -106,20 +123,22 @@ class AManager:
         
         with self.term.location(0, 0):
             for s in servers:
-                fmt = self.term.bold_green_on_black if s == current else self.term.green_on_black
+                fmt = self.cap('attached_server' if s == current else 'detached_server')
                 print '{0} {1} '.format(fmt, s) + ' ' * (spaces - len(s)) + self.term.normal + erase_spaces
             for u in self.users:
-                fmt = self.term.bold_blue_on_black if u == self.user else self.term.blue_on_black
+                fmt = self.cap('current_user' if u == self.user else 'attached_user')
                 print '{0} {1} '.format(fmt, u) + ' ' * (spaces - len(u)) + self.term.normal + erase_spaces
             for u in detached:
-                fmt = self.term.white_on_black
+                fmt = self.cap('detached_user')
                 print '{0} {1} '.format(fmt, u) + ' ' * (spaces - len(u)) + self.term.normal + erase_spaces
             if erase:
                 sys.stdout.write(erase)
         
         self.last_size = size
     
-    def server_output(self, line):
+    def server_output(self, line, format=None):
+        if format:
+            line = self.cap(format) + line
         self.printer(line)
     
     def tab_response(self, line):
@@ -131,16 +150,16 @@ class AManager:
         sys.stdout.write('\r')
         
         # if there is any data, write it then get a new line
-        sys.stdout.write(data + '\n' if data else '')
+        sys.stdout.write(self.cap('console') + data + '\n' + self.term.normal if data else '')
         
         # self-explanatory
         self.draw_serverlist()
         
         # make sure we're at the bottom of the terminal
-        sys.stdout.write(self.term.move(self.term.height - 1, 0) + self.term.clear_eol)
+        sys.stdout.write(self.term.move(self.term.height - 1, 0))
         
         # draw our prompt
-        sys.stdout.write(str(self.prompt))
+        sys.stdout.write(self.cap('prompt') + self.term.clear_eol + str(self.prompt) + self.term.normal)
         
         # self-explanatory
         try:
@@ -214,7 +233,7 @@ class AClientProtocol(LineReceiver):
         ty = msg["type"]
         
         if ty == "output":
-            self.manager.server_output(msg["data"])
+            self.manager.server_output(msg["data"], format=msg.get("kind", None))
         
         if ty == "tab":
             self.manager.tab_response(msg["candidate"])
@@ -222,6 +241,10 @@ class AClientProtocol(LineReceiver):
         if ty == "userlist":
             self.manager.users = list(sorted(msg["users"]))
             self.manager.refresh_prompt()
+        
+        if ty == "options":
+            self.manager.format.update(msg["format"])
+            self.manager.prompt.prefix = msg["prompt"] + ' '
     
     def send_helper(self, ty, **k):
         k["type"] = ty

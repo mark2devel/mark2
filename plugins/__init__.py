@@ -1,6 +1,4 @@
 from os import path
-from glob import glob
-import traceback
 import imp
 import inspect
 import re

@@ -80,3 +80,11 @@ class Properties(dict):
                 else:
                     print "Unknown JVM option type: %s" % a
         return options
+    
+    def get_format_options(self):
+        options = {}
+        for k, v in self.iteritems():
+            m = re.match('^mark2\.format\.(.*)$', k)
+            if m:
+                options[m.group(1)] = v
+        return options

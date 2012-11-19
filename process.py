@@ -1,5 +1,6 @@
 from twisted.internet import protocol, reactor
 from twisted.application.service import Service
+from itertools import chain
 import os
 import glob
 import subprocess
@@ -55,7 +56,8 @@ class ProcessService(Service):
         return subprocess.check_output(['which', name]).strip()
 
     def find_jar(self):
-        candidates = glob.glob('craftbukkit*.jar') + glob.glob('minecraft_server.jar')
+        patterns = self.parent.cfg['mark2.jar_path'].split(';')
+        candidates = list(chain.from_iterable(map(glob.glob, patterns)))
         if self.jarfile:
             candidates = glob.glob(self.jarfile) + candidates
         if candidates:

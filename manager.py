@@ -6,6 +6,7 @@ import plugins
 import aserver
 import properties
 import query
+import re
 
 from twisted.internet import reactor
 from twisted.application.service import MultiService
@@ -105,17 +106,6 @@ class Manager(MultiService):
     def query_callback(self, d):
         self.players = d['players']
     
-    def plugin_commands(self, *a):
-        o = []
-        m = 0
-        for name, command in sorted(self.commands.items(), key=lambda m: m[0]):
-            o.append((name, command.doc))
-            m = max(m, len(name))
-        
-        self.console("The following commands are available:")
-        for name, doc in o:
-            self.console("  ~%s | %s" % (name.ljust(m), doc))
-    
     def shutdown(self, caller, reason='(no reason)'):
         if self.output:
             os.close(self.output)
@@ -142,7 +132,8 @@ class Manager(MultiService):
                 break
         
         if consumed == -1:
-            self.console(data, prompt="|")
+            errors = re.match('^(?:\d{4}-\d{2}-\d{2} )?\d{2}:\d{2}:\d{2} \[(?:ERROR|WARNING)\] .*$', data)
+            self.console(data, prompt="|", kind='error' if errors else None)
         else:
             self.consumers.pop(i)
         
@@ -172,16 +163,21 @@ class Manager(MultiService):
         self.aserver = aserver.AServer(self)
     
     def handle_attach(self, protocol, user, lines):
-        self.console('%s attached' % user, prompt="#")
+        self.console('%s attached' % user, prompt="#", kind='joinpart')
         self.clients[user] = protocol
-        for l in self.console_log[-lines:]:
-            protocol.send_output(l)
+        
+        protocol.send_helper('options',
+                             format=self.cfg.get_format_options(),
+                             prompt=self.cfg.get('mark2.client.prompt', '%'))
         
         self.update_userlist()
+        
+        for l in self.console_log[-lines:]:
+            protocol.send_output(*l)
     
     def handle_detach(self, user):
         if user in self.clients:
-            self.console('%s detached' % user, prompt="#")
+            self.console('%s detached' % user, prompt="#", kind='joinpart')
             del self.clients[user]
             
             self.update_userlist()
@@ -205,20 +201,20 @@ class Manager(MultiService):
             self.console("unknown command.")
     
     def expand_command(self, user, text):
-        return self.cfg['command_format'].format(user=user, command=text)
+        return self.cfg['mark2.command_format'].format(user=user, command=text)
     
     def handle_command(self, user, text):
         self.console(text, prompt=">", user=user)
         self.send(self.expand_command(user, text))
 
-    def console(self, text, prompt="#", user=""):
+    def console(self, text, prompt="#", user="", kind=None):
         w = 10
         user = user.rjust(w) if len(user) < w else user[-w:]
         line = "{user} {prompt} {text}".format(user=user, prompt=prompt, text=text)
         
-        self.console_log.append(line)
+        self.console_log.append((line, kind))
         for proto in self.clients.values():
-            proto.send_output(line)
+            proto.send_output(line, kind)
         for console_interest in self.console_interests:
             console_interest.act(line)
     
@@ -235,9 +231,19 @@ class Manager(MultiService):
         self.console_interests = []
         self.register(plugins.Interest(self.server_started, 'INFO', 'Done \([\d\.]+s\)\! For help, type "help" or "\?"'))
         self.register(plugins.Command(self.plugin_commands, 'commands', 'displays this message'))
+    
+    def plugin_commands(self, *a):
+        o = []
+        m = 0
+        for name, command in sorted(self.commands.items(), key=lambda m: m[0]):
+            o.append((name, command.doc))
+            m = max(m, len(name))
+        
+        self.console("The following commands are available:")
+        for name, doc in o:
+            self.console("  ~%s | %s" % (name.ljust(m), doc))
       
     def load_plugins(self):
-       
         pl = self.cfg.get_plugins()
         #m = max([len(n) for n, a in pl])
         loaded = []
