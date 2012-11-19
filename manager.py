@@ -80,12 +80,17 @@ class Manager(MultiService):
     
     def load_profile(self):
         p = properties.Properties(os.path.join(RESOURCE_BASE, 'mark2.default.properties'))
+        
+        path = os.path.join(RESOURCE_BASE, 'mark2.properties')
+        if os.path.exists(path):
+            del p['havent_read_conf']
+            p = properties.Properties(path)
         if os.path.exists('mark2.properties'):
             p = properties.Properties('mark2.properties', p)
         
         self.cfg = p
         
-        if self.cfg['havent_read_conf']:
+        if self.cfg.get('havent_read_conf', None):
             self.fatal_error("Read your configuration file, then try again. (hint: havent_read_conf)")
     
     def fatal_error(self, message, exception=None):
