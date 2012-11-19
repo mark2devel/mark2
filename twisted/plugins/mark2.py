@@ -3,14 +3,13 @@ from zope.interface import implements
 from twisted.python import usage
 from twisted.plugin import IPlugin
 from twisted.application.service import IServiceMaker
-from twisted.application import internet
 
 from manager import Manager
 
-import os
 import sys
 
 stderr = sys.stderr
+
 
 class Options(usage.Options):
     optParameters = [["dir", None, "", "The directory in which to find a server."],
@@ -26,7 +25,7 @@ class Mark2ServiceMaker(object):
     options = Options
 
     def makeService(self, options):
-        fd = int(options["fd"])
+        fd = int(options["fd"]) if options["fd"] else None
         return Manager(options["dir"],
                        output=fd,
                        socketdir=options["sockets"],
@@ -34,4 +33,3 @@ class Mark2ServiceMaker(object):
 
 
 serviceMaker = Mark2ServiceMaker()
-
