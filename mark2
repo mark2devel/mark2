@@ -10,12 +10,14 @@ server.
 
 import os
 import os.path
+import shutil
 import signal
 import stat
 import subprocess
 import sys
 
 import aclient
+import properties
 
 
 SOCKET_BASE = '/tmp/mcpitch/'
@@ -51,6 +53,32 @@ def ensure_basedir(dir, need_write=False):
         raise Mark2Error('{} does not have the necessary modes to run mark2 and I do not have\npermission to change them!'.format(dir))
 
 
+def check_properties(server=None):
+    path = os.path.join(sys.path[0], 'resources', 'mark2.properties')
+    default_path = os.path.join(sys.path[0], 'resources', 'mark2.default.properties')
+    if server:
+        server = os.path.join(server, 'mark2.properties')
+    
+    prop = properties.Properties(default_path)
+    del prop["havent_read_conf"]
+    
+    if not os.path.exists(path):
+        shutil.copy(default_path, path)
+    
+    prop = properties.Properties(path, prop)
+    
+    if server and os.path.exists(server):
+        prop = properties.Properties(server, prop)
+    
+    if prop.get('havent_read_conf', None):
+        print 'Your config file at {} requires attention.'.format(path)
+        editor = raw_input('Do you want to edit it now [yes]? ') or 'yes'
+        while editor not in ['yes', 'no']:
+            editor = raw_input('Enter \'yes\' or \'no\' [yes]: ') or 'yes'
+        if editor == 'yes':
+            subprocess.call(['sensible-editor', path])
+    
+
 def run_server(*args):
     # let twistd run our our server
     
@@ -75,6 +103,10 @@ def run_server(*args):
     
     # move to the directory this script is in
     os.chdir(sys.path[0])
+    
+    # create mark2.properties if it's not there and give the user the option to edit it if it's
+    # invalid
+    check_properties(path)
     
     # look at output
     r, w = os.pipe()
