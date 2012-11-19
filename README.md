@@ -56,19 +56,22 @@ Allows a user to run "!teamspeak", for example, and for the server to /msg or /s
 
 * unix-like system (linux, bsd, os x)
 * python 2
-* blessings TODO
-* config TODO
 * twisted
+* blessings
+
+## installation
+
+	ln -s /path/to/mark2 /usr/bin/mark2
 
 ## usage
 
 ### configure
 
-All servers load configuration from 'resources/default.cfg', which defines the default memory and plugins.
+All servers load configuration from `resources/mark2.default.properties`, which defines the default memory and plugins.
 
-To configure per-server, create a file called 'mark2.cfg' in the server's directory. In it you can define
-any subset of the default config - as much or as little as you want. Feel free to also edit the default
-config.
+To configure per-server, create a file called `mark2.properties` in the server's directory. In it you can define any
+subset of the default config - as much or as little as you want (see `resources/mark2.sample.properties` for an example).
+Feel free to also edit the default config.
 
 ### wrap
 
@@ -77,10 +80,6 @@ To start a minecraft server:
     $ mark2 start /path/to/server
 
 If you're already in the right directory, you can omit the last parameter.
-
-Similarly, you can stop a server with:
-
-    $ mark2 kill /path/to/server
 
 If mark2 doesn't notice your server jarfile because it's got an unrecognized name,
 
@@ -99,6 +98,12 @@ Where 'name' is the name of your server. If your server directory is /home/you/m
 
 If you omit the 'name' parameter, you'll just attach to the first server alphabetically. If you only run one server,
 you may as well omit this param.
+
+If you want to stop a server without attaching, you can:
+
+	$ mark2 kill /path/to/server
+
+Note that at the present time, the server will not be given an opportunity to save when shut down in this way.
 
 ### the display
 
@@ -119,9 +124,9 @@ Users are displayed in the top right corner.
 Prefixing something with "#" makes it a comment that isn't run, but is added to the console output. This is useful
 for chatting to other attached admins.
 
-You can also run mark2 plugin commands by prefixing "~". See "~commands" for a list of available commands.
+You can also run mark2 plugin commands by prefixing "~". See `~commands` for a list of available commands.
 
-If you run more than one server, you can switch between them with the function keys.
+If you run more than one server, you can switch between them with Control and the left and right arrow keys.
 
 ### tips
 
