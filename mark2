@@ -123,7 +123,7 @@ def kill_server(*args):
         os.kill(pid, signal.SIGINT)
         print 'Server at {} terminated.'.format(path)
     except OSError:
-        raise Mark2Error('Failed to signal process {}.'.format(pid))
+        raise Mark2Error('Failed to signal process {}, is the server running?.'.format(pid))
 
 
 def run_client(use_server=None):
