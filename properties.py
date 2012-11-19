@@ -1,5 +1,6 @@
 import re
 
+
 class Properties(dict):
     def __init__(self, path, parent=None):
         if parent:
@@ -10,7 +11,7 @@ class Properties(dict):
         
         decoder = {
             'int': int,
-            'bool': lambda a: a=='true',
+            'bool': lambda a: a == 'true',
             'string': lambda a: a.replace('\:', ':').replace('\=', '=').strip(),
             'none': lambda a: None
         }
@@ -39,7 +40,7 @@ class Properties(dict):
                     ty = 'string'
                 
                 self.types[k] = ty
-                self[k]  = decoder[ty](v)
+                self[k] = decoder[ty](v)
 
     def get_plugins(self):
         plugins = {}
@@ -67,15 +68,15 @@ class Properties(dict):
             m = re.match('^java\.cli\.([^\.]+)\.(.+)$', k)
             if m:
                 a, b = m.groups()
-                if a == 'D': 
-                    options.append('-D%s=%s' % (b,v))
-                elif a == 'X': 
-                    options.append('-X%s%s' % (b,v))
+                if a == 'D':
+                    options.append('-D%s=%s' % (b, v))
+                elif a == 'X':
+                    options.append('-X%s%s' % (b, v))
                 elif a == 'XX':
                     if v in (True, False):
                         options.append('-XX:%s%s' % ('+' if v else '-', b))
                     else:
-                        options.append('-XX:%s=%s' % (b,v))
+                        options.append('-XX:%s=%s' % (b, v))
                 else:
                     print "Unknown JVM option type: %s" % a
         return options
