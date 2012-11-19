@@ -2,6 +2,7 @@ from os import path
 from glob import glob
 import traceback
 import imp
+import inspect
 import re
 
 from twisted.internet import task, reactor
@@ -93,6 +94,10 @@ class Plugin:
             setattr(self, n, v)
         
         self.setup()
+        
+        for name, thing in inspect.getmembers(self, lambda x: hasattr(x, '_plugindata')):
+            ref, args = thing._plugindata
+            self.register(ref(thing, *args))
     
     def pass_up(self, *args):
         self.passed_up[args[0]] = args[-1]
@@ -116,22 +121,18 @@ class Plugin:
         return t
 
 
-def load(name, **kwargs):
-    p = path.join(path.dirname(path.realpath(__file__)), name + '.py')
-    module = imp.load_source(name, p)
-    return module.ref
-        
+def load(module_name, **kwargs):
+    print 'load {}'.format(module_name)
+    p = path.join(path.dirname(path.realpath(__file__)), module_name + '.py')
+    module = imp.load_source(module_name, p)
+    classes = inspect.getmembers(module, inspect.isclass)
+    for name, cls in classes:
+        if issubclass(cls, Plugin) and cls != Plugin:
+            return cls
 
-def get_plugins():
-    exp = path.join(path.dirname(path.realpath(__file__)), '*.py')
-    for d in glob(exp):
-        module_name, ext = path.splitext(path.basename(d))
-        if ext == '.py' and not module_name.startswith('_'):
-            try:
-                module = imp.load_source(module_name, d)
-                name = module.name
-                plugin = module.ref
-                yield name, plugin
-            except:
-                print 'The plugin "%s" failed to load! Stack trace follows:' % module_name
-                traceback.print_exc()
+
+def register(thing, *args):
+    def inner(fn):
+        fn._plugindata = (thing, args)
+        return fn
+    return inner
