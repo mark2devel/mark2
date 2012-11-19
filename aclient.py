@@ -193,6 +193,7 @@ class AManager:
         self.prompt.clean_up()
         print self.term.exit_fullscreen,
 
+
 class AClientProtocol(LineReceiver):
     user = None
     delimiter = '\n'
@@ -212,7 +213,7 @@ class AClientProtocol(LineReceiver):
         msg = json.loads(line)
         ty = msg["type"]
         
-        if ty == "output": 
+        if ty == "output":
             self.manager.server_output(msg["data"])
         
         if ty == "tab":
@@ -230,7 +231,6 @@ class AClientProtocol(LineReceiver):
     def send_output(self, line):
         self.send_helper("line", data=line)
     
-
 
 class AClientFactory(ClientFactory):
     protocol = AClientProtocol
@@ -251,16 +251,19 @@ class AClientFactory(ClientFactory):
     
     def stopFactory(self):
         self.parent.factory_stopped(self)
-        
+    
+
 def AClient(parent, name, socket):
     factory = AClientFactory(parent, name)
     factory.socket = socket
     reactor.connectUNIX(socket, factory)
     return factory
 
+
 def main(socketdir, use_server=None):
     m = AManager(use_server, socketdir)
     reactor.run()
+    return m
 
 if __name__ == '__main__':
     print 'Use `mark2 attach` to start this program.'
