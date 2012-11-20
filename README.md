@@ -31,6 +31,15 @@ generate a failure log and perform a hard restart of the server (basically kills
 A basic bot to relay in-game chat to an IRC channel. Could be easily extended to work in
 reverse (perhaps with a CommandHelper alias)
 
+### save
+
+Save the map ('save-all') on an interval
+
+### script
+
+Run server commands, mark2 commands, or shell commands on at
+[set times or server events](https://github.com/edk141/mark2/blob/master/resources/scripts.sample.txt).
+
 ### shutdown
 
 4 different ways of shutting down and then starting back up again:
@@ -44,10 +53,6 @@ Also provided the same functionality for 'stop', the only difference being that 
 
 This plugin also allows you to run a 'warn restart' on an interval, for servers where performance degrades substantially over time.
 
-### save
-
-Save the map ('save-all') on an interval
-
 ### trigger
 
 Allows a user to run "!teamspeak", for example, and for the server to /msg or /say back a factoid.
@@ -58,6 +63,9 @@ Allows a user to run "!teamspeak", for example, and for the server to /msg or /s
 * python 2
 * twisted
 * blessings
+* clize
+
+Assuming a relatively sane system it should be trivial to install the latter three using `pip`.
 
 ## installation
 
@@ -68,10 +76,16 @@ Allows a user to run "!teamspeak", for example, and for the server to /msg or /s
 ### configure
 
 All servers load configuration from `resources/mark2.default.properties`, which defines the default memory and plugins.
+This file should not be edited as it will break your ability to cleanly update your mark2 installation from Git. Instead,
+copy it to `mark2.properties` and edit it there.
 
 To configure per-server, create a file called `mark2.properties` in the server's directory. In it you can define any
 subset of the default config - as much or as little as you want (see `resources/mark2.sample.properties` for an example).
 Feel free to also edit the default config.
+
+The plugins 'script' and 'trigger' require their own configuration files in the server directory, named `scripts.txt` and
+`triggers.txt`. If either is not present its respective plugin will do nothing. Examples for both files can be found in
+`resources/`.
 
 ### wrap
 
@@ -80,6 +94,9 @@ To start a minecraft server:
     $ mark2 start /path/to/server
 
 If you're already in the right directory, you can omit the last parameter.
+
+At this point if `resources/mark2.properties` doesn't exist, mark2 will create it for you. You are **required** to edit
+this file in order to run and will be prompted to do so now. When you quit the editor, the server will start.
 
 If mark2 doesn't notice your server jarfile because it's got an unrecognized name,
 
