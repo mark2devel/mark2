@@ -77,7 +77,10 @@ def check_properties(server=None):
         while editor not in ['yes', 'no']:
             editor = raw_input('Enter \'yes\' or \'no\' [yes]: ') or 'yes'
         if editor == 'yes':
-            subprocess.call(['sensible-editor', path])
+            try:
+                subprocess.call(['sensible-editor', path])
+            except Exception:
+                raise Mark2Error('Couldn\'t start editor')
     
 
 @clize

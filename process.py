@@ -1,4 +1,4 @@
-from twisted.internet import protocol, reactor
+from twisted.internet import protocol, reactor, error
 from twisted.application.service import Service
 from itertools import chain
 import os
@@ -22,8 +22,11 @@ class ProcessProtocol(protocol.ProcessProtocol):
 
     def processEnded(self, reason):
         self.alive = False
-        self.parent.p_stop()
-
+        if isinstance(reason.value, error.ProcessTerminated) and reason.value.exitCode:
+            self.parent.fatal_error(reason.getErrorMessage())
+        else:
+            self.parent.p_stop()
+            
 
 class ProcessService(Service):
     protocol = None
