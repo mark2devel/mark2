@@ -66,4 +66,4 @@ class Shutdown(Plugin):
     def both(self, resurrect):
         self.parent.resurrect = resurrect
         self.soft(resurrect)
-        self.failsafe = self.delayed_task(lambda s: s.hard(resurrect), self.soft_timeout)
+        self.failsafe = self.delayed_task(lambda: self.hard(resurrect), self.soft_timeout)
