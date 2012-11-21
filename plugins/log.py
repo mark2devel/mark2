@@ -23,6 +23,14 @@ class Log(Plugin):
         timestamp = time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime())
         
         path = self.path.format(timestamp=timestamp, name=self.parent.name, status=reason)
+
+        if not os.path.exists(os.path.dirname(path)):
+            try:
+                os.makedirs(os.path.dirname(path))
+            except IOError:
+                self.console("Warning: {} does't exist and I can't create it".format(os.path.dirname(path)),
+                             kind='error')
+                return
         
         if self.gzip:
             f = gzip.open(path, 'wb')
