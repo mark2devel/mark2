@@ -71,6 +71,8 @@ Assuming a relatively sane system it should be trivial to install the latter thr
 
 	ln -s /path/to/mark2 /usr/bin/mark2
 
+Seriously - just check it out somewhere sensible like `/opt/mark2` and put the `mark2` executable on your path, and you're done.
+
 ## usage
 
 ### configure
