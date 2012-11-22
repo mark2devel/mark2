@@ -70,8 +70,9 @@ class Manager(MultiService):
         
         self.startup_output("Server started successfully at {}".format(self.socket))
         
-        os.close(self.output)
+        output = self.output
         self.output = 0
+        os.close(output)
     
     def startup_output(self, line):
         if not self.output:
