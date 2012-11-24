@@ -18,7 +18,9 @@ class BouncerAPI:
             addr = '/'.join([self.API_BASE, method, self.API_KEY] + args)
             deferred = getPage(addr)
             if kwargs and 'callback' in kwargs:
-                deferred.addCallback(lambda d: kwargs['callback'](json.loads(d)))
+                d = json.loads(d, ensure_ascii=True)
+                c = lambda d: kwargs['callback'](d)
+                deferred.addCallback(c)
         return inner
 
 class MCBouncer(Plugin):
