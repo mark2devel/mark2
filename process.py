@@ -88,13 +88,17 @@ def Process(parent, jarfile=None):
 
 
 def get_usage(pid):
-    c = ['ps', '-p', str(pid), '-o', 'pcpu=', '-o', 'vsz=']
-    try:
-        out = subprocess.check_output(c).strip().split(" ")
-    except subprocess.CalledProcessError:
-        out = ("0", "0")
-
-    return {
-        'cpu': float(out[0]),
-        'mem': int(out[1])
-    }
+    c = ['top', '-b', '-n', '1', '-w', '512', '-p', str(pid)]
+    i = l.find('\n\n')
+    print i
+    
+    #c = ['ps', '-p', str(pid), '-o', 'pcpu=', '-o', 'vsz=']
+    #try:
+    #    out = subprocess.check_output(c).strip().split(" ")
+    #except subprocess.CalledProcessError:
+    #    out = ("0", "0")
+    #
+    #return {
+    #    'cpu': float(out[0]),
+    #    'mem': int(out[1])
+    #}
