@@ -86,19 +86,8 @@ def Process(parent, jarfile=None):
     service.setServiceParent(parent)
     return service.protocol, service
 
-
+#returns a list of dicts. Each list element is a thread in the process.
 def get_usage(pid):
-    c = ['top', '-b', '-n', '1', '-w', '512', '-p', str(pid)]
-    i = l.find('\n\n')
-    print i
-    
-    #c = ['ps', '-p', str(pid), '-o', 'pcpu=', '-o', 'vsz=']
-    #try:
-    #    out = subprocess.check_output(c).strip().split(" ")
-    #except subprocess.CalledProcessError:
-    #    out = ("0", "0")
-    #
-    #return {
-    #    'cpu': float(out[0]),
-    #    'mem': int(out[1])
-    #}
+    o = subprocess.check_output(['top', '-bH', '-n', '1', '-p', str(pid)])
+    o = [re.findall('[^ ]+', x) for x in o[o.find('\n\n')+2:].split('\n')]
+    return [dict(zip(o[0], x)) for x in o[1:-1]]
