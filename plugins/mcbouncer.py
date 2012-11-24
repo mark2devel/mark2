@@ -23,7 +23,7 @@ class BouncerAPI:
         return inner
 
 class MCBouncer(Plugin):
-    api_base = 'http://google.com/api'
+    api_base = 'http://mcbouncer.com/api'
     api_key  = None
     reason   = ""
     
