@@ -207,8 +207,6 @@ class AManager:
         self.focus((self.index + step) % len(self.sockets))
     
     def factory_stopped(self, f):
-        if not f.alive:
-            return
         self.prompt.clean_up()
         print self.term.exit_fullscreen,
 
