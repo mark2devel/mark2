@@ -19,13 +19,12 @@ class BouncerAPI:
             deferred = getPage(addr)
             if kwargs and 'callback' in kwargs:
                 deferred.addCallback(lambda d: kwargs['callback'](json.loads(d)))
-            return addr
         return inner
 
 class MCBouncer(Plugin):
     api_base = 'http://mcbouncer.com/api'
     api_key  = None
-    reason   = ""
+    reason   = "Banned by an operator"
     
     proxy_mode = False
     
@@ -34,18 +33,14 @@ class MCBouncer(Plugin):
         
     @register(Interest, 'INFO', r'\[([A-Za-z0-9_]{1,16}): Banned player ([A-Za-z0-9_]{1,16})\]')
     def on_ban(self, match):
-        self.console("banned...")
         o = self.bouncer.addBan(match.group(1), match.group(2), self.reason)
-        self.console(o)
     
     @register(Interest, 'INFO', r'\[([A-Za-z0-9_]{1,16}): Unbanned player ([A-Za-z0-9_]{1,16})\]')
     def on_pardon(self, match):
-        self.console("unbanned...")
         self.bouncer.removeBan(match.group(2))
     
     @register(Interest, 'INFO', '([A-Za-z0-9_]{1,16})\[/([0-9\.]+):\d+\] logged in with entity id .+')
     def on_login(self, match):
-        self.console("user logged in!")
         self.bouncer.getBanReason(match.group(1), callback=self.ban_reason)
         if not self.proxy_mode:
             self.bouncer.updateUser(match.group(1), match.group(2))
