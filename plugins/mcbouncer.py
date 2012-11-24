@@ -13,25 +13,25 @@ class BouncerAPI:
     def __getattr__(self, method):
         if not method in self.methods:
             raise AttributeError
+        
         def inner(*args, **kwargs):
             args = [urllib.quote(a, "") for a in args]
+            callback = kwargs.get('callback', None)
             addr = '/'.join([self.API_BASE, method, self.API_KEY] + args)
             deferred = getPage(addr)
-            if kwargs and 'callback' in kwargs:
-                c = lambda d: kwargs['callback'](json.loads(d, ensure_ascii=True))
-                deferred.addCallback(c)
+            if callback:
+                deferred.addCallback(lambda d: callback(json.loads(str(d))))
         return inner
 
 class MCBouncer(Plugin):
     api_base = 'http://mcbouncer.com/api'
     api_key  = None
     reason   = "Banned by an operator"
-    
     proxy_mode = False
     
     def setup(self):
         self.bouncer = BouncerAPI(self.api_base, self.api_key)
-        
+    
     @register(Interest, 'INFO', r'\[([A-Za-z0-9_]{1,16}): Banned player ([A-Za-z0-9_]{1,16})\]')
     def on_ban(self, match):
         o = self.bouncer.addBan(match.group(1), match.group(2), self.reason)
@@ -42,10 +42,10 @@ class MCBouncer(Plugin):
     
     @register(Interest, 'INFO', '([A-Za-z0-9_]{1,16})\[/([0-9\.]+):\d+\] logged in with entity id .+')
     def on_login(self, match):
-        self.bouncer.getBanReason(match.group(1), callback=lambda d: self.ban_reason(m.group(1), d))
+        self.bouncer.getBanReason(match.group(1), callback=lambda d: self.ban_reason(match.group(1), d))
         if not self.proxy_mode:
             self.bouncer.updateUser(match.group(1), match.group(2))
-            self.bouncer.getIPBanReason(match.group(2), callback=lambda d: self.ip_ban_reason(m.group(1), d))
+            self.bouncer.getIPBanReason(match.group(2), callback=lambda d: self.ip_ban_reason(match.group(1), d))
     
     def ban_reason(self, user, details):
         if details['is_banned']:
