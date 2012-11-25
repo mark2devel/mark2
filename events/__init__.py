@@ -56,6 +56,9 @@ class EventDispatcher:
         t = task.LoopingCall(lambda: self.dispatch(event))
         t.start(interval, now=False)
 
+    def get(self, event_type):
+        return self.registered.get(event_type, [])
+        
 from hook import Hook
 from line import Line
 from line_consumer import LineConsumer
