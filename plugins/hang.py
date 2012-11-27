@@ -14,47 +14,63 @@ class HangChecker(Plugin):
     ping_interval = 60
     ping_fail_limit = 10
 
-    pcount_enabled = False
-    pcount_interval = 60
-    pcount_fail_limit = 10
+    ping_pcount_enabled = False
+    ping_pcount_fail_limit = 10
+
     
     def setup(self):
         self.reset_counts()
+        self.register(self.reset_counts, ShutdownTask)
+        
+        if self.ping_pcount_enabled:
+            self.ping_enabled = True
+        
         if self.crash_enabled:
             self.repeating_task(self.crash_loop, self.crash_interval)
+        
         if self.oom_enabled:
-            self.register(Interest(self.out_of_memory, 'SEVERE', 'java\.lang\.OutOfMemoryError.*'))
-        if self.ping_enabled:
-            pass  # TODO
-        if self.pcount_enabled:
-            pass  # TODO
+            self.register(self.handle_oom, ServerOutput, level='SEVERE', pattern='java\.lang\.OutOfMemoryError.*')
+        
+        if self.ping_enabled or self.pcount_enabled:
+            self.register(self.handle_ping, Ping)
+            if self.ping_enabled:
+                self.repeating_task(self.ping_loop, self.ping_interval)
     
-    @register(ShutdownTask)
-    def reset_counts(self, *a):
+    def reset_counts(self, event):
         self.crash_alive  = True
         self.crash_fails  = 0
         self.ping_alive   = True
         self.ping_fails   = 0
         self.pcount_alive = True
         self.pcount_fails = 0
-        
-    def out_of_memory(self, match):
-        self.console('server out of memory, restarting...')
-        self.parent.failure = 'out-of-memory'
-        self.plugins['shutdown'].hard_restart()
     
-    def crash_ok(self, match):
-        self.crash_fails = 0
-        self.crash_alive = True
     
+    # crash
     def crash_loop(self):
         if not self.crash_alive:
             self.crash_fails += 1
             self.console('server might have crashed! check %d of %d' % (self.crash_fails, self.crash_fail_limit))
             if self.crash_fails == self.crash_fail_limit:
                 self.console('server has crashed, restarting...')
-                self.parent.failure = 'crash'
-                self.plugins['shutdown'].hard_restart()
+                self.dispatch(ServerStop(reason='crashed', respawn=True))
+        
+        self.register(self.handle_crash_ok, LineConsumer, level='INFO', pattern='Unknown command.*')
+    
+    def handle_crash_ok(self, event):
+        self.crash_fails = 0
+        self.crash_alive = True
+    
+    # out of memory
+    def handle_oom(self, event):
+        self.console('server out of memory, restarting...')
+        self.dispatch(ServerStop(reason='out of memory', respawn=True))
+    
+    # ping
+    def ping_loop(self):
+        
+    def handle_ping(self, event):
+        
+
         
         self.crash_alive = False
         self.register(Consumer(self.crash_ok, 'INFO', 'Unknown command.*'))

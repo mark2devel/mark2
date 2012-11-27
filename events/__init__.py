@@ -51,10 +51,12 @@ class EventDispatcher:
     
     def dispatch_delayed(self, event, delay):
         t = reactor.callLater(delay, lambda: self.dispatch(event))
+        return t
     
     def dispatch_repeating(self, event, interval):
         t = task.LoopingCall(lambda: self.dispatch(event))
         t.start(interval, now=False)
+        return t
 
     def get(self, event_type):
         return self.registered.get(event_type, [])

@@ -5,118 +5,62 @@ import re
 
 from twisted.internet import task, reactor
 
-""" plugin api:
-
- - register (regex, callback) pairs on server output
- - send commands to server
- - register and call named hooks (plugin.x.y.z)
- - register tasks (name, time, callback)
- - delete tasks by name (del1, delall?)
-
-"""
-
-
-class Consumer:
-    ty = "consumer"
-    
-    def __init__(self, callback, level, pattern):
-        self.callback = callback
-        self.regex = re.compile('^(?:\d{4}-\d{2}-\d{2} )?\d{2}:\d{2}:\d{2} \[%s\] %s$' % (level, pattern))
-    
-    def act(self, line):
-        m = self.regex.match(line)
-        if not m:
-            return False
-        
-        self.callback(m)
-        return True
-
-
-class Interest(Consumer):
-    ty = "interest"
-
-
-class ConsoleInterest:
-    ty = "console_interest"
-    
-    def __init__(self, callback):
-        self.callback = callback
-    
-    def act(self, line):
-        self.callback(line)
-
-
-class Command:
-    ty = "command"
-    
-    def __init__(self, callback, command, doc=None):
-        self.callback = callback
-        self.command = command
-        self.doc = doc
-        if self.doc == None and self.callback.__doc__:
-            self.doc = self.callback.__doc__
-    
-    def __repr__(self):
-        o = "  ~%s" % self.command
-        if self.doc:
-            o += ": %s" % self.doc
-        return o
-    
-    def act(self, user, line):
-        self.callback(user, line)
-
-
-class ShutdownTask:
-    ty = "shutdown_task"
-    
-    def __init__(self, callback):
-        self.callback = callback
-    
-    def act(self, reason):
-        self.callback(reason)
-
+from events import Hook, ServerInput, ServerStarted, ServerStopped
 
 class Plugin:
-    passed_up = {}
-    
+    _tasks = []
     def __init__(self, parent, name, **kwargs):
         self.parent = parent
         self.name = name
-        self.pass_up('register')
-        self.pass_up('send')
-        self.pass_up('kill_process')
-        self.pass_up('plugins')
-        self.pass_up('console')
         
+        self.fatal    = self.parent.fatal
+        self.dispatch = self.parent.events.dispatch
+        self.register = self.parent.events.register
+    
         for n, v in kwargs.iteritems():
             setattr(self, n, v)
         
-        self.setup()
+        self.register(self.server_started, ServerStarted)
+        self.register(self.server_stopped, ServerStopped)
         
-        for name, thing in inspect.getmembers(self, lambda x: hasattr(x, '_plugindata')):
-            ref, args = thing._plugindata
-            self.register(ref(thing, *args))
+        self.setup()
     
-    def pass_up(self, *args):
-        self.passed_up[args[0]] = args[-1]
-    
-    def __getattr__(self, name):
-        if name in self.passed_up:
-            return getattr(self.parent, self.passed_up[name])
-        else:
-            raise AttributeError
-    
-    def setup(self):
+    def setup(self, event):
         pass
-
-    def delayed_task(self, callback, delay):
-        t = reactor.callLater(delay, callback)
-        return t
     
-    def repeating_task(self, callback, interval):
-        t = task.LoopingCall(callback)
-        t.start(interval, now=False)
-        return t
+    def server_started(self, event):
+        pass
+    
+    def server_stopped(self, event):
+        pass
+    
+    def delayed_task(self, callback, delay, name=None):
+        if name == None:
+            name = callback.__func__
+        hook = Hook(name=name)
+        self.events.register(callback, Hook, name=name)
+        t = self.events.dispatch_delayed(hook, delay)
+        t._stop = t.cancel
+        self._tasks.append(t)
+        
+    def repeating_task(self, callback, interval, name=None):
+        if name == None:
+            name = callback.__func__
+        hook = Hook(name=name)
+        self.events.register(callback, Hook, name=name)
+        t = self.events.dispatch_repeating(hook, interval)
+        t._stop = t.stop
+        self._tasks.append(t)
+    
+    def stop_tasks(self):
+        for t in self._tasks:
+            t._stop()
+        
+    def send(self, l):
+        self.dispatch(ServerInput(line=l))
+    
+    def console(self, l):
+        self.dispatch(Console(line=l))
 
 
 def load(module_name, **kwargs):
@@ -127,10 +71,3 @@ def load(module_name, **kwargs):
     for name, cls in classes:
         if issubclass(cls, Plugin) and cls != Plugin:
             return cls
-
-
-def register(thing, *args):
-    def inner(fn):
-        fn._plugindata = (thing, args)
-        return fn
-    return inner

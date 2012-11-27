@@ -3,14 +3,17 @@ import tarfile
 import glob
 import os
 
-from plugins import Plugin, ShutdownTask, register
+from plugins import Plugin
+from events import ServerStopped
 
 
 class Backup(Plugin):
     path = "backups/{timestamp}.tar.gz"
     
-    @register(ShutdownTask)
-    def shutdown(self, reason):
+    def setup(self):
+        self.register(self.shutdown, ServerStopped)
+    
+    def shutdown(self, event):
         timestamp = time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime())
         path = self.path.format(timestamp=timestamp, name=self.parent.name)
         if not os.path.exists(os.path.dirname(path)):
