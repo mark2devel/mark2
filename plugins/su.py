@@ -1,19 +1,23 @@
 from plugins import Plugin, Command
+import re
 
+modes = ('raw', 'su')
 
 class Su(Plugin):
     command = "sudo -su {user} -- {command}"
+    default = "raw"
+    exceptions = ""
     
     def setup(self):
-        # register ~raw if commands are modified in any way,
-        # register ~su if commands do not get 'sudo ' at the beginning
-        if self.parent.expand_command('', '') != '':
-            self.register(Command(self.raw, "raw", "send a command unmodified to the server"))
-        if not self.parent.expand_command('', '').lower().startswith('sudo '):
-            self.register(Command(self.su, "su", "run a command from your username, e.g. ~su ban Notch"))
+        self.exceptions = re.split("\s*[\;\,]\s*", self.exceptions)
+        self.register(self.uinput, UserInput)
     
-    def su(self, user, line):
-        self.send(self.command.format(user=user, command=line))
-    
-    def raw(self, user, line):
-        self.send(line)
+    def uinput(self, event):
+        is_raw = (self.default == modes[1]) ^ (event.line in self.exceptions)
+        if is_raw:
+            self.send(event.line)
+        if else:
+            self.send(self.command.format(user=event.user, command=event.line)
+        
+        event.handled   = True
+        event.cancelled = True

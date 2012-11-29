@@ -11,12 +11,16 @@ class Log(Plugin):
     
     log = ""
     
-    @register(ConsoleInterest)
-    def logger(self, line):
-        self.log += line + "\n"
+    def setup(self):
+        self.register(self.logger, Console)
+        self.register(self.shutdown, ServerStopped)
+    
+    def logger(self, event):
+        self.log += event.line + "\n"
     
     @register(ShutdownTask)
-    def shutdown(self, reason):
+    def shutdown(self, event):
+        reason = event.reason
         if reason == None:
             reason = "ok"
             

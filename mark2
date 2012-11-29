@@ -17,11 +17,11 @@ import stat
 import subprocess
 import sys
 
-import aclient
+import user_client
 import properties
 
 
-SOCKET_BASE = '/tmp/mcpitch/'
+SOCKET_BASE = '/tmp/mark2/'
 
 
 class Mark2Error(Exception):
@@ -34,53 +34,56 @@ class Mark2Error(Exception):
         return self.error
 
 
-def ensure_basedir(dir, need_write=False):
+def ensure_basedir(directory, need_write=False):
     need_modes = stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
     if need_write:
         need_modes |= stat.S_IRWXG | stat.S_IRWXO
     good_modes = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO | stat.S_ISVTX
     
-    if not os.path.exists(dir):
-        os.makedirs(dir, good_modes)
+    if not os.path.exists(directory):
+        os.makedirs(directory, good_modes)
     
-    st = os.stat(dir)
+    st = os.stat(directory)
     if (st.st_mode & need_modes) == need_modes:
         return True
     
     try:
-        os.chmod(dir, good_modes)
+        os.chmod(directory, good_modes)
         return True
-    except Exception:
-        raise Mark2Error('{} does not have the necessary modes to run mark2 and I do not have\npermission to change them!'.format(dir))
+    except Exception as e:
+        raise Mark2Error('{} does not have the necessary modes to run mark2 and I do not have\npermission to change them!'.format(directory))
 
 
-def check_properties(server=None):
-    path = os.path.join(sys.path[0], 'resources', 'mark2.properties')
-    default_path = os.path.join(sys.path[0], 'resources', 'mark2.default.properties')
-    if server:
-        server = os.path.join(server, 'mark2.properties')
+def check_config():
+    path = lambda *a: os.path.join(sys.path[0], *a)
     
-    prop = properties.Properties(default_path)
-    del prop["havent_read_conf"]
+    path_old = path('resources', 'mark2.default.properties')
+    path_new = path('config',    'mark2.properties')
     
-    if not os.path.exists(path):
-        shutil.copy(default_path, path)
-    
-    prop = properties.Properties(path, prop)
-    
-    if server and os.path.exists(server):
-        prop = properties.Properties(server, prop)
-    
-    if prop.get('havent_read_conf', None) and sys.stdout.isatty():
-        print 'Your config file at {} requires attention.'.format(path)
-        editor = raw_input('Do you want to edit it now [yes]? ') or 'yes'
-        while editor not in ['yes', 'no']:
-            editor = raw_input('Enter \'yes\' or \'no\' [yes]: ') or 'yes'
-        if editor == 'yes':
+    if not os.path.exists(path_new):
+        ensure_basedir(path('config'), need_write=True)
+        file_old = open(path_old, 'r')
+        file_new = open(path_new, 'w')
+        
+        l = ''
+        while l.strip() == '' or l.startswith('### ###'):
+            l = file_old.readline()
+        
+        while l != '':
+            file_new.write(l)
+            l = file_old.readline()
+        
+        file_old.close()
+        file_new.close()
+            
+        print 'I\'ve created a default configuration file at {}'.format(path_new)
+        response = raw_input('Would you like to edit it now? [yes]') or 'yes'
+        if response == 'yes':
             try:
                 subprocess.call(['sensible-editor', path])
             except Exception:
                 raise Mark2Error('Couldn\'t start editor')
+
     
 
 @clize
@@ -114,9 +117,8 @@ def start(*path):
     # move to the directory this script is in
     os.chdir(sys.path[0])
     
-    # create mark2.properties if it's not there and give the user the option to edit it if it's
-    # invalid
-    check_properties(path)
+    # check we've got config/mark2.properties
+    check_config()
     
     # set up options for twistd
     pidfile = os.path.join(path, 'mark2.pid')
@@ -148,6 +150,7 @@ def start(*path):
             break
         sys.stdout.write(read)
 
+#TODO: rewrite this
 
 @clize(alias={'hard': ('h',)})
 def kill(hard=False, *path):
@@ -193,11 +196,12 @@ def attach(*path):
     ensure_basedir(SOCKET_BASE, need_write=False)
     
     # run the client in our own context, why not
-    return aclient.main(SOCKET_BASE, ' '.join(path))
+    m = user_client.UserManager(' '.join(path), SOCKET_BASE)
+    reactor.run()
 
 # never mind how someone managed to import this, stop them
 if __name__ != '__main__':
-    print "You're doing it wrong."
+    print 'You\'re doing it wrong.'
     sys.exit(1)
 
 try:

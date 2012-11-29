@@ -1,10 +1,12 @@
 from events import Event
 
+#All these are raised in ATerminal
+
 class UserInput(Event):
-    requires = ['line']
+    requires = ['username', 'line']
 
 class UserAttached(Event):
-    requires = ['name']
+    requires = ['username']
 
 class UserDetached(Event):
-    requires = ['name']
+    requires = ['username']

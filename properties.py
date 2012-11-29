@@ -1,6 +1,13 @@
+import os
 import re
 
-
+def load(*files):
+    o = None
+    for f in files:
+        if os.path.isfile(f):
+            o = Properties(f, o)
+    return o
+        
 class Properties(dict):
     def __init__(self, path, parent=None):
         if parent:

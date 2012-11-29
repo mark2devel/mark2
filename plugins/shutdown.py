@@ -2,38 +2,32 @@ from plugins import Plugin, Command, ShutdownTask
 
 
 class Shutdown(Plugin):
-    repeat          = True
-    repeat_interval = 30
     warn_delay = 60
     soft_timeout  = 60 #How long to wait for the server to stop gracefully
     
     failsafe = None
     
     def setup(self):
-        self.restart      = lambda *a: self.both(True)
-        self.warn_restart = lambda *a: self.warn(True)
-        self.soft_restart = lambda *a: self.soft(True)
-        self.hard_restart = lambda *a: self.hard(True)
-        self.stop         = lambda *a: self.both(False)
-        self.warn_stop    = lambda *a: self.warn(False)
-        self.soft_stop    = lambda *a: self.soft(False)
-        self.hard_stop    = lambda *a: self.hard(False)
+        self.register(self.stop_server,    ServerStop)
+        self.register(self.server_stopped, ServerStopped)
+        
+        self.register(lambda *a: self.both(True),  Hook, public=True, name="restart",      doc='calls ~restart-soft, and will call ~restart-hard a little later if the server won\'t die')
+        self.register(lambda *a: self.warn(True),  Hook, public=True, name="restart-warn", doc='runs /say to announce a restart and schedules a ~restart-soft')
+        self.register(lambda *a: self.soft(True),  Hook, public=True, name="restart-soft", doc='runs /save-all and /stop, brings it back up')
+        self.register(lambda *a: self.hard(True),  Hook, public=True, name="restart-hard", doc='kills a hung server and brings it back up')
+        self.register(lambda *a: self.both(False), Hook, public=True, name="stop",         doc='calls ~stop-soft, and will call ~stop-hard a little later if the server won\'t die')
+        self.register(lambda *a: self.warn(False), Hook, public=True, name="stop-warn",    doc='runs /say to announce a stop and schedules a ~stop-soft')
+        self.register(lambda *a: self.soft(False), Hook, public=True, name="stop-soft",    doc='runs /save-all and /stop')
+        self.register(lambda *a: self.hard(False), Hook, public=True, name="stop-hard",    doc='kills a hung server')
         
         
-        self.register(Command(self.restart,      'restart', 'calls ~restart-soft, and will call ~restart-hard a little later if the server won\'t die'))
-        self.register(Command(self.warn_restart, 'restart-warn', 'runs /say to announce a restart and schedules a ~restart-soft'))
-        self.register(Command(self.soft_restart, 'restart-soft', 'runs /save-all and /stop, brings it back up'))
-        self.register(Command(self.hard_restart, 'restart-hard', 'kills a hung server and brings it back up'))
-        self.register(Command(self.stop,         'stop', 'calls ~stop-soft, and will call ~stop-hard a little later if the server won\'t die'))
-        self.register(Command(self.warn_stop,    'stop-warn', 'runs /say to announce a stop and schedules a ~stop-soft'))
-        self.register(Command(self.soft_stop,    'stop-soft', 'runs /save-all and /stop'))
-        self.register(Command(self.hard_stop,    'stop-hard', 'kills a hung server'))
-        
-        self.register(ShutdownTask(self.server_stopped))
-        if self.repeat:
-            self.repeating_task(self.warn_restart, self.repeat_interval - self.warn_delay)
 
-    def server_stopped(self, reason):
+    def stop_server(self, event):
+        self.both(event.respawn)
+        self.dispatch(ServerStopping(reason=event.reason))
+        event.handled = True
+
+    def server_stopped(self, event):
         if self.failsafe:
             self.failsafe.cancel()
             self.failsafe = None

@@ -1,8 +1,15 @@
+#patching
 from os         import chdir
 from tempfile   import mkdtemp
 from shutil     import rmtree
 from struct     import pack
 from subprocess import check_output
+
+#server
+import re
+from twisted.web.server import Site
+from twisted.web.resource import Resource
+from twisted.application.internet import TCPServer
 
 def jar_contents(j_path):
     return check_output(['jar', 'tf', j_path]).split("\n")
@@ -97,3 +104,36 @@ def patch(j_path, host, port, interval):
     
     rmtree(t_path)
     return c_path != None
+
+class SnoopResource(Resource):
+    isLeaf = True
+    def render_POST(self, request):
+        worlds = {}
+        world_count = 0
+        for k, v in request.args.iteritems():
+            m = re.match('world\[(\d+)\]\[(.*)\]', k)
+            if m:
+                i, k2 = m.groups()
+                worlds[int(i)] = k2
+            elif k == 'avg_tick_ms':
+                self.dispatch(StatTPS(tps=1000.0/int(v)))
+        
+        worlds2 = []
+        i = 0
+        while i in worlds:
+            worlds2.append(worlds[i])
+            i+=1
+        
+        if worlds2:
+            self.dispatch(StatWorlds(worlds=worlds))
+        
+class Snoop(TCPServer):
+    name="snoop"
+    def __init__(self, parent, interval, jarfile):
+        self.parent = parent
+        resource = SnoopResource()
+        resource.dispatch = self.parent.events.dispatch
+        factory = Site(resource)
+        TCPServer.__init__(self, 0, factory)
+        host, port = self.getHost()
+        patch(jarfile, host, port, interval)

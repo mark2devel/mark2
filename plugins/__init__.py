@@ -13,6 +13,8 @@ class Plugin:
         self.parent = parent
         self.name = name
         
+        self.config   = self.parent.config
+        self.console  = self.parent.console
         self.fatal    = self.parent.fatal
         self.dispatch = self.parent.events.dispatch
         self.register = self.parent.events.register
@@ -31,8 +33,8 @@ class Plugin:
     def server_started(self, event):
         pass
     
-    def server_stopped(self, event):
-        pass
+    def server_stopping(self, event):
+        self.stop_tasks()
     
     def delayed_task(self, callback, delay, name=None):
         if name == None:
@@ -59,8 +61,6 @@ class Plugin:
     def send(self, l):
         self.dispatch(ServerInput(line=l))
     
-    def console(self, l):
-        self.dispatch(Console(line=l))
 
 
 def load(module_name, **kwargs):

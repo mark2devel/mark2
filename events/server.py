@@ -1,4 +1,4 @@
-from events import Event
+from events import Event, ACCEPTED
 
 # input/output
 
@@ -15,21 +15,38 @@ class ServerOutput(Event):
     
     requires = ['line']
     
-    mc_line = '^(?:\d{4}-\d{2}-\d{2} )?\d{2}:\d{2}:\d{2} \[{level}\] {pattern}$'
+    data = None
+    time = None
+    level = 'INFO'
+    
+    def setup(self):
+        m = re.match('(\d{4}-\d{2}-\d{2} )?(\d{2}:\d{2}:\d{2}) \[([A-Z]+)\] (.*)', self.line)
+        if m:
+            g = m.groups()
+            self.time = g[0]+g[1]
+            self.level= g[2]
+            self.data = g[3]
+        
+        self.time = get_timestamp(self.time)
+        if self.data == None:
+            self.data = self.line
     
     def consider(self, r_args):
-        return self.extra(r_args) != {}
-    
-    def extra(self, r_args):
-        return {'match': re.match(self.mc_line.format(r_args), self.line)}
+        if self.level != r_args['level']:
+            return 0
+        
+        m = re.match(r_args['pattern'], self.data)
+        if not m:
+            return 0
+        
+        self.match = m
+        return ACCEPTED
 
 class ServerOutputConsumer(ServerOutput):
     """Issued prior to the ServerOutput handlers seeing it. Takes
     the same handler parameters as ServerOutput. In most cases
     you shouldn't specify a callback"""
     
-    handle_once = True
-    dispatch_once = True
     requires = ['line']
 
 # start
@@ -45,7 +62,7 @@ class ServerStarting(Event):
     
     pass
 
-class ServerStarted(Event)
+class ServerStarted(Event):
     """Issued when we see the "Done! (1.23s)" line from the server
     
     This event has a helper method in plugins - just overwrite
@@ -69,7 +86,7 @@ class ServerStopping(Event):
     This event has a helper method in plugins - just overwrite
     the server_started method."""
     
-    requires=['reason']
+    requires=['reason', 'respawn']
 
 class ServerStopped(Event):
     """When the server process finally dies, this event is raised"""

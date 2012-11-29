@@ -1,15 +1,15 @@
-from events import Event
+from events import Event, ACCEPTED
 
 class Hook(Event):
     requires = ['name']
-    public = False #Public commands are callable by prefixing their name on the command line
-    doc = None
+    is_command = False
     
     def consider(self, r_args):
-        return r_args['name'] == self.name
+        if r_args['name'] != self.name:
+            return 0
+        
+        if self.is_command and not r_args['public']:
+            return 0
+        
+        return ACCEPTED
     
-    def __repr__(self):
-        o = "  ~%s" % self.command
-        if self.doc:
-            o += ": %s" % self.doc
-        return o

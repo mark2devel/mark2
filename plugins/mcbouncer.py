@@ -24,28 +24,35 @@ class BouncerAPI:
         return inner
 
 class MCBouncer(Plugin):
-    api_base = 'http://mcbouncer.com/api'
-    api_key  = None
-    reason   = "Banned by an operator"
+    api_base   = 'http://mcbouncer.com/api'
+    api_key    = None
+    reason     = "Banned by an operator"
     proxy_mode = False
     
     def setup(self):
         self.bouncer = BouncerAPI(self.api_base, self.api_key)
+        
+        self.register(self.on_login,  ServerOutput, pattern='([A-Za-z0-9_]{1,16})\[/([0-9\.]+):\d+\] logged in with entity id .+')
+        self.register(self.on_ban,    ServerOutput, pattern='\[([A-Za-z0-9_]{1,16}): Banned player ([A-Za-z0-9_]{1,16})\]')
+        self.register(self.on_ban,    ServerOutput, pattern='') #TODO: console version
+        self.register(self.on_pardon, ServerOutput, pattern='\[([A-Za-z0-9_]{1,16}): Unbanned player ([A-Za-z0-9_]{1,16})\]')
+        self.register(self.on_pardon, ServerOutput, pattern='') #TODO: console version
     
-    @register(Interest, 'INFO', r'\[([A-Za-z0-9_]{1,16}): Banned player ([A-Za-z0-9_]{1,16})\]')
-    def on_ban(self, match):
-        o = self.bouncer.addBan(match.group(1), match.group(2), self.reason)
+        
+    def on_ban(self, event):
+        g = event.match.groups()
+        o = self.bouncer.addBan(g[0], g[1], self.reason)
     
-    @register(Interest, 'INFO', r'\[([A-Za-z0-9_]{1,16}): Unbanned player ([A-Za-z0-9_]{1,16})\]')
     def on_pardon(self, match):
-        self.bouncer.removeBan(match.group(2))
+        g = event.match.groups()
+        self.bouncer.removeBan(g[1])
     
-    @register(Interest, 'INFO', '([A-Za-z0-9_]{1,16})\[/([0-9\.]+):\d+\] logged in with entity id .+')
-    def on_login(self, match):
-        self.bouncer.getBanReason(match.group(1), callback=lambda d: self.ban_reason(match.group(1), d))
+    def on_login(self, event):
+        g = event.match.groups()
+        self.bouncer.getBanReason(g[0], callback=lambda d: self.ban_reason(g[0], d))
         if not self.proxy_mode:
-            self.bouncer.updateUser(match.group(1), match.group(2))
-            self.bouncer.getIPBanReason(match.group(2), callback=lambda d: self.ip_ban_reason(match.group(1), d))
+            self.bouncer.updateUser(g[0], g[1])
+            self.bouncer.getIPBanReason(g[1], callback=lambda d: self.ip_ban_reason(g[0], d))
     
     def ban_reason(self, user, details):
         if details['is_banned']:

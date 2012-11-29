@@ -2,7 +2,7 @@ from events import Event
 
 #provider: ping, query, snoop
 class StatPlayerCount(Event):
-    requires = ['count']
+    requires = ['player_count'] #int
 
 #provider: query
 class StatPlayers(Event):
@@ -23,3 +23,15 @@ class StatThreads(Event):
 #provider: snoop
 class StatTPS(Event):
     requires = ['tps'] #float
+
+"""
+
+
+
+
+
+
+
+
+
+"""

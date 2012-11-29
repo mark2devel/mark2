@@ -10,10 +10,9 @@ class QueryProtocol(DatagramProtocol):
     interval = 10
     challenge = None
     
-    def __init__(self, host, port, callback):
+    def __init__(self, host, port):
         self.host = host
         self.port = port
-        self.callback = callback
         
         self.read_string = lambda b: b.split('\x00', 1)
         self.handshake   = lambda:   self.write_packet(9)
@@ -75,10 +74,14 @@ class QueryProtocol(DatagramProtocol):
                 p = re.sub('\xa7.{1}', '', p)
                 o['players'].append(p)
             
-            self.callback(o)
+            self.dispatch(StatPlayerCount(source = "query", player_count = o['numplayers']))
+            self.dispatch(    StatPlayers(source = "query", players      = o['players']))
+            self.dispatch(    StatPlugins(source = "query", plugins      = o['plugins']))
 
-
-def Query(parent, callback, host, port):
-    proto = QueryProtocol(host, port, callback)
-    service = UDPClient(0, proto)
-    return proto
+class Query(UDPClient):
+    name = "query"
+    def __init__(self, parent, interval, host, port):
+        p = QueryProtocol(host, port)
+        p.dispatch = parent.events.dispatch
+        p.interval = interval
+        UDPClient.__init__(self, 0, p)

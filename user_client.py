@@ -27,7 +27,7 @@ FORMAT = {
 }
 
 
-class AManager:
+class UserManager:
     client = None
     tab_cache = None
     tab_count = 0
@@ -201,7 +201,7 @@ class AManager:
                 pass
         
         self.index = n
-        self.client = AClient(self, *self.sockets[self.index])
+        self.client = UserClient(self, *self.sockets[self.index])
     
     def next(self, step=1):
         self.focus((self.index + step) % len(self.sockets))
@@ -211,7 +211,7 @@ class AManager:
         print self.term.exit_fullscreen,
 
 
-class AClientProtocol(LineReceiver):
+class UserClientProtocol(LineReceiver):
     user = None
     delimiter = '\n'
     
@@ -253,8 +253,8 @@ class AClientProtocol(LineReceiver):
         self.send_helper("line", data=line)
     
 
-class AClientFactory(ClientFactory):
-    protocol = AClientProtocol
+class UserClientFactory(ClientFactory):
+    protocol = UserClientProtocol
     
     alive = True
     
@@ -263,7 +263,7 @@ class AClientFactory(ClientFactory):
         self.name = name
     
     def buildProtocol(self, addr):
-        p = AClientProtocol()
+        p = UserClientProtocol()
         p.name    = self.name
         p.manager = self.parent
         p.factory = self
@@ -274,17 +274,17 @@ class AClientFactory(ClientFactory):
         self.parent.factory_stopped(self)
     
 
-def AClient(parent, name, socket):
-    factory = AClientFactory(parent, name)
+def UserClient(parent, name, socket):
+    factory = UserClientFactory(parent, name)
     factory.socket = socket
     reactor.connectUNIX(socket, factory)
     return factory
 
 
-def main(socketdir, use_server=None):
-    m = AManager(use_server, socketdir)
+"""def main(socketdir, use_server=None):
+    m = UserManager(use_server, socketdir)
     reactor.run()
-    return m
+    return m"""
 
 if __name__ == '__main__':
     print 'Use `mark2 attach` to start this program.'

@@ -6,10 +6,6 @@ from twisted.internet import reactor
 from plugins import Plugin, Interest
 
 
-
-
-
-
 class IRCBot(irc.IRCClient):
     """def connectionMade(self):
         irc.IRCClient.connectionMade(self)
@@ -80,8 +76,7 @@ class IRC(Plugin):
     channel = None
     def setup(self):
         if self.game_to_irc_enabled:
-            self.register(Interest(self.chat_message, 'INFO', '<([A-Za-z0-9_]{1,16})> (.+)'))
-        #self.register_interest(self.chat_message, 'INFO', '<([A-Za-z0-9_]{1,16})> (.+)')
+            self.register(self.chat_message, ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> (.+)')
         
         self.factory = IRCBotFactory(self)
         

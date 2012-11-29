@@ -1,10 +1,12 @@
+import inspect, sys, time
+
+ACCEPTED = 1
+FINISHED = 2
+
 class Event:
-    requires        = []           # required kwargs
-    acc_i           = False        # dispatch() return accumulator initial value
-    acc_m = lambda s, a, b: a or b # dispatch() return accumulator reduction method
-    dispatch_once   = False        # Only dispatch the event to one handler
-    dispatch_m      = None         # Overwrite this for a custom dispatch loop condition
-    handle_once     = False        # Delete a handler after its first use
+    requires  = [] # required kwargs
+    handled   = False
+    cancelled = False
     
     def __init__(self, **args):
         left = list(self.requires)
@@ -15,17 +17,12 @@ class Event:
         if len(left) > 0:
             raise Exception("Event type %s missing argument(s): %s" % (self.__class__, ", ".join(left)))
         self.setup()
-        if not self.dispatch_m:
-            self.dispatch_m = lambda r: not self.dispatch_once
     
     def setup(self):
         pass
     
     def consider(self, r_args):
-        return True
-    
-    def extra(self, r_args):
-        return {}
+        return ACCEPTED
 
 class EventDispatcher:
     registered = {}
@@ -40,17 +37,18 @@ class EventDispatcher:
         self.registered[event_type] = d
     
     def dispatch(self, event):
-        o = event.acc_i
-        for r_callback, r_args in self.registered.get(event.__class__, []):
-            if event.consider(r_args):
-                for k, v in event.extra(r_args).iteritems():
-                    setattr(event, k, v)
-                o = event.acc_m(o, bool(r_callback(event)))
-                if event.handle_once:
+        r = False
+        for r_callback, r_args in self.get(event.__class__):
+            o  = event.consider(r_args)
+            r |= o
+            if o & ACCEPTED:
+                r = True
+                r_callback(event)
+                if o & FINISHED:
                     self.registered.remove((r_callback, r_args))
-                if not self.dispatch_m(o):
+                if event.handled:
                     break
-        return o
+        return r & ACCEPTED
     
     def dispatch_delayed(self, event, delay):
         t = reactor.callLater(delay, lambda: self.dispatch(event))
@@ -61,12 +59,27 @@ class EventDispatcher:
         t.start(interval, now=False)
         return t
 
+    #get a list of handlers in the form (callback, {args...})
     def get(self, event_type):
-        return self.registered.get(event_type, [])
-        
+        return self.registered.get(event_type, [])[::-1]
+    
+    #get an event type by name
+    def event(self, name):
+        for n, c in inspect.getmembers(sys.modules[__name__], inspect.isclass):
+            if n.lower() == name.lower() and issubclass(c, Event):
+                return c
+
+def get_timestamp(t=None):
+    if t == None:
+        return time.strftime("%Y-%m-%d %H:%M:%S")
+    elif len(t) == 8:
+        return t.strftime("%Y-%m-%d ") + t
+    else:
+        return t
+
 from console import *
+from error   import *
 from hook    import *
 from server  import *
 from stat    import *
 from user    import *
-
