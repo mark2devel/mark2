@@ -1,10 +1,17 @@
 from events import Event, ACCEPTED
 
 class Hook(Event):
-    requires = ['name']
+    requires = ('name',)
+    requires_predicate = ('name',)
     is_command = False
     
     def consider(self, r_args):
+        d = {
+            'public': False,
+            'doc':    None}
+        
+        d.update(r_args)
+        
         if r_args['name'] != self.name:
             return 0
         

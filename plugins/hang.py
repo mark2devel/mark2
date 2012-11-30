@@ -1,4 +1,5 @@
 from plugins import Plugin
+from events import ServerOutput, ServerOutputConsumer, StatPlayerCount
 from events import ACCEPTED, FINISHED
 
 class HangChecker(Plugin):
@@ -32,12 +33,12 @@ class HangChecker(Plugin):
             self.repeating_task(self.crash_loop, self.crash_interval)
             
         if self.ping_enabled:
-            self.repeating_task(self.ping_loop, self.config['mark2.services.ping.interval'])
+            self.repeating_task(self.ping_loop, self.config['mark2.service.ping.interval'])
         
         if self.pcount_enabled:
             self.repeating_task(self.pcount_loop, self.pcount_interval)
     
-    def reset_counts(self, event):
+    def reset_counts(self):
         self.crash_alive  = True
         self.crash_fails  = 0
         self.ping_alive   = True
@@ -49,7 +50,7 @@ class HangChecker(Plugin):
     ### loops
 
     # crash
-    def crash_loop(self):
+    def crash_loop(self, event):
         if not self.crash_alive:
             self.crash_fails += 1
             self.console('server might have crashed! check %d of %d' % (self.crash_fails, self.crash_fail_limit))
@@ -62,7 +63,7 @@ class HangChecker(Plugin):
         self.send('') # Blank command to trigger 'Unknown command'
 
     # ping
-    def ping_loop(self):
+    def ping_loop(self, event):
         if not self.ping_alive:
             self.ping_fails += 1
             self.console('server might have stopped accepting connections! check %d of %d' % (self.ping_fails, self.ping_fail_limit))
@@ -71,7 +72,7 @@ class HangChecker(Plugin):
                 self.dispatch(ServerStop(reason='not accepting connections', respawn=True))
     
     #pcount
-    def pcount_loop(self):
+    def pcount_loop(self, event):
         if not self.pcount_alive:
             self.pcount_fails += 1
             self.console('server has 0 players on! check %d of %d' % (self.pcount_fails, self.pcount_fail_limit))
@@ -94,7 +95,7 @@ class HangChecker(Plugin):
 
     # ping
     def handle_ping(self, event):
-        if event.source='ping':
+        if event.source=='ping':
             self.ping_fails = 0
             self.ping_alive = True
     

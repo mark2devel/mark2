@@ -12,7 +12,7 @@ class PingProtocol(Protocol):
     
     def dataReceived(self, data):
         data = data[9:].decode('utf16-be').split('\x00')
-        self.dispatch(StatPlayerCount(source="png", player_count=data[3]))
+        self.dispatch(StatPlayerCount(source="ping", player_count=data[3]))
 
 class PingFactory(ReconnectingClientFactory):
     def __init__(self, interval):

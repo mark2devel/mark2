@@ -1,5 +1,5 @@
 #patching
-from os         import chdir
+from os         import chdir, getcwd
 from tempfile   import mkdtemp
 from shutil     import rmtree
 from struct     import pack
@@ -9,7 +9,10 @@ from subprocess import check_output
 import re
 from twisted.web.server import Site
 from twisted.web.resource import Resource
-from twisted.application.internet import TCPServer
+from twisted.application.service import Service
+from twisted.internet import reactor
+
+import events
 
 def jar_contents(j_path):
     return check_output(['jar', 'tf', j_path]).split("\n")
@@ -40,6 +43,8 @@ def patch(j_path, host, port, interval):
 
     #Make a temporary directory
     t_path = mkdtemp(prefix='mark2-patch-')
+    
+    o_path = getcwd()
     chdir(t_path)
     
     #Extract the jar
@@ -103,6 +108,7 @@ def patch(j_path, host, port, interval):
         jar_update(j_path, t_path, m_path)
     
     rmtree(t_path)
+    chdir(o_path)
     return c_path != None
 
 class SnoopResource(Resource):
@@ -114,26 +120,50 @@ class SnoopResource(Resource):
             m = re.match('world\[(\d+)\]\[(.*)\]', k)
             if m:
                 i, k2 = m.groups()
-                worlds[int(i)] = k2
+                
+                if not int(i) in worlds:
+                    worlds[int(i)] = {}
+                worlds[int(i)][k2] = v[0]
+            
             elif k == 'avg_tick_ms':
-                self.dispatch(StatTPS(tps=1000.0/int(v)))
+                self.dispatch(events.StatTickTime(time=int(v[0])))
         
         worlds2 = []
         i = 0
-        while i in worlds:
+        while i in range(world_count):
             worlds2.append(worlds[i])
             i+=1
         
         if worlds2:
-            self.dispatch(StatWorlds(worlds=worlds))
+            self.dispatch(events.StatWorlds(worlds=worlds))
+
+class Snoop(Service):
+    def __init__(self, parent, interval, jarfile, start_server):
+        self.parent       = parent
+        self.interval     = interval
+        self.jarfile      = jarfile
+        self.start_server = start_server
         
-class Snoop(TCPServer):
-    name="snoop"
-    def __init__(self, parent, interval, jarfile):
-        self.parent = parent
         resource = SnoopResource()
         resource.dispatch = self.parent.events.dispatch
-        factory = Site(resource)
-        TCPServer.__init__(self, 0, factory)
-        host, port = self.getHost()
-        patch(jarfile, host, port, interval)
+        
+        self.factory = Site(resource)
+    
+    def privilegedStartService(self):
+        self.listeningPort = reactor.listenTCP(0, self.factory)
+        result = patch(
+            self.jarfile, 
+            "localhost", 
+            self.listeningPort.getHost().port, 
+            self.interval)
+        
+        if result:
+            self.start_server.callback(0)
+        else:
+            self.start_server.errback(ValueError("couldn't patch server jar!")) #TODO: review.
+        
+        return Service.privilegedStartService(self)
+    
+    def stopService(self):
+        self.listeningPort.stopListening()
+        return Service.stopService(self)

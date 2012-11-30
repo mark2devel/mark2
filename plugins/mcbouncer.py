@@ -2,7 +2,8 @@ import urllib
 import json
 from twisted.web.client import getPage
 
-from plugins import Plugin, Interest, register
+from plugins import Plugin
+from events import ServerOutput
 
 class BouncerAPI:
     methods = ['addBan', 'removeBan', 'getBanReason', 'getIPBanReason', 'updateUser']
@@ -34,16 +35,16 @@ class MCBouncer(Plugin):
         
         self.register(self.on_login,  ServerOutput, pattern='([A-Za-z0-9_]{1,16})\[/([0-9\.]+):\d+\] logged in with entity id .+')
         self.register(self.on_ban,    ServerOutput, pattern='\[([A-Za-z0-9_]{1,16}): Banned player ([A-Za-z0-9_]{1,16})\]')
-        self.register(self.on_ban,    ServerOutput, pattern='') #TODO: console version
+        #self.register(self.on_ban,    ServerOutput, pattern='') #TODO: console version
         self.register(self.on_pardon, ServerOutput, pattern='\[([A-Za-z0-9_]{1,16}): Unbanned player ([A-Za-z0-9_]{1,16})\]')
-        self.register(self.on_pardon, ServerOutput, pattern='') #TODO: console version
+        #self.register(self.on_pardon, ServerOutput, pattern='') #TODO: console version
     
         
     def on_ban(self, event):
         g = event.match.groups()
         o = self.bouncer.addBan(g[0], g[1], self.reason)
     
-    def on_pardon(self, match):
+    def on_pardon(self, event):
         g = event.match.groups()
         self.bouncer.removeBan(g[1])
     

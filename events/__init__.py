@@ -1,10 +1,13 @@
 import inspect, sys, time
 
+from twisted.internet import reactor, task
+
 ACCEPTED = 1
 FINISHED = 2
 
 class Event:
-    requires  = [] # required kwargs
+    requires           = tuple() # required kwargs
+    requires_predicate = tuple() # required register() kwargs
     handled   = False
     cancelled = False
     
@@ -28,12 +31,17 @@ class EventDispatcher:
     registered = {}
     
     #args: [callback] event_type [kwargs ...]
-    def register(self, *a, **event_args):
+    def register(self, *a, **predicate_args):
         callback   = a[0] if len(a) == 2 else lambda: True
         event_type = a[-1]
         
         d = self.registered.get(event_type, [])
-        d.append((callback, event_args))
+        
+        for p in event_type.requires_predicate:
+            if not p in predicate_args:
+                raise Exception("missing required predicate argument for %s: %s" % (event_type.__class__, p))
+        
+        d.append((callback, predicate_args))
         self.registered[event_type] = d
     
     def dispatch(self, event):

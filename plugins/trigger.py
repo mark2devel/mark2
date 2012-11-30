@@ -1,7 +1,8 @@
 import os
 import re
 
-from plugins import Plugin, Interest
+from plugins import Plugin
+from events import ServerOutput
 
 
 class Trigger(Plugin):
@@ -23,7 +24,7 @@ class Trigger(Plugin):
             f.close()
             
             if self.triggers:
-                self.register(self.trigger, ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> \!(\w+)'))
+                self.register(self.trigger, ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> \!(\w+)')
     
     def trigger(self, match):
         user, trigger = match.groups()

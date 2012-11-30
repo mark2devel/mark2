@@ -1,8 +1,10 @@
 import re
 import os
 import traceback
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.application.service import MultiService
+
+from twisted.python import log
 
 #mark2 things
 import events
@@ -30,7 +32,6 @@ This is the 'main' class that handles most of the logic
 
 class Manager(MultiService):
     name = "manager"
-    stopping = False
     
     def __init__(self, path, initial_output, socketdir, jarfile=None):
         MultiService.__init__(self)
@@ -40,7 +41,7 @@ class Manager(MultiService):
         self.socketdir = socketdir
         self.jarfile = jarfile
         
-        self.f_temp = 'temp.log'
+        #self.f_temp = open('temp.log', 'w')
     
     def startService(self):
         MultiService.startService(self)
@@ -68,7 +69,8 @@ class Manager(MultiService):
         self.events.register(self.handle_console,       events.Console)
         self.events.register(self.handle_fatal,         events.FatalError)
         self.events.register(self.handle_server_output, events.ServerOutput, level='.*', pattern='.*')
-        self.events.register(self.handle_server_stopped,events.ServerStopped)
+        #self.events.register(self.handle_server_stopped,events.ServerStopped)
+        self.events.register(self.handle_server_save,   events.ServerSave)
         self.events.register(self.handle_user_attach,   events.UserAttached)
         self.events.register(self.handle_user_detach,   events.UserDetached)
         self.events.register(self.handle_user_input,    events.UserInput)
@@ -86,14 +88,35 @@ class Manager(MultiService):
         if self.properties == None:
             self.fatal(reason="couldn't find server.properties")
             
-        
+        #find jar file
+        if not self.jarfile:
+            self.jarfile = process.find_jar(
+                self.config['mark2.jar_path'].split(';'),
+                self.jarfile)
+            if not self.jarfile:
+                self.fatal_error("Couldn't find server jar!")
+                
         #start services
-        if self.config['mark2.service.ping.enabled']:
+        
+        #if using snoop, we need to wait for the jar to be patched
+        
+        proc_o = process.Process(self, self.jarfile)
+        
+        def proc_s(x):
+            self.addService(proc_o)
+        def proc_e(e):
+            self.fatal_error("Failed to patch server jar!")
+            
+        proc_d = defer.Deferred()
+        proc_d.addCallback(proc_s)
+        proc_d.addErrback(proc_e)
+        
+        """if self.config['mark2.service.ping.enabled']:
             self.addService(ping.Ping(
                 self,
                 self.properties['server-ip'],
                 self.properties['query.port'],
-                self.config['mark2.service.query.interval'], ))
+                self.config['mark2.service.query.interval']))"""
         
         if self.config['mark2.service.query.enabled'] and self.properties['enable-query']:
             self.addService(query.Query(
@@ -102,17 +125,20 @@ class Manager(MultiService):
                 self.properties['server-ip'], 
                 self.properties['server-port']))
         
-        if self.config['mark2.service.snoop.enabled'] and self.properties['enable-snooper']:
-            self.addService(snoop_server.Snoop(
+        if self.config['mark2.service.snoop.enabled'] and self.properties['snooper-enabled']:
+            self.addService(snoop.Snoop(
                 self, 
-                self.config['mark2.service.snoop.interval'], 
-                self.jarfile))
+                self.config['mark2.service.snoop.interval']*1000, 
+                os.path.abspath(self.jarfile),
+                proc_d))
+        else:
+            proc_d.callback(None)
         
-        self.addService(process.Process(self, self.jarfile))
         self.addService(user_server.UserServer(self, os.path.join(self.socketdir, "%s.sock" % self.name)))
         
         #load plugins
         loaded = []
+        self.plugins = {}
         
         for name, kwargs in self.config.get_plugins():
             try:
@@ -130,7 +156,8 @@ class Manager(MultiService):
     
     #helpers
     def console(self, line, **k):
-        k['line'] = line
+        log.msg(line)
+        k['line'] = str(line)
         self.events.dispatch(events.Console(**k))
     
     def fatal_error(self, *a, **k):
@@ -156,19 +183,13 @@ class Manager(MultiService):
             self.console(" ~%s | %s" % (name.ljust(m), doc))
     
     def handle_console(self, event):
-        self.f_temp.write("%s\n" % event)
         if self.initial_output:
             os.write(self.initial_output, "%s\n" % event)
     
     def handle_fatal(self, event):
-        self.stopping = True
-        try:
-            service = self.getServiceNamed('process')
-            if service.running:
-                self.console(event.reason, kind="error")
-                self.events.dispatch(events.ServerStop(reason=event.reason))
-        except KeyError:
-            self.stopService()
+        self.console("FATAL ERROR: %s" % event.reason, kind="error")
+        self.stopService()
+        
     def handle_server_output(self, event):
         result = self.events.dispatch(ServerOutputConsumer(line=event.line))
         if result == 0: #not consumed
@@ -179,10 +200,9 @@ class Manager(MultiService):
                 
             self.events.dispatch(e)
     
-    def handle_server_stopped(self, event):
-        if self.stopping:
-            self.stopService()
-    
+    def handle_server_save(self, event):
+        self.send('save-all')
+        event.handled = True
 
     def handle_user_attach(self, event):
         self.console("%s attached" % event.user, kind="joinpart")

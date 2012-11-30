@@ -2,36 +2,24 @@ from events import Event
 
 #provider: ping, query, snoop
 class StatPlayerCount(Event):
-    requires = ['player_count'] #int
+    requires = ('player_count',) #int
 
 #provider: query
 class StatPlayers(Event):
-    requires = ['players'] #list of strings
+    requires = ('players',) #list of strings
 
 #provider: snoop
 class StatWorlds(Event):
-    requires = ['worlds'] #list of dicts
+    requires = ('worlds',) #list of dicts
 
 #provider: query
 class StatPlugins(Event):
-    requires = ['plugins'] #list of strings
+    requires = ('plugins',) #list of strings
 
 #provider: `top`
 class StatThreads(Event):
-    requires = ['threads'] #list of dicts
+    requires = ('threads',) #list of dicts
 
 #provider: snoop
-class StatTPS(Event):
-    requires = ['tps'] #float
-
-"""
-
-
-
-
-
-
-
-
-
-"""
+class StatTickTime(Event):
+    requires = ('time',) #int

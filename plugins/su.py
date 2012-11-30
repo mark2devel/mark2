@@ -1,4 +1,5 @@
-from plugins import Plugin, Command
+from plugins import Plugin
+from events import UserInput
 import re
 
 modes = ('raw', 'su')
@@ -16,8 +17,8 @@ class Su(Plugin):
         is_raw = (self.default == modes[1]) ^ (event.line in self.exceptions)
         if is_raw:
             self.send(event.line)
-        if else:
-            self.send(self.command.format(user=event.user, command=event.line)
+        else:
+            self.send(self.command.format(user=event.user, command=event.line))
         
         event.handled   = True
         event.cancelled = True

@@ -2,7 +2,8 @@ import time
 import gzip
 import os
 
-from plugins import Plugin, ConsoleInterest, ShutdownTask, register
+from plugins import Plugin
+from events import Console, ServerStopped
 
 
 class Log(Plugin):
@@ -18,7 +19,6 @@ class Log(Plugin):
     def logger(self, event):
         self.log += event.line + "\n"
     
-    @register(ShutdownTask)
     def shutdown(self, event):
         reason = event.reason
         if reason == None:

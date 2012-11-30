@@ -4,6 +4,8 @@ from twisted.application.internet import UNIXServer
 
 import json
 
+import events
+
 class Scrollback:
     length = 200
     index  = 0
@@ -91,8 +93,8 @@ class UserServerFactory(Factory):
     
     def __init__(self, parent):
         self.parent = parent
-        self.parent.events.register(self.handle_players, StatPlayers)
-        self.parent.events.register(self.handle_console, Console)
+        self.parent.events.register(self.handle_players, events.StatPlayers)
+        self.parent.events.register(self.handle_console, events.Console)
         
         self.scrollback = Scrollback()
     
@@ -113,5 +115,5 @@ class UserServer(UNIXServer):
     def __init__(self, parent, socket):
         self.parent = parent
         factory = UserServerFactory(parent)
-        UnixServer.__init__(self, socket, factory)
+        UNIXServer.__init__(self, socket, factory)
 

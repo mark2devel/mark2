@@ -1,10 +1,11 @@
 import re
 import struct
 
-from twisted.application.internet import UDPClient
+from twisted.application.internet import UDPServer
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import task
 
+import events
 
 class QueryProtocol(DatagramProtocol):
     interval = 10
@@ -74,14 +75,14 @@ class QueryProtocol(DatagramProtocol):
                 p = re.sub('\xa7.{1}', '', p)
                 o['players'].append(p)
             
-            self.dispatch(StatPlayerCount(source = "query", player_count = o['numplayers']))
-            self.dispatch(    StatPlayers(source = "query", players      = o['players']))
-            self.dispatch(    StatPlugins(source = "query", plugins      = o['plugins']))
+            self.dispatch(events.StatPlayerCount(source = "query", player_count = o['numplayers']))
+            self.dispatch(events.StatPlayers    (source = "query", players      = o['players']))
+            self.dispatch(events.StatPlugins    (source = "query", plugins      = o['plugins']))
 
-class Query(UDPClient):
+class Query(UDPServer):
     name = "query"
     def __init__(self, parent, interval, host, port):
         p = QueryProtocol(host, port)
         p.dispatch = parent.events.dispatch
         p.interval = interval
-        UDPClient.__init__(self, 0, p)
+        UDPServer.__init__(self, 0, p)
