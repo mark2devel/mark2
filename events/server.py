@@ -31,10 +31,11 @@ class ServerOutput(Event):
             self.time = g[0]+g[1]
             self.level= g[2]
             self.data = g[3]
+        else:
+            self.level= "UNKNOWN"
+            self.data = self.line.strip()
         
         self.time = get_timestamp(self.time)
-        if self.data == None:
-            self.data = self.line
     
     def consider(self, r_args):
         d = {'level': 'INFO'}
@@ -86,6 +87,8 @@ class ServerStop(Event):
     
     dispatch_once = True
     requires=('reason', 'respawn')
+    kill=False
+    announce=True #generate a ServerStopping event
 
 class ServerStopping(Event):
     """Issued by the ServerStop handler to alert listening plugins

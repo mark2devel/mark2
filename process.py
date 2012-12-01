@@ -7,6 +7,8 @@ import subprocess
 
 import events
 
+from twisted.python import log
+
 class ProcessProtocol(protocol.ProcessProtocol):
     obuff = ""
     alive = True
@@ -44,7 +46,7 @@ class Process(Service):
         reg(self.server_input,    events.ServerInput)
         
         reg(self.server_start,    events.ServerStart)
-        reg(self.server_started,  events.ServerOutput, pattern='Done \(([\d\.]+)s\)\! For help, type "help" or "\?"')
+        reg(self.server_started,  events.ServerOutput, pattern='Done \(([0-9\.]+)s\)\! For help, type "help" or "\?"')
         reg(self.server_stop,     events.ServerStop)
         reg(self.server_stopping, events.ServerStopping)
         reg(self.server_stopped,  events.ServerStopped)
@@ -62,32 +64,45 @@ class Process(Service):
         self.protocol = ProcessProtocol()
         self.protocol.dispatch = self.parent.events.dispatch
         cmd = self.build_command()
-        self.process = reactor.spawnProcess(self.protocol, cmd[0], cmd)
+        self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd)
     
     def server_input(self, e):
-        if self.protocol and self.protocol.alive and self.protocol.transport:
+        if self.protocol and self.protocol.alive and self.transport:
             l = e.line
             if not l.endswith('\n'):
                 l += '\n'
-            self.protocol.transport.send(l)
+            self.transport.write(l)
+            return True
+        return False
     
     def server_started(self, e):
         self.parent.events.dispatch(events.ServerStarted(time=e.match.group(1)))
     
-    def server_stop(self, e=None):
-        if e:
-            k = {'reason': e.reason, 'respawn': e.respawn}
+    def server_stop(self, *a, **k):
+        announce = True
+        if len(a)==1:
+            e = a[0]
+            e.handled = True
+            self.server_stop_real(e.respawn, e.kill, e.reason, e.announce)
+        elif k:
+            self.server_stop_real(k['respawn'], k['kill'] if 'kill' in k else False, k['reason'], True)
+        #TODO: add 'else: raise'. 
+
+    def server_stop_real(self, respawn, kill, reason, announce):
+        if kill:
+            self.parent.console("killing mc process...")
+            self.transport.signalProcess('KILL')
+            return
+        elif not kill:
+            self.parent.console("stopping mc process...")
+            self.transport.write('stop\n')
+            self.parent.events.dispatch_delayed(events.ServerStop(respawn=respawn, reason=reason, kill=True, announce=False), self.parent.config['mark2.shutdown_timeout'])
         else:
-            k = {'reason': 'unknown', 'respawn': False}
-            
-        if self.protocol.alive:
-            self.protocol.transport.send('stop')
-            self.parent.events.dispatch(events.ServerStopping(**k))
-    
-    def server_kill(self, e=None):
-        self.parent.console("server failed to stop, killing...")
-        self.process.signalProcess('KILL')
-    
+            raise Exception("process has no way of dealing with ServerStop...")
+        
+        if announce:
+            self.parent.events.dispatch(events.ServerStopping(respawn=respawn, reason=reason, kill=kill))
+
     def server_stopping(self, e):
         self.respawn = e.respawn
     
@@ -96,15 +111,18 @@ class Process(Service):
             self.server_start()
             self.respawn = False
         elif self.service_stopping:
-            self.service_stopping.callback(d)
+            self.service_stopping.callback(0)
     
     def startService(self):
         self.server_start()
         return Service.startService(self)
 
     def stopService(self):
+        #log.msg("process: %s" % self.process)
+        #log.msg("protocol: %s" % self.protocol)
+        #log.msg("protocol.alive: %s" % self.protocol.alive)
+        #log.msg("protocol.transport: %s" % self.protocol.transport)
         self.parent.events.dispatch(events.ServerStop(reason="SIGINT", respawn=False))
-        self.parent.events.dispatch_delayed(self.server_kill, 60)
         self.service_stopping = defer.Deferred()
         #Service.stopService(self)
         return self.service_stopping

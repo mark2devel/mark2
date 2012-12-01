@@ -13,11 +13,14 @@ class Plugin:
         self.parent = parent
         self.name = name
         
-        self.config      = self.parent.config
-        self.console     = self.parent.console
-        self.fatal_error = self.parent.fatal_error
-        self.dispatch    = self.parent.events.dispatch
-        self.register    = self.parent.events.register
+        
+        self.config             = self.parent.config
+        self.console            = self.parent.console
+        self.fatal_error        = self.parent.fatal_error
+        self.dispatch           = self.parent.events.dispatch
+        self.dispatch_delayed   = self.parent.events.dispatch_delayed
+        self.dispatch_repeating = self.parent.events.dispatch_repeating
+        self.register           = self.parent.events.register
         
         self._tasks = []
     

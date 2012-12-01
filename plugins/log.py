@@ -3,7 +3,7 @@ import gzip
 import os
 
 from plugins import Plugin
-from events import Console, ServerStopped
+from events import Console, ServerStopped, ServerStopping
 
 
 class Log(Plugin):
@@ -12,15 +12,21 @@ class Log(Plugin):
     
     log = ""
     
+    reason = "unknown"
+    
     def setup(self):
         self.register(self.logger, Console)
         self.register(self.shutdown, ServerStopped)
+        self.register(self.pre_shutdown, ServerStopping)
     
     def logger(self, event):
         self.log += event.line + "\n"
     
+    def pre_shutdown(self, event):
+        self.reason = event.reason
+    
     def shutdown(self, event):
-        reason = event.reason
+        reason = self.reason
         if reason == None:
             reason = "ok"
             
