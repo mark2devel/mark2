@@ -1,161 +1,148 @@
 # mark2
 
-mark2 is a minecraft server wrapper, written in python and twisted
+mark2 is a minecraft server wrapper, written in python and twisted. It aims to
+be *the* definitive wrapper, providing a rich feature-set and a powerful 
+plugin interface. It has no requirement on craftbukkit.
 
-**NOTE**: this readme reflects behaviour expected when mark2 is complete. Currently
-it is a work-in-progress.
+## features
 
-## enhancements
+* Your server runs in the background
+* Multiple users can attach at once, with their own local prompt and command 
+  buffer
+* Built in monitoring using the [snooper](wiki.vg/Session#Snoop), 
+  [query](wiki.vg/Query), and [ping](wiki.vg/Server_List_Ping)
+* Tab-complete player names
 
-* server runs in background
-* attach and switch between servers with the function keys
-* navigate your input with the left/right arrow keys, home, end, etc
-* command scrollback using the up/down arrow keys
-* tab-complete player names
+## features provided by plugins
 
-## plugins
-
-### alert
-
-The 'alert' plugin periodically calls the 'say' command with one of a few predefined messages.
-
-This can be useful for alerting your players to news or new commands.
-
-### hang
-
-This plugin guards against server lock-ups and out-of-memories. If one is detected, it will
-generate a failure log and perform a hard restart of the server (basically kills it and brings it back up)
-
-### irc
-
-A basic bot to relay in-game chat to an IRC channel. Could be easily extended to work in
-reverse (perhaps with a CommandHelper alias)
-
-### save
-
-Save the map ('save-all') on an interval
-
-### script
-
-Run server commands, mark2 commands, or shell commands on at
-[set times or server events](https://github.com/edk141/mark2/blob/master/resources/scripts.sample.txt).
-
-### shutdown
-
-4 different ways of shutting down and then starting back up again:
-
-* soft restart: kicks all users, runs 'save-all' and 'stop'
-* hard restart: kills the server
-* warn restart: issues a warning ("[SERVER] server will restart in 60 seconds") and performs a 'soft restart' after a delay
-* restart: does a 'soft restart', and if the server fails to come down, performs a 'hard restart' after a delay
-
-Also provided the same functionality for 'stop', the only difference being that the server isn't brought back up afterward
-
-This plugin also allows you to run a 'warn restart' on an interval, for servers where performance degrades substantially over time.
-
-### trigger
-
-Allows a user to run "!teamspeak", for example, and for the server to /msg or /say back a factoid.
+* Powerful scheduling plugin, with a cron-like syntax. You can hook onto 
+  events like `server shutdown` to run an external script, or run `save` on an
+  interval
+* Automatically restart the server when it crashes, runs out of memory, or
+  stops accepting connections
+* Relay in-game chat to IRC, and vice-versa
+* MCBouncer ban support, even on a vanilla server.
+* With [bukkit-sudo](https://github.com/edk141/bukkit-sudo), attribute certain
+  commands to your in-game username, such that `ban Notch` won't be issued by 
+  'console'
+* Read an RSS feed (such as a subreddit feed) and announce new entries in-game
+* Back up your map and server log when the server stops
+* Print a random message at an interval, e.g. '[SERVER] Lock your chests with 
+  /lock'
+* Respond to user commands, e.g. '<Notch> !teamspeak' could `msg Notch Join 
+  our teamspeak server at xyz.com`
 
 ## requirements
 
-* unix-like system (linux, bsd, os x)
-* python 2
+* UNIX-like operating system (Linux, Mac OS X, BSD)
+* Python 2
 * twisted
+* twisted-web
+* twisted-words (for IRC support)
 * blessings
 * clize
 
-Assuming a relatively sane system it should be trivial to install the latter three using `pip`.
+On ubuntu/debian:
+
+    # apt-get install python-twisted python-twisted-web python-twisted-words
+    $ pip install blessings clize
 
 ## installation
 
-	ln -s /path/to/mark2 /usr/bin/mark2
+    $ git clone git@github.com:mcdevs/mark2.git
+    # ln -s /path/to/mark2/mark2 /usr/bin/mark2
 
-Seriously - just check it out somewhere sensible like `/opt/mark2` and put the `mark2` executable on your path, and you're done.
+Essentially you just need to make sure the 'mark2' executable is in your path.
 
-## usage
+## configuration
 
-### configure
+On first start, mark2 will prompt you to edit the global config file, located 
+at `config/mark2.properties`. 
 
-All servers load configuration from `resources/mark2.default.properties`, which defines the default memory and plugins.
-This file should not be edited as it will break your ability to cleanly update your mark2 installation from Git. Instead,
-copy it to `mark2.properties` and edit it there.
+To set up a server with a different config, create a `mark2.properties` file
+in the same directory as the server jar. mark2 will look for config values in
+this file first, and will check the global config if it can't find the key.
 
-To configure per-server, create a file called `mark2.properties` in the server's directory. In it you can define any
-subset of the default config - as much or as little as you want (see `resources/mark2.sample.properties` for an example).
-Feel free to also edit the default config.
+The following plugins also require config files in the server directory:
 
-The plugins 'script' and 'trigger' require their own configuration files in the server directory, named `scripts.txt` and
-`triggers.txt`. If either is not present its respective plugin will do nothing. Examples for both files can be found in
-`resources/`.
+* script: `scripts.txt`: scriptable event handlers and recurring tasks
+* alert: `alerts.txt`: e.g. "Lock your chests with /lock! ..."
+* trigger: `triggers.txt`: e.g. "!teamspeak:Join our teamspeak server at xyz"
 
-### wrap
+There are examples of these in the `samples/` directory
+
+## start
 
 To start a minecraft server:
 
-    $ mark2 start /path/to/server
+    $ mark2 start /path/to/servers/server-name
 
 If you're already in the right directory, you can omit the last parameter.
 
-At this point if `resources/mark2.properties` doesn't exist, mark2 will create it for you. You are **required** to edit
-this file in order to run and will be prompted to do so now. When you quit the editor, the server will start.
+mark2 now refers to your server by the name of the directory containing the
+server jar, in this case 'server-name'
 
-If mark2 doesn't notice your server jarfile because it's got an unrecognized name,
-
-    $ mark2 start /path/to/server/an_oddly_named_server.jar
-
-Note that when using this form, mark2 still calls the server by the directory it is in, i.e. `server` in
-this example.
-
-### attach
+## attach
 
 To attach to a wrapped server:
 
-    $ mark2 attach name
+    $ mark2 attach server-name
 
-Where 'name' is the name of your server. If your server directory is /home/you/mcservers/pvp, the name would be 'pvp'
+Swap out 'server-name' for whatever your server is actually called, for
+example 'pvp' or 'creative'.
 
-If you omit the 'name' parameter, you'll just attach to the first server alphabetically. If you only run one server,
-you may as well omit this param.
+If you omit the 'name' parameter, you'll just attach to the first server 
+alphabetically. If you only run one server, you may as well omit this param.
 
-If you want to stop a server without attaching, you can:
+### controls
 
-	$ mark2 kill /path/to/server
+* You can navigate text with the left and right arrow keys, and home/end keys
+* Use command scrollback with the up and down arrow keys
+* Press tab to auto-complete a player name, or write 'say ' if you haven't
+  entered any text
+* Switch between servers with ctrl + left/right arrow key.
+* Switch in and out of monitor mode with ctrl + up/down arrow key.
 
-Note that at the present time, the server will not be given an opportunity to save when shut down in this way.
+Run `~commands` to see what mark2 commands are available.
 
-### the display
+If you prefix a line with `#`, it acts as a comment that isn't interpretted.
+This is handy for talking to other attached admins.
 
-The server you're attached to is displayed in the top left. 
+## send commands
 
-Users are displayed in the top right corner.
+You can send commands to the server from the command line, for example:
 
-* light grey: logged in (via ssh or otherwise) but not attached
-* dark grey: attached to another server
-* black: attached to the same server as you
+    $ mark2 send server-name kick Notch
 
-### input
+## stopping/restarting
 
-* left, right, home and end: navigate text
-* up and down: command scrollback
-* tab: complete player name (requires query to be enabled in server.properties). If no text is entered, yields "say "
+mark2 provides a few aliases here, equivilent to running, for example, 
+`mark2 send server-name ~kill`
 
-Prefixing something with "#" makes it a comment that isn't run, but is added to the console output. This is useful
-for chatting to other attached admins.
+    $ mark2 stop server-name
+    $ mark2 kill server-name
+    $ mark2 restart server-name
+    $ mark2 restart-kill server-name
 
-You can also run mark2 plugin commands by prefixing "~". See `~commands` for a list of available commands.
+'stop' and 'restart' will attempt to gracefully shut down the server, and will
+kill it after a configurable timeout.
 
-If you run more than one server, you can switch between them with Control and the left and right arrow keys.
+## tips
 
-### tips
+If your server has a strange name, you have a couple of options:
 
-If your servers all reside in one directory, you may want to add a start helper to your path:
+1. add it to `mark2.jar_path` in your mark2.properties
+2. specify the full path to the jar in `mark2 start`
+
+If your servers all reside in one directory, you may want to add a start
+helper to your path:
 
     #!/bin/bash
-    mark2 start /home/you/mcservers/$1
+    mark2 start /path/to/servers/$1
 
 And run it like
     
     $ mcstart pvp
 
-Likewise if "mark2 attach" becomes a little too much, you could always `alias at='mark2 attach'`
+Likewise if `mark2 attach` becomes a little too much, you could always 
+`alias at='mark2 attach'`
