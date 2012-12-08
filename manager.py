@@ -8,10 +8,10 @@ from twisted.python import log
 #mark2 things
 import events
 import properties
-import user_server
-import process
 
 #services
+import user_server
+import process
 import ping
 import query
 import snoop
@@ -45,7 +45,8 @@ class Manager(MultiService):
         try:
             self.startServiceReal()
         except Exception as e:
-            self.fatal_error(str(e))
+            for l in traceback.format_exc().split("\n"):
+                self.console(l, kind='error')
         finally:
             #close initial pipe
             if self.initial_output != None:
@@ -105,18 +106,18 @@ class Manager(MultiService):
         if self.config['mark2.service.ping.enabled']:
             self.addService(ping.Ping(
                 self,
-                self.properties['server-ip'],
+                self.properties['server_ip'],
                 self.properties['query.port'],
                 self.config['mark2.service.query.interval']))
         
-        if self.config['mark2.service.query.enabled'] and self.properties['enable-query']:
+        if self.config['mark2.service.query.enabled'] and self.properties['enable_query']:
             self.addService(query.Query(
                 self, 
                 self.config['mark2.service.query.interval'], 
-                self.properties['server-ip'], 
-                self.properties['server-port']))
+                self.properties['server_ip'], 
+                self.properties['server_port']))
         
-        if self.config['mark2.service.snoop.enabled'] and self.properties['snooper-enabled']:
+        if self.config['mark2.service.snoop.enabled'] and self.properties['snooper_enabled']:
             self.addService(snoop.Snoop(
                 self, 
                 self.config['mark2.service.snoop.interval']*1000, 
@@ -181,7 +182,7 @@ class Manager(MultiService):
         s = "FATAL: %s" % event.reason
         log.msg(s)
         self.console(s, kind="error")
-        self.stopService()
+        reactor.stop()
         
     def handle_server_output(self, event):
         consumed = self.events.dispatch(events.ServerOutputConsumer(line=event.line))
@@ -214,7 +215,7 @@ class Manager(MultiService):
                 'is_command': True
             }
             if len(t) == 2:
-                k['command_args'] = t[1]
+                k['args'] = t[1]
             r = self.events.dispatch(events.Hook(**k))
             if not r & events.ACCEPTED:
                 self.console("unknown command.")
