@@ -36,6 +36,10 @@ class Process(Service):
     protocol = None
     respawn = False
     service_stopping = None
+    
+    running = False
+    
+    failsafe = None
 
     def __init__(self, parent, jarfile=None):
         self.parent = parent
@@ -68,6 +72,8 @@ class Process(Service):
         self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd)
         if e:
             e.handled = True
+        
+        self.running = True
     
     def server_input(self, e):
         if self.protocol and self.protocol.alive and self.transport:
@@ -92,15 +98,14 @@ class Process(Service):
 
     def server_stop_real(self, respawn, kill, reason, announce):
         if kill:
+            self.failsafe = None
             self.parent.console("killing minecraft server")
             self.transport.signalProcess('KILL')
             return
-        elif not kill:
+        else:
             self.parent.console("stopping minecraft server")
             self.transport.write('stop\n')
-            self.parent.events.dispatch_delayed(events.ServerStop(respawn=respawn, reason=reason, kill=True, announce=False), self.parent.config['mark2.shutdown_timeout'])
-        else:
-            raise Exception("process has no way of dealing with ServerStop...")
+            self.failsafe = self.parent.events.dispatch_delayed(events.ServerStop(respawn=respawn, reason=reason, kill=True, announce=False), self.parent.config['mark2.shutdown_timeout'])
         
         if announce:
             self.parent.events.dispatch(events.ServerStopping(respawn=respawn, reason=reason, kill=kill))
@@ -109,17 +114,23 @@ class Process(Service):
         self.respawn = e.respawn
     
     def server_stopped(self, e):
+        if self.failsafe:
+            self.failsafe.cancel()
+            self.failsafe = None
+        self.running = False
         if self.respawn:
             self.server_start()
             self.respawn = False
         elif self.service_stopping:
-            self.parent.console("minecraft server has stopped!")
             self.service_stopping.callback(0)
+        else:
+            reactor.stop()
 
     def stopService(self):
-        self.parent.events.dispatch(events.ServerStop(reason="SIGINT", respawn=False))
-        self.service_stopping = defer.Deferred()
-        return self.service_stopping
+        if self.running:
+            self.parent.events.dispatch(events.ServerStop(reason="SIGINT", respawn=False))
+            self.service_stopping = defer.Deferred()
+            return self.service_stopping
 
 #returns a list of dicts. Each list element is a thread in the process.
 def get_usage(pid):
