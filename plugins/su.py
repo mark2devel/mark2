@@ -8,7 +8,6 @@ class Su(Plugin):
     proc = "ban;unban"
     
     def setup(self):
-        self.exceptions = re.split("\s*[\;\,]\s*", self.exceptions)
         self.register(self.uinput, UserInput)
     
     def uinput(self, event):
