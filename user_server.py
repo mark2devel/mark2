@@ -46,6 +46,11 @@ class UserServerProtocol(LineReceiver):
         self.register(self.handle_attach,  events.UserAttach)
         self.register(self.handle_detach,  events.UserDetach)
     
+    def connectionLost(self, reason):
+        self.unregister(self.handle_console, events.Console)
+        self.unregister(self.handle_attach,  events.UserAttach)
+        self.unregister(self.handle_detach,  events.UserDetach)
+    
     def lineReceived(self, line):
         msg = json.loads(str(line))
         ty = msg["type"]
@@ -125,6 +130,7 @@ class UserServerFactory(Factory):
     def buildProtocol(self, addr):
         p = UserServerProtocol()
         p.register   = self.parent.events.register
+        p.unregister = self.parent.events.unregister
         p.dispatch   = self.parent.events.dispatch
         p.factory    = self
         return p
