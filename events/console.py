@@ -1,12 +1,7 @@
 from events import Event, get_timestamp
 
-prompts = {
-    'server': '|',
-    'user':   '>',
-    'mark2':  '#'}
-
 class Console(Event):
-    contains = ('line', 'time', 'user', 'source', 'kind')
+    contains = ('line', 'time', 'user', 'source', 'kind', 'data')
     requires = ('line',)
     
     
@@ -14,13 +9,20 @@ class Console(Event):
     time = None
     user = ''
     source = 'mark2'
+    data = None
     
     def setup(self):
-        self.time = get_timestamp(self.time)
-        w = 10 #TODO: move to config?
+        if not self.time:
+            self.time = get_timestamp(self.time)
+        if not self.data:
+            self.data = self.line
         
-        user = self.user.rjust(w) if len(self.user) < w else self.user[-w:]
-        self._repr = "{user} {prompt} {time} {line}".format(user=user, prompt=prompts[self.source], time=self.time, line=self.line)
-    
     def __repr__(self):
-        return self._repr
+        s = "%s %s " % (self.time, {'server': '|', 'mark2': '#', 'user': '>'}.get(self.source, '?'))
+        if self.source == 'server' and self.level != 'INFO':
+            s += "[%s] " % self.level
+        elif self.source == 'user':
+            s += "(%s) " % self.user
+        
+        s += "%s" % self.data
+        return s
