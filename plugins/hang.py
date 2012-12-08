@@ -70,6 +70,8 @@ class HangChecker(Plugin):
             if self.ping_fails == self.ping_fail_limit:
                 self.console('server has stopped accepting connections, restarting...')
                 self.dispatch(ServerStop(reason='not accepting connections', respawn=True))
+        
+        self.ping_alive = False
     
     #pcount
     def pcount_loop(self, event):
@@ -79,6 +81,8 @@ class HangChecker(Plugin):
             if self.pcount_fails == self.pcount_fail_limit:
                 self.console('server has had 0 players for ages - something is awry. restarting...')
                 self.dispatch(ServerStop(reason='zero players', respawn=True))
+        
+        self.pcount_alive = False
     
     ### handlers
     
