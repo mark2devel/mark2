@@ -71,7 +71,35 @@ class Plugin:
     def send(self, l):
         self.dispatch(ServerInput(line=l))
     
+    def action_chain(self, spec, callbackWarn, callbackAction):
+        intervals = [self.parse_time(i) for i in spec.split(';')]
+        intervals = sorted(intervals, key=lambda a: a[1])
+        
+        def action_chain_i(i_name, i_delay, i_action):
+            reactor.callLater(i_delay, i_action) 
+            callbackWarn(i_name)
+        
+        lastAction = callbackAction
+        lastTime   = 0
+        totalTime  = 0
+        
+        for name, time in intervals:
+            delay = time-lastTime
+            lastAction = lambda name=name,delay=delay,lastAction=lastAction: action_chain_i(name, delay, lastAction)
+            lastTime   = time
+            totalTime += time
+        
+        return totalTime, lastAction
 
+    def parse_time(self, spec):
+        symbols = {'s': (1, 'second'), 'm': (60, 'minute'), 'h': (3600, 'hour')}
+        v = int(spec[:-1])
+        s = symbols[spec[-1]]
+        
+        name = "%d %s%s" % (v, s[1], "s" if v>1 else "")
+        time = v*s[0]
+        
+        return name, time
 
 def load(module_name, **kwargs):
     p = path.join(path.dirname(path.realpath(__file__)), module_name + '.py')
