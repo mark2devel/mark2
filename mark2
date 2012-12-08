@@ -16,6 +16,7 @@ import signal
 import stat
 import subprocess
 import sys
+import errno
 
 import user_client
 import properties
@@ -179,6 +180,13 @@ def kill(hard=False, *path):
         raise Mark2Error('Invalid pidfile: {}.'.format(pidfile))
     try:
         os.kill(pid, signal.SIGKILL if hard else signal.SIGINT)
+        #wait for it to finish
+        while True:    
+            try:
+                os.kill(pid, 0)
+            except OSError as err:
+                if err.errno == errno.ESRCH:
+                    break
         print 'Server at {} terminated.'.format(path)
     except OSError:
         raise Mark2Error('Failed to signal process {}, is the server running?.'.format(pid))
