@@ -115,6 +115,8 @@ class SnoopResource(Resource):
     isLeaf = True
     def render_POST(self, request):
         worlds = {}
+        player_count = {}
+        memory = {}
         world_count = 0
         for k, v in request.args.iteritems():
             m = re.match('world\[(\d+)\]\[(.*)\]', k)
@@ -126,8 +128,11 @@ class SnoopResource(Resource):
                 worlds[int(i)][k2] = v[0]
             
             elif k == 'avg_tick_ms':
-                self.dispatch(events.StatTickTime(time=int(v[0])))
-        
+                self.dispatch(events.StatTickTime(source="snoop", tick_time=int(v[0])))
+            elif k in ('players_current', 'players_max'):
+                player_count[k] = int(v[0])
+            elif k in ('memory_free', 'memory_max'):
+                memory[k] = int(v[0])/(1024**2)
         worlds2 = []
         i = 0
         while i in range(world_count):
@@ -135,7 +140,18 @@ class SnoopResource(Resource):
             i+=1
         
         if worlds2:
-            self.dispatch(events.StatWorlds(worlds=worlds))
+            self.dispatch(events.StatWorlds(source="snoop", worlds=worlds))
+        
+        if len(player_count) == 2:
+            self.dispatch(events.StatPlayerCount(source="snoop", **player_count))
+        if len(memory) == 2:
+            memory['memory_current'] = memory['memory_max'] - memory['memory_free']
+            del memory['memory_free']
+            self.dispatch(events.StatMemory(source="snoop", **memory))
+
+class SnoopSite(Site):
+    def log(self, request):
+        pass
 
 class Snoop(Service):
     def __init__(self, parent, interval, jarfile, start_server):
@@ -147,7 +163,7 @@ class Snoop(Service):
         resource = SnoopResource()
         resource.dispatch = self.parent.events.dispatch
         
-        self.factory = Site(resource)
+        self.factory = SnoopSite(resource)
     
     def privilegedStartService(self):
         self.listeningPort = reactor.listenTCP(0, self.factory)

@@ -68,11 +68,11 @@ class Manager(MultiService):
         self.events.register(self.handle_commands,      events.Hook, public=True, name="commands", doc="displays this message")
         self.events.register(self.handle_console,       events.Console)
         self.events.register(self.handle_fatal,         events.FatalError)
-        self.events.register(self.handle_server_output, events.ServerOutput, level='.*', pattern='.*')
+        self.events.register(self.handle_server_output, events.ServerOutput, pattern='.*')
         #self.events.register(self.handle_server_stopped,events.ServerStopped)
         self.events.register(self.handle_server_save,   events.ServerSave)
-        self.events.register(self.handle_user_attach,   events.UserAttached)
-        self.events.register(self.handle_user_detach,   events.UserDetached)
+        self.events.register(self.handle_user_attach,   events.UserAttach)
+        self.events.register(self.handle_user_detach,   events.UserDetach)
         self.events.register(self.handle_user_input,    events.UserInput)
         
         #change to server directory
@@ -134,7 +134,7 @@ class Manager(MultiService):
         else:
             proc_d.callback(None)
         
-        self.addService(user_server.UserServer(self, os.path.join(self.socketdir, "%s.sock" % self.name)))
+        self.addService(user_server.UserServer(self, os.path.join(self.socketdir, "%s.sock" % self.server_name)))
         
         #load plugins
         loaded = []
@@ -156,7 +156,6 @@ class Manager(MultiService):
     
     #helpers
     def console(self, line, **k):
-        log.msg(line)
         k['line'] = str(line)
         self.events.dispatch(events.Console(**k))
     
@@ -172,8 +171,8 @@ class Manager(MultiService):
         o = []
         m = 0
         for callback, args in self.events.get(events.Hook):
-            if args['public']:
-                o.append((args['name'], args['doc']))
+            if args.get('public', False):
+                o.append((args['name'], args.get('doc', '')))
                 m = max(m, len(args['name']))
         
         o = sorted(o, key=lambda x: x[0])
@@ -183,6 +182,7 @@ class Manager(MultiService):
             self.console(" ~%s | %s" % (name.ljust(m), doc))
     
     def handle_console(self, event):
+        log.msg(event.line)
         if self.initial_output:
             os.write(self.initial_output, "%s\n" % event)
     
@@ -191,9 +191,9 @@ class Manager(MultiService):
         self.stopService()
         
     def handle_server_output(self, event):
-        result = self.events.dispatch(ServerOutputConsumer(line=event.line))
-        if result == 0: #not consumed
-            e = Console(
+        consumed = self.events.dispatch(events.ServerOutputConsumer(line=event.line))
+        if not consumed: #not consumed
+            e = events.Console(
                 source = 'server',
                 line = event.line,
                 time = event.line[:event.line.find(' [')])
@@ -214,8 +214,13 @@ class Manager(MultiService):
         self.console(event.line, user=event.user, source="user")
         if event.line.startswith("~"):
             t = event.line.split(" ", 1)
-            cmd = t[0][1:]
-            r = self.events.dispatch(events.Hook(name=cmd, is_command=True, command_args=t[1]))
+            k = {
+                'name': t[0][1:],
+                'is_command': True
+            }
+            if len(t) == 2:
+                k['command_args'] = t[1]
+            r = self.events.dispatch(events.Hook(**k))
             if not r & events.ACCEPTED:
                 self.console("unknown command.")
         else:

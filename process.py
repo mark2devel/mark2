@@ -60,20 +60,21 @@ class Process(Service):
         cmd.append('nogui')
         return cmd
 
-    def server_start(self, *e):
+    def server_start(self, e=None):
         self.protocol = ProcessProtocol()
         self.protocol.dispatch = self.parent.events.dispatch
         cmd = self.build_command()
         self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd)
+        if e:
+            e.handled = True
     
     def server_input(self, e):
         if self.protocol and self.protocol.alive and self.transport:
             l = e.line
             if not l.endswith('\n'):
                 l += '\n'
-            self.transport.write(l)
-            return True
-        return False
+            self.transport.write(str(l))
+            e.handled = True
     
     def server_started(self, e):
         self.parent.events.dispatch(events.ServerStarted(time=e.match.group(1)))

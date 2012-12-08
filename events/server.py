@@ -1,8 +1,6 @@
 import re
 
-from events import Event, get_timestamp, ACCEPTED
-
-from twisted.python import log
+from events import Event, get_timestamp, ACCEPTED, FINISHED
 
 # input/output
 
@@ -17,14 +15,16 @@ class ServerOutput(Event):
     that to handle this, you must specify both the 'level'
     (e.g. INFO or SEVERE) and a regex pattern to match"""
     
+    contains = ('line', 'time', 'level', 'data')
     requires = ('line',)
     requires_predicate = ('pattern',)
     
     data = None
     time = None
     
+    _returns = ACCEPTED
+    
     def setup(self):
-        log.msg(self.line)
         m = re.match('(\d{4}-\d{2}-\d{2} )?(\d{2}:\d{2}:\d{2}) \[([A-Z]+)\] (.*)', self.line)
         if m:
             g = m.groups()
@@ -37,11 +37,8 @@ class ServerOutput(Event):
         
         self.time = get_timestamp(self.time)
     
-    def consider(self, r_args):
-        d = {'level': 'INFO'}
-        d.update(r_args)
-        
-        if self.level != d['level']:
+    def consider(self, d):
+        if 'level' in d and d['level'] != self.level:
             return 0
         
         m = re.match(d['pattern'], self.data)
@@ -49,15 +46,15 @@ class ServerOutput(Event):
             return 0
         
         self.match = m
-        return ACCEPTED
+        return self._returns
 
 class ServerOutputConsumer(ServerOutput):
     """Issued prior to the ServerOutput handlers seeing it. Takes
     the same handler parameters as ServerOutput. In most cases
     you shouldn't specify a callback"""
     
-    requires = ('line',)
-
+    _returns = ACCEPTED | FINISHED
+    
 # start
 
 class ServerStart(Event):
@@ -86,6 +83,7 @@ class ServerStop(Event):
     """Issue this event to stop the server."""
     
     dispatch_once = True
+    contains=('reason', 'respawn', 'kill', 'announce')
     requires=('reason', 'respawn')
     kill=False
     announce=True #generate a ServerStopping event
@@ -97,7 +95,9 @@ class ServerStopping(Event):
     This event has a helper method in plugins - just overwrite
     the server_started method."""
     
+    contains=('reason', 'respawn', 'kill')
     requires=('reason', 'respawn')
+    kill=False
 
 class ServerStopped(Event):
     """When the server process finally dies, this event is raised"""

@@ -75,9 +75,9 @@ class QueryProtocol(DatagramProtocol):
                 p = re.sub('\xa7.{1}', '', p)
                 o['players'].append(p)
             
-            self.dispatch(events.StatPlayerCount(source = "query", player_count = o['numplayers']))
-            self.dispatch(events.StatPlayers    (source = "query", players      = o['players']))
-            self.dispatch(events.StatPlugins    (source = "query", plugins      = o['plugins']))
+            self.dispatch(events.StatPlayerCount(source = "query", players_current = o['numplayers'], players_max = o['maxplayers']))
+            self.dispatch(events.StatPlayers    (source = "query", players         = o['players']))
+            self.dispatch(events.StatPlugins    (source = "query", plugins         = o['plugins']))
 
 class Query(UDPServer):
     name = "query"

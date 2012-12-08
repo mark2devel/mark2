@@ -6,7 +6,9 @@ prompts = {
     'mark2':  '#'}
 
 class Console(Event):
+    contains = ('line', 'time', 'user', 'source', 'kind')
     requires = ('line',)
+    
     
     kind = None
     time = None

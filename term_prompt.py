@@ -18,6 +18,7 @@ class Prompt:
         self.callback_tab = callback_tab
         self.callback_switch = callback_switch
         self.echo = term_raw.TermMode((3, termios.ECHO), (3, termios.ICANON))
+        #self.echo = term_raw.TermMode()
         self.echo.disable()
     
     def clean_up(self):
@@ -125,4 +126,3 @@ class Prompt:
         if not tab:
             self.tab_accepted = True
             self.tab_index = 0
-        

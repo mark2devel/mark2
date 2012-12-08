@@ -26,265 +26,266 @@ FORMAT = {
     'error':            'red'
 }
 
-
-class UserManager:
-    client = None
-    tab_cache = None
-    tab_count = 0
-    index = 0
-    users = []
-    sockets = []
-    logged_in = set()
-    last_size = (0, 0)
-    
-    def __init__(self, server, socketdir):
-        self.user = getpass.getuser()
-        
-        self.socketdir = socketdir
-        
-        self.load_servers()
+class Users:
+    def __init__(self):
+        self.reset()
         
         os.environ['PROCPS_USERLEN'] = '32'
-        
-        if not self.sockets:
-            print 'No servers available.'
-            sys.exit(1)
-        
-        self.term = blessings.Terminal()
-        
-        self.format = dict(FORMAT)
-        
-        if not self.term.is_a_tty:
-            print 'I need a tty.'
-            sys.exit(1)
-        
-        self.prompt = term_prompt.Prompt(self.refresh_prompt, self.command, self.tab, self.next)
-        
-        print self.term.enter_fullscreen,
-        
-        if server:
-            self.index = ([s[0] for s in self.sockets]).index(server) or 0
+        self.update_logged_in()
+
+    def attach(self, user):
+        self.attached.add(user)
+    
+    def detach(self, user):
+        self.attached.discard(user)
+    
+    def reset(self):
+        self.attached = set()
+    
+    def update_logged_in(self):
+        self.logged_in = set()
+        for line in subprocess.check_output(['w', '-sh']).split("\n"):
+            self.logged_in.add(line.split(" ", 1)[0])
+
+    def get_all(self):
+        for u in self.logged_in:
+            yield u, u in self.attached
+
+
+class UserFactory(ClientFactory):
+    client = None #current client
+    stats  = None
+    def __init__(self, server, socketdir):
+        print "starting up..."
+        self.socketdir = socketdir
+        self.sockets = []
+        if server == '':
+            self.current = (None, None)
         else:
-            self.index = 0
+            self.current = (server, os.path.join(socketdir, "%s.sock" % server))
+        self.user = getpass.getuser()
+        self.users = Users()
+
+        self.term = blessings.Terminal() 
+        self.format = dict(FORMAT)
+        if not self.term.is_a_tty:
+            self.fatal_error('I need a tty.')
         
-        self.focus(self.index)
+        self.prompt = term_prompt.Prompt(
+            self.printer,
+            self.handle_command,
+            self.handle_tab,
+            self.switch_server)
         
-        t = task.LoopingCall(self.refresh_data)
-        t.start(10)
+        print self.term.enter_fullscreen, 
         
+        
+        
+        if self.current == (None, None):
+            self.socket_index = 0
+            self.switch_server()
+        else:
+            self.update_servers()
+        
+        self.printer()
+        
+        #listen on stdin
         stdin = Protocol()
-        stdin.dataReceived = self.s_in
+        stdin.dataReceived = self.prompt.write
         stdio.StandardIO(stdin)
     
-    def cap(self, name):
-        return getattr(self.term, self.format.get(name, 'normal').replace(' ', '_'))
+        t = task.LoopingCall(self.update_data)
+        t.start(3)
+        
+        
+        reactor.run()
     
-    def s_in(self, d):
-        self.prompt.write(d)
-        self.printer()
+    def buildProtocol(self, addr):
+        print "building a protocol."
+        if self.client:
+            self.client.clean_up()
+        
+        p = UserProtocol()
+        p.factory = self
+        p.addr    = addr
+        
+        self.client = p
+        return p
     
-    def command(self, d):
-        self.client.proto.send_helper("input", data=d)
+    def stopFactory(self):
+        self.prompt.clean_up()
+        self.client.clean_up()
+        print self.term.exit_fullscreen,
     
-    def tab(self, d, i):
-        if d == "":
-            self.prompt.write("say ")
-        else:
-            self.client.proto.send_helper("tab", data=d, index=i)
+    def fatal_error(self, err):
+        self.stopFactory()
+        print err
     
-    def refresh_prompt(self):
-        #print "prompt refresh"
-        self.printer()
-    
-    def all_users(self):
-        w = [line.split(' ', 1)[0] for line in subprocess.check_output(['w', '-sh']).splitlines()]
-        return set(w)
-    
-    def refresh_data(self):
-        server_refresh = self.load_servers()
-        o = self.logged_in
-        self.logged_in = self.all_users()
-        if server_refresh or self.logged_in != o:
-            self.refresh_prompt()
-    
-    def draw_serverlist(self):
-        servers = [x[0] for x in self.sockets]
-        current = self.sockets[self.index][0]
+    def switch_server(self, move=0):
+        print self.term.clear
         
-        detached = list(sorted(self.logged_in - set(self.users)))
+        #Switch to the next socket
+        self.update_servers()
+        self.socket_index = (self.socket_index+move) % len(self.sockets)
+        self.current = self.sockets[self.socket_index]
         
-        spaces = len(max(servers + self.users + detached, key=len))
+        #Connect!
+        reactor.connectUNIX(self.current[1], self)
+      
+    def update_servers(self):
+        #sockets
+        current = self.current
         
-        size = (spaces + 2, len(servers) + len(self.users) + len(detached))
-        
-        erase_spaces = ' ' * max(0, self.last_size[0] - size[0])
-        
-        erase = '{}{}  \n'.format(' ' * (spaces + 2), erase_spaces) * max(0, self.last_size[1] - size[1])
-        
-        with self.term.location(0, 0):
-            for s in servers:
-                fmt = self.cap('attached_server' if s == current else 'detached_server')
-                print '{0} {1} '.format(fmt, s) + ' ' * (spaces - len(s)) + self.term.normal + erase_spaces
-            for u in self.users:
-                fmt = self.cap('current_user' if u == self.user else 'attached_user')
-                print '{0} {1} '.format(fmt, u) + ' ' * (spaces - len(u)) + self.term.normal + erase_spaces
-            for u in detached:
-                fmt = self.cap('detached_user')
-                print '{0} {1} '.format(fmt, u) + ' ' * (spaces - len(u)) + self.term.normal + erase_spaces
-            if erase:
-                sys.stdout.write(erase)
-        
-        self.last_size = size
-    
-    def server_output(self, line, format=None):
-        if format:
-            line = self.cap(format) + line
-        self.printer(line)
-    
-    def tab_response(self, line):
-        self.prompt.set_prompt(line)
-        self.printer()
-    
-    def printer(self, data=None):
-        # beginning of line
-        sys.stdout.write('\r')
-        
-        # if there is any data, write it then get a new line
-        sys.stdout.write(self.cap('console') + data + '\n' + self.term.normal if data else '')
-        
-        # self-explanatory
-        self.draw_serverlist()
-        
-        # make sure we're at the bottom of the terminal
-        sys.stdout.write(self.term.move(self.term.height - 1, 0))
-        
-        # draw our prompt
-        sys.stdout.write(self.cap('prompt') + self.term.clear_eol + str(self.prompt) + self.term.normal)
-        
-        # self-explanatory
-        try:
-            sys.stdout.flush()
-        except IOError:
-            pass
-    
-    def load_servers(self):
-        current = self.sockets[self.index] if self.sockets else None
-        old = self.sockets if self.sockets else []
         self.sockets = []
-        
         for f in glob.glob(os.path.join(self.socketdir, '*.sock')):
             name = os.path.splitext(os.path.basename(f))[0]
             self.sockets.append((name, f))
         
-        if current and current not in self.sockets:
-            self.sockets.append(current)
+        self.sockets = sorted(self.sockets, key=lambda x: x[0])
+        
+        if len(self.sockets) == 0:
+            self.fatal_error("no servers running!")
+        
+        if current != (None, None):
+            if current in self.sockets:
+                self.socket_index = self.sockets.index(current)
+            else:
+                self.fatal_error("couldn't find server %s" % current[0])
 
-        self.sockets = sorted(self.sockets, key=lambda e: e[0])
-        
-        if current:
-            self.index = self.sockets.index(current)
-        
+    def update_data(self):
+        self.update_servers()
+        self.users.update_logged_in()
         if self.client:
-            assert self.sockets[self.index][1] == self.client.socket
-        
-        if old and self.sockets != old:
-            return True
-        
-    def focus(self, n=0):
-        print self.term.clear
-        
-        if self.client and self.client.alive:
-            self.client.alive = False
-            try:
-                self.client.proto.transport.loseConnection()
-            except:
-                pass
-        
-        self.index = n
-        self.client = UserClient(self, *self.sockets[self.index])
+            self.client.update_data()
     
-    def next(self, step=1):
-        self.focus((self.index + step) % len(self.sockets))
     
-    def factory_stopped(self, f):
-        self.prompt.clean_up()
-        print self.term.exit_fullscreen,
+    def cap(self, name):
+        return getattr(self.term, self.format.get(name, 'normal').replace(' ', '_'))
+    
+    def printer(self, data=None):
 
+        ###
+        ### Main output
+        ###        
+        # clear the line
+        sys.stdout.write('\r' + self.term.clear_eol)
+        
+        # if there is any data, write it then get a new line
+        if data:
+            sys.stdout.write(self.cap('console'))
+            sys.stdout.write(data + '\n' + self.term.normal)
+    
+        ###
+        ### HEADER!
+        ###
+        sys.stdout.write(self.term.move(0, 0))
+        sys.stdout.write(self.term.clear_eol)
+        for name, socket in self.sockets:
+            if name == self.current:
+                sys.stdout.write(self.term.bold + name + self.term.normal + " ")
+            else:
+                sys.stdout.write(name + " ")
+        
+        right = ""
+        for user, attached in self.users.get_all():
+            if attached:
+                right += self.term.bold + user + self.term.normal + " "
+            else:
+                right += user + " "
+        with self.term.location(self.term.width - len(right), 0):
+            sys.stdout.write(right)
+        
+        #second line
+        sys.stdout.write("\n"+self.term.clear_eol)
+        if self.client and self.stats:
+            format = u"tick: {tick_time}ms // mem: {memory_current}MB of {memory_max}MB // players: {players_current} of {players_max}"
+            sys.stdout.write(format.format(**self.stats))
+        
+        # PROMPT
+        sys.stdout.write(self.term.move(self.term.height - 1, 0))
+        
+        # draw our prompt
+        sys.stdout.write(self.cap('prompt'))
+        sys.stdout.write(str(self.prompt) + self.term.normal)
+        try:
+            sys.stdout.flush()
+        except IOError:
+            pass
+        
+    #prompt handlers:
+    def handle_command(self, command):
+        if self.client:
+            self.client.send_helper("input", line=command, user=self.user)
+    def handle_tab(self, line, index):
+        if line == "":
+            self.prompt.write("say ")
+        elif self.client:
+            self.client.send_helper("tab", line=line, index=index)
+    #client handlers:
+    def handle_output(self, line):
+        #if format:
+        #    line = self.cap(format) + line
+        self.printer(line)
+    
+    def handle_tab_response(self, line):
+        self.prompt.set_prompt(line)
+        self.printer()
+        
+    def handle_user_status(self, user, online):
+        if online:
+            self.users.attach(user)
+        else:
+            self.users.detach(user)
+    
+    def handle_stats(self, stats):
+        self.stats = stats
+        self.printer()
+    
+    def handle_server_died(self):
+        self.socket_index = 0
+        self.update_servers()
 
-class UserClientProtocol(LineReceiver):
-    user = None
+class UserProtocol(LineReceiver):
     delimiter = '\n'
-    
     def connectionMade(self):
-        #print "client connected!"
-        self.send_helper("attach", user=self.manager.user, line_count=self.manager.term.height)
+        self.alive = 1
+        self.send_helper("attach", user=self.factory.user)
+        self.send_helper("get_lines", line_count=self.factory.term.height)
 
     def connectionLost(self, reason):
-        if len(self.manager.sockets) <= 1:
-            print "client disconnected!"
-            #reactor.stop()
-        elif self.factory.alive:
-            self.manager.next()
+        self.alive = 0
+        self.factory.handle_server_died()
 
     def lineReceived(self, line):
         msg = json.loads(line)
         ty = msg["type"]
         
-        if ty == "output":
-            self.manager.server_output(msg["data"], format=msg.get("kind", None))
+        if ty == "console":
+            self.factory.handle_output(msg["line"])
+            #self.manager.server_output(msg["data"], format=msg.get("kind", None))
         
         if ty == "tab":
-            self.manager.tab_response(msg["candidate"])
+            self.factory.handle_tab_response(msg["line"])
         
-        if ty == "userlist":
-            self.manager.users = list(sorted(msg["users"]))
-            self.manager.refresh_prompt()
+        if ty == "user_status":
+            self.factory.handle_user_status(msg["user"], msg["online"])
         
-        if ty == "options":
-            self.manager.format.update(msg["format"])
-            self.manager.prompt.prefix = msg["prompt"] + ' '
+        if ty == "stats":
+            #print msg
+            self.factory.handle_stats(msg["stats"])
+    
+    def update_data(self):
+        self.send_helper("get_users")
+        self.send_helper("get_stats")
     
     def send_helper(self, ty, **k):
         k["type"] = ty
-        #print json.dumps(k)
-        self.sendLine(json.dumps(k))
+        if self.alive:
+            self.sendLine(json.dumps(k))
     
-    def send_output(self, line):
-        self.send_helper("line", data=line)
-    
-
-class UserClientFactory(ClientFactory):
-    protocol = UserClientProtocol
-    
-    alive = True
-    
-    def __init__(self, parent, name):
-        self.parent = parent
-        self.name = name
-    
-    def buildProtocol(self, addr):
-        p = UserClientProtocol()
-        p.name    = self.name
-        p.manager = self.parent
-        p.factory = self
-        self.proto = p
-        return p
-    
-    def stopFactory(self):
-        self.parent.factory_stopped(self)
-    
-
-def UserClient(parent, name, socket):
-    factory = UserClientFactory(parent, name)
-    factory.socket = socket
-    reactor.connectUNIX(socket, factory)
-    return factory
-
-
-"""def main(socketdir, use_server=None):
-    m = UserManager(use_server, socketdir)
-    reactor.run()
-    return m"""
+    def clean_up(self):
+        self.send_helper("detach", user=self.factory.user)
+        self.transport.loseConnection()
 
 if __name__ == '__main__':
     print 'Use `mark2 attach` to start this program.'

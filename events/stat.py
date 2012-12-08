@@ -2,7 +2,7 @@ from events import Event
 
 #provider: ping, query, snoop
 class StatPlayerCount(Event):
-    requires = ('player_count',) #int
+    requires = ('players_current', 'players_max') #int
 
 #provider: query
 class StatPlayers(Event):
@@ -16,10 +16,14 @@ class StatWorlds(Event):
 class StatPlugins(Event):
     requires = ('plugins',) #list of strings
 
+#provider: snoop
+class StatMemory(Event):
+    requires = ('memory_current', 'memory_max') #in bytes
+
 #provider: `top`
-class StatThreads(Event):
-    requires = ('threads',) #list of dicts
+class StatCPU(Event):
+    requires = ('cpu',)
 
 #provider: snoop
 class StatTickTime(Event):
-    requires = ('time',) #int
+    requires = ('tick_time',) #int

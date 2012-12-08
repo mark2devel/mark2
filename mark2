@@ -196,8 +196,7 @@ def attach(*path):
     ensure_basedir(SOCKET_BASE, need_write=False)
     
     # run the client in our own context, why not
-    m = user_client.UserManager(' '.join(path), SOCKET_BASE)
-    reactor.run()
+    m = user_client.UserFactory(' '.join(path), SOCKET_BASE)
 
 # never mind how someone managed to import this, stop them
 if __name__ != '__main__':

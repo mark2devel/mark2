@@ -1,11 +1,14 @@
-import inspect, sys, time
+import inspect, sys, time, json
 
 from twisted.internet import reactor, task
+
+from twisted.python import log
 
 ACCEPTED = 1
 FINISHED = 2
 
 class Event:
+    contains           = None
     requires           = tuple() # required kwargs
     requires_predicate = tuple() # required register() kwargs
     handled   = False
@@ -18,7 +21,11 @@ class Event:
             if n in left:
                 left.remove(n)
         if len(left) > 0:
-            raise Exception("Event type %s missing argument(s): %s" % (self.__class__, ", ".join(left)))
+            raise Exception("Event type %s missing argument(s): %s" % (self.__class__.__name__, ", ".join(left)))
+        
+        if not self.contains:
+            self.contains = set(self.requires)
+        
         self.setup()
     
     def setup(self):
@@ -27,6 +34,12 @@ class Event:
     def consider(self, r_args):
         return ACCEPTED
 
+    def to_json(self):
+        data = {
+            'name': self.__class__.__name__,
+            'data': { k : getattr(self, k) for k in self.contains }}
+        return json.dumps(data)
+        
 class EventDispatcher:
     registered = {}
     
@@ -45,18 +58,20 @@ class EventDispatcher:
         self.registered[event_type] = d
     
     def dispatch(self, event):
+        #log.msg("dispatching %s event" % event.__class__.__name__)
         r = False
         for r_callback, r_args in self.get(event.__class__):
+            
             o  = event.consider(r_args)
-            r |= o
+            #log.msg("handler %s %s returned %d" % (str(r_callback), str(r_args), o))
             if o & ACCEPTED:
                 r = True
                 r_callback(event)
                 if o & FINISHED:
-                    self.registered.remove((r_callback, r_args))
+                    self.registered[event.__class__].remove((r_callback, r_args))
                 if event.handled:
                     break
-        return r & ACCEPTED
+        return r
     
     def dispatch_delayed(self, event, delay):
         t = reactor.callLater(delay, lambda: self.dispatch(event))
@@ -70,12 +85,6 @@ class EventDispatcher:
     #get a list of handlers in the form (callback, {args...})
     def get(self, event_type):
         return self.registered.get(event_type, [])[::-1]
-    
-    #get an event type by name
-    def event(self, name):
-        for n, c in inspect.getmembers(sys.modules[__name__], inspect.isclass):
-            if n.lower() == name.lower() and issubclass(c, Event):
-                return c
 
 def get_timestamp(t=None):
     if t == None:
@@ -84,6 +93,16 @@ def get_timestamp(t=None):
         return t.strftime("%Y-%m-%d ") + t
     else:
         return t
+
+#get an event type by name
+def get_by_name(name):
+    for n, c in inspect.getmembers(sys.modules[__name__], inspect.isclass):
+        if n.lower() == name.lower() and issubclass(c, Event):
+            return c
+
+def from_json(data):
+    data = json.loads(data)
+    return get_by_name(data['name'])(**data['data'])
 
 from console import *
 from error   import *

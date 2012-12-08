@@ -78,7 +78,7 @@ class HangChecker(Plugin):
             self.console('server has 0 players on! check %d of %d' % (self.pcount_fails, self.pcount_fail_limit))
             if self.pcount_fails == self.pcount_fail_limit:
                 self.console('server has had 0 players for ages - something is awry. restarting...')
-                self.dispatch(ServerStop(reason='zero playes', respawn=True))
+                self.dispatch(ServerStop(reason='zero players', respawn=True))
     
     ### handlers
     
@@ -101,6 +101,6 @@ class HangChecker(Plugin):
     
     # pcount
     def handle_pcount(self, event):
-        if event.player_count > 0:
+        if event.players_count > 0:
             self.pcount_fails = 0
             self.pcount_alive = True
