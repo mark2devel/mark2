@@ -9,18 +9,25 @@ from events import Console, ServerStopped, ServerStopping
 class Log(Plugin):
     gzip      = True
     path      = "logs/server-{timestamp}-{status}.log.gz"
+    vanilla = False
     
     log = ""
     
     reason = "unknown"
     
     def setup(self):
-        self.register(self.logger, Console)
+        if self.vanilla:
+            self.register(self.vanilla_logger, ServerOutput)
+        else:
+            self.register(self.logger, Console)
         self.register(self.shutdown, ServerStopped)
         self.register(self.pre_shutdown, ServerStopping)
     
+    def vanilla_logger(self, event):
+        self.log += "%s\n" % event.line
+    
     def logger(self, event):
-        self.log += event.line + "\n"
+        self.log += "%s\n" % event
     
     def pre_shutdown(self, event):
         self.reason = event.reason
