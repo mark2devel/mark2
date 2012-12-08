@@ -44,10 +44,7 @@ class EventDispatcher:
     registered = {}
     
     #args: [callback] event_type [kwargs ...]
-    def register(self, *a, **predicate_args):
-        callback   = a[0] if len(a) == 2 else lambda: True
-        event_type = a[-1]
-        
+    def register(self, callback, event_type, **predicate_args):
         d = self.registered.get(event_type, [])
         
         for p in event_type.requires_predicate:
@@ -56,6 +53,13 @@ class EventDispatcher:
         
         d.append((callback, predicate_args))
         self.registered[event_type] = d
+    
+    def unregister(self, callback, event_type, **predicate_args):
+        try:
+            self.registered[event_type].remove((callback, predicate_args))
+        except e:
+            return False
+        return True
     
     def dispatch(self, event):
         #log.msg("dispatching %s event" % event.__class__.__name__)
