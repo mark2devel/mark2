@@ -1,37 +1,47 @@
-import re
 import struct
 
-from twisted.application.internet import TCPClient
-from twisted.internet.protocol import Protocol, ReconnectingClientFactory
-from twisted.internet import task
+from twisted.application.service import Service
+from twisted.internet import task, reactor
+from twisted.internet.protocol import Protocol, ClientFactory
 
+from events import StatPlayerCount
 
 class PingProtocol(Protocol):
-    def startProtocol(self):
+    def connectionMade(self):
+        self.buff = ""
         self.transport.write('\xFE\x01')
     
     def dataReceived(self, data):
-        data = data[9:].decode('utf16-be').split('\x00')
-        self.dispatch(StatPlayerCount(source="ping", players_current=data[3], players_max=data[4]))
+        self.buff += data
+        if len(self.buff) >= 3:
+            l = struct.unpack('>h', self.buff[1:3])[0]
+            if len(self.buff) >= 3 + l*2:
+                data = self.buff[9:].decode('utf-16be').split('\x00')
+                self.dispatch(StatPlayerCount(source="ping", players_current=data[3], players_max=data[4]))
 
-class PingFactory(ReconnectingClientFactory):
-    def __init__(self, interval):
+class PingFactory(ClientFactory):
+    noisy = False
+    def __init__(self, interval, host, port, dispatch):
+        self.host = host
+        self.port = port
+        self.dispach = dispatch
         t = task.LoopingCall(self.loop)
-        t.start(interval)
+        t.start(interval, now=False)
     
     def loop(self):
-        self.resetDelay()
-        self.retry()
+        reactor.connectTCP(self.host, self.port, self)
     
     def buildProtocol(self, addr):
         pr = PingProtocol()
         pr.dispatch = self.dispatch
         return pr
 
-class Ping(TCPClient):
+class Ping(Service):
     name = "ping"
     def __init__(self, parent, host, port, interval):
-        factory = PingFactory(interval)
-        factory.dispatch = parent.events.dispatch
-        TCPClient.__init__(self, host, port, factory)
-        
+        self.factory = PingFactory(interval, host, port, parent.events.dispatch)
+        self.factory.dispatch = parent.events.dispatch
+
+    def stopService(self):
+        self.factory.stopFactory()
+        Service.stopService(self)
