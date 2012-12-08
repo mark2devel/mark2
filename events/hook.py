@@ -1,9 +1,11 @@
 from events import Event, ACCEPTED
 
 class Hook(Event):
+    contains = ('name', 'is_command', 'args')
     requires = ('name',)
     requires_predicate = ('name',)
     is_command = False
+    args = None
     
     def consider(self, r_args):
         d = {
