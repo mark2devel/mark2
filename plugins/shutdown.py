@@ -3,8 +3,14 @@ from events import Hook, ServerStop, StatPlayers
 
 
 class Shutdown(Plugin):
-    warn_delay = 60
-    soft_timeout  = 60 #How long to wait for the server to stop gracefully
+    repeat=True
+    repeat_delay         = "2h"
+    repeat_warn_interval = "10m;5m;1m"
+    
+    restart_warn_message = "WARNING: planned restart in {delay}."
+    stop_warn_message    = "WARNING: server going down for planned maintainence in {delay}."
+    restart_message      = "Server restarting."
+    stop_message         = "Server going down for maintainence."
     
     failsafe = None
     
@@ -13,40 +19,48 @@ class Shutdown(Plugin):
         
         self.register(self.handle_players, StatPlayers)
         
-        self.register(self.h_stop,          Hook, public=True, name="stop",         doc='attempts to cleanly stop the server; after a timeout kills it')
-        self.register(self.h_stop_warn,     Hook, public=True, name="stop-warn",    doc='announce a shutdown in chat, then stop n seconds later')
-        self.register(self.h_restart,       Hook, public=True, name="restart",      doc='attempts to cleanly restart the server; after a timeout kills it and brings it back')
-        self.register(self.h_restart_warn,  Hook, public=True, name="restart-warn", doc='announce a restart in chat, then restart n seconds later')
+        self.register(self.h_stop,          Hook, public=True, name="stop",         doc='cleanly stop the server. specify a delay like `~stop 2m`')
+        self.register(self.h_restart,       Hook, public=True, name="restart",      doc='cleanly restart the server. specify a delay like `~restart 30s`')
         self.register(self.h_kill,          Hook, public=True, name="kill",         doc='kill the server')
         self.register(self.h_kill_restart,  Hook, public=True, name="kill-restart", doc='kill the server and bring it back up')
-        
-    def handle_players(self, event):
-        self.players = event.players
     
-    def nice_stop(self, message, respawn, kill):
+    def server_started(self, event):
+        if self.repeat:
+            warn_length, first_warn = self.action_chain(self.repeat_warn_interval, self.warn_restart, self.h_restart)
+            self.delayed_task(first_warn, self.parse_time(self.repeat_delay)[1] - warn_length)
+
+    def warn_restart(self, delay):
+        self.send("say %s" % self.restart_warn_message.format(delay=delay))
+    
+    def warn_stop(self, delay):
+        self.send("say %s" % self.stop_warn_message.format(delay=delay))
+
+    def nice_stop(self, respawn, kill):
         if not kill:
             self.send('save-all')
+            message = self.restart_message if respawn else self.stop_message
             for player in self.players:
                 self.send('kick %s %s' % (player, message))
         self.dispatch(ServerStop(reason='console', respawn=respawn, kill=kill))
+
+    def handle_players(self, event):
+        self.players = event.players
     
     #Hook handlers:
-
-    def h_stop(self, event):
-        self.nice_stop('Server going down for maintainence.', False, False)
-
-    def h_stop_warn(self, event):
-        self.send("say SERVER GOING DOWN FOR MAINTENANCE IN %d SECONDS." % self.warn_delay)
-        self.send('say ALL PROGRESS WILL BE SAVED.')
-        self.delayed_task(self.h_stop, self.warn_delay)
-
-    def h_restart(self, event):
-        self.nice_stop('Server restarting.', True, False)
+    def h_stop(self, event=None):
+        action = lambda: self.nice_stop(False, False)
+        if event and event.args:
+            warn_length, action = self.action_chain(event.args, self.warn_stop, action)
+        self.console("running action")
+        action()
+        self.console("done!")
     
-    def h_restart_warn(self, event):
-        self.send('say RESTARTING IN %d SECONDS.' % self.warn_delay)
-        self.send('say ALL PROGRESS WILL BE SAVED.')
-        self.delayed_task(self.h_restart, self.warn_delay)
+
+    def h_restart(self, event=None):
+        action = lambda: self.nice_stop(True, False)
+        if event and event.args:
+            warn_length, action = self.action_chain(event.args, self.warn_restart, action)
+        action()
     
     def h_kill(self, event):
         self.nice_stop('Server going down for maintainence.', False, True)
