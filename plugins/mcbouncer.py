@@ -1,15 +1,18 @@
 import urllib
 import json
-from twisted.web.client import getPage
+
+from twisted.web.client import HTTPClientFactory, getPage
+HTTPClientFactory.noisy = False
 
 from plugins import Plugin
 from events import ServerOutput
 
 class BouncerAPI:
     methods = ['addBan', 'removeBan', 'getBanReason', 'getIPBanReason', 'updateUser']
-    def __init__(self, API_BASE, API_KEY):
-        self.API_KEY = API_KEY
-        self.API_BASE = API_BASE
+    def __init__(self, api_base, api_key, errback):
+        self.api_key = api_key
+        self.api_base = api_base
+        self.errback = errback
     
     def __getattr__(self, method):
         if not method in self.methods:
@@ -18,10 +21,11 @@ class BouncerAPI:
         def inner(*args, **kwargs):
             args = [urllib.quote(a, "") for a in args]
             callback = kwargs.get('callback', None)
-            addr = '/'.join([self.API_BASE, method, self.API_KEY] + args)
+            addr = '/'.join([self.api_base, method, self.api_key] + args)
             deferred = getPage(addr)
             if callback:
                 deferred.addCallback(lambda d: callback(json.loads(str(d))))
+                deferred.addErrback(self.errback)
         return inner
 
 class MCBouncer(Plugin):
@@ -31,22 +35,26 @@ class MCBouncer(Plugin):
     proxy_mode = False
     
     def setup(self):
-        self.bouncer = BouncerAPI(self.api_base, self.api_key)
+        self.bouncer = BouncerAPI(self.api_base, self.api_key, self.on_error)
         
         self.register(self.on_login,  ServerOutput, pattern='([A-Za-z0-9_]{1,16})\[/([0-9\.]+):\d+\] logged in with entity id .+')
         self.register(self.on_ban,    ServerOutput, pattern='\[([A-Za-z0-9_]{1,16}): Banned player ([A-Za-z0-9_]{1,16})\]')
-        #self.register(self.on_ban,    ServerOutput, pattern='') #TODO: console version
-        self.register(self.on_pardon, ServerOutput, pattern='\[([A-Za-z0-9_]{1,16}): Unbanned player ([A-Za-z0-9_]{1,16})\]')
-        #self.register(self.on_pardon, ServerOutput, pattern='') #TODO: console version
+        self.register(self.on_ban,    ServerOutput, pattern='Banned player ([A-Za-z0-9_]{1,16})')
+        self.register(self.on_pardon, ServerOutput, pattern='\[[A-Za-z0-9_]{1,16}: Unbanned player ([A-Za-z0-9_]{1,16})\]')
+        self.register(self.on_pardon, ServerOutput, pattern='Unbanned player ([A-Za-z0-9_]{1,16})')
     
+    def on_error(self, error):
+        self.console("Couldn't contact mcbouncer! %s" % error.getErrorMessage())
         
     def on_ban(self, event):
         g = event.match.groups()
-        o = self.bouncer.addBan(g[0], g[1], self.reason)
+        player = g[-1]
+        issuer = g[0] if len(g) == 2 else 'console'
+        o = self.bouncer.addBan(issuer, player, self.reason)
     
     def on_pardon(self, event):
         g = event.match.groups()
-        self.bouncer.removeBan(g[1])
+        self.bouncer.removeBan(g[0])
     
     def on_login(self, event):
         g = event.match.groups()
