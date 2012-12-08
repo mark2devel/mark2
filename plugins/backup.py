@@ -9,6 +9,8 @@ from events import ServerStopped
 
 class Backup(Plugin):
     path = "backups/{timestamp}.tar.gz"
+    mode = "include"
+    spec = "world*"
     
     def setup(self):
         self.register(self.shutdown, ServerStopped)
@@ -24,7 +26,18 @@ class Backup(Plugin):
                              kind='error')
                 return
         tar = tarfile.open(path, "w:gz")
-        for world in glob.glob("world*"):
-            tar.add(world)
+        
+        add = set()
+        if self.mode == "include":
+            for e in self.spec.split(";"):
+                add |= set(glob.glob(e))
+        elif self.mode == "exclude":
+            add += set(glob.glob('*'))
+            for e in self.spec.split(";"):
+                add -= set(glob.glob(e))
+        
+        for a in add:
+            tar.add(a)
+       
         tar.close()
         self.console("map data backed up to %s" % os.path.realpath(path))
