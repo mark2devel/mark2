@@ -61,6 +61,7 @@ class Process(Service):
         return cmd
 
     def server_start(self, e=None):
+        self.parent.console("starting minecraft server")
         self.protocol = ProcessProtocol()
         self.protocol.dispatch = self.parent.events.dispatch
         cmd = self.build_command()
@@ -91,11 +92,11 @@ class Process(Service):
 
     def server_stop_real(self, respawn, kill, reason, announce):
         if kill:
-            self.parent.console("killing mc process...")
+            self.parent.console("killing minecraft server")
             self.transport.signalProcess('KILL')
             return
         elif not kill:
-            self.parent.console("stopping mc process...")
+            self.parent.console("stopping minecraft server")
             self.transport.write('stop\n')
             self.parent.events.dispatch_delayed(events.ServerStop(respawn=respawn, reason=reason, kill=True, announce=False), self.parent.config['mark2.shutdown_timeout'])
         else:
@@ -112,26 +113,13 @@ class Process(Service):
             self.server_start()
             self.respawn = False
         elif self.service_stopping:
+            self.parent.console("minecraft server has stopped!")
             self.service_stopping.callback(0)
-    
-    def startService(self):
-        self.server_start()
-        return Service.startService(self)
 
     def stopService(self):
-        #log.msg("process: %s" % self.process)
-        #log.msg("protocol: %s" % self.protocol)
-        #log.msg("protocol.alive: %s" % self.protocol.alive)
-        #log.msg("protocol.transport: %s" % self.protocol.transport)
         self.parent.events.dispatch(events.ServerStop(reason="SIGINT", respawn=False))
         self.service_stopping = defer.Deferred()
-        #Service.stopService(self)
         return self.service_stopping
-
-#def Process(parent, jarfile=None):
-#    service = ProcessService(jarfile)
-#    service.setServiceParent(parent)
-#    return service.protocol, service
 
 #returns a list of dicts. Each list element is a thread in the process.
 def get_usage(pid):

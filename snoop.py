@@ -160,6 +160,8 @@ class Snoop(Service):
         self.jarfile      = jarfile
         self.start_server = start_server
         
+        self.listeningPort = None
+        
         resource = SnoopResource()
         resource.dispatch = self.parent.events.dispatch
         
@@ -181,5 +183,6 @@ class Snoop(Service):
         return Service.privilegedStartService(self)
     
     def stopService(self):
-        self.listeningPort.stopListening()
+        if self.listeningPort:
+            self.listeningPort.stopListening()
         return Service.stopService(self)

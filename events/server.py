@@ -32,7 +32,7 @@ class ServerOutput(Event):
             self.level= g[2]
             self.data = g[3]
         else:
-            self.level= "UNKNOWN"
+            self.level= "???"
             self.data = self.line.strip()
         
         self.time = get_timestamp(self.time)
@@ -60,7 +60,7 @@ class ServerOutputConsumer(ServerOutput):
 class ServerStart(Event):
     """Issue this event to start the server"""
     
-    dispatch_once = True
+    pass
 
 class ServerStarting(Event):
     """Issued by the ServerStart handler to alert listening plugins

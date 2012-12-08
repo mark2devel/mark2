@@ -2,7 +2,7 @@ import re
 import os
 import traceback
 from twisted.internet import reactor, defer
-from twisted.application.service import MultiService
+from twisted.application.service import MultiService, Service
 
 from twisted.python import log
 
@@ -40,36 +40,28 @@ class Manager(MultiService):
         self.initial_output = initial_output
         self.socketdir = socketdir
         self.jarfile = jarfile
-        
-        #self.f_temp = open('temp.log', 'w')
     
     def startService(self):
-        MultiService.startService(self)
-        """try:
+        Service.startService(self)
+        try:
             self.startServiceReal()
         except Exception as e:
-            self.fatal_error(exception=e)
+            self.fatal_error(str(e))
         finally:
             #close initial pipe
             if self.initial_output != None:
                 os.close(self.initial_output)
-                self.initial_output = None"""
-        self.startServiceReal()
-        #close initial pipe
-        if self.initial_output != None:
-            os.close(self.initial_output)
-            self.initial_output = None
+                self.initial_output = None
         
     def startServiceReal(self):
         #start event dispatcher
         self.events = events.EventDispatcher()
         
         #add some handlers
-        self.events.register(self.handle_commands,      events.Hook, public=True, name="commands", doc="displays this message")
+        self.events.register(self.handle_commands,      events.Hook, public=True, name="help", doc="displays this message")
         self.events.register(self.handle_console,       events.Console)
         self.events.register(self.handle_fatal,         events.FatalError)
         self.events.register(self.handle_server_output, events.ServerOutput, pattern='.*')
-        #self.events.register(self.handle_server_stopped,events.ServerStopped)
         self.events.register(self.handle_server_save,   events.ServerSave)
         self.events.register(self.handle_user_attach,   events.UserAttach)
         self.events.register(self.handle_user_detach,   events.UserDetach)
@@ -111,12 +103,12 @@ class Manager(MultiService):
         proc_d.addCallback(proc_s)
         proc_d.addErrback(proc_e)
         
-        """if self.config['mark2.service.ping.enabled']:
+        if self.config['mark2.service.ping.enabled']:
             self.addService(ping.Ping(
                 self,
                 self.properties['server-ip'],
                 self.properties['query.port'],
-                self.config['mark2.service.query.interval']))"""
+                self.config['mark2.service.query.interval']))
         
         if self.config['mark2.service.query.enabled'] and self.properties['enable-query']:
             self.addService(query.Query(
@@ -151,8 +143,9 @@ class Manager(MultiService):
                     self.console(l, kind='error')
         
         self.console("loaded plugins: " + ", ".join(loaded))
-        self.console("mark2 started successfully")
-    
+        
+        self.events.dispatch(events.ServerStart())
+        
     
     #helpers
     def console(self, line, **k):
@@ -182,12 +175,13 @@ class Manager(MultiService):
             self.console(" ~%s | %s" % (name.ljust(m), doc))
     
     def handle_console(self, event):
-        log.msg(event.line)
         if self.initial_output:
             os.write(self.initial_output, "%s\n" % event)
     
     def handle_fatal(self, event):
-        self.console("FATAL ERROR: %s" % event.reason, kind="error")
+        s = "FATAL: %s" % event.reason
+        log.msg(s)
+        self.console(s, kind="error")
         self.stopService()
         
     def handle_server_output(self, event):
@@ -196,7 +190,9 @@ class Manager(MultiService):
             e = events.Console(
                 source = 'server',
                 line = event.line,
-                time = event.line[:event.line.find(' [')])
+                time = event.time,
+                level= event.level,
+                data = event.data)
                 
             self.events.dispatch(e)
     
