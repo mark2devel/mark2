@@ -1,9 +1,8 @@
-import re
 import os
 import traceback
+
 from twisted.internet import reactor, defer
 from twisted.application.service import MultiService, Service
-
 from twisted.python import log
 
 #mark2 things

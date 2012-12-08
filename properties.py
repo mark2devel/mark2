@@ -34,6 +34,7 @@ class Properties(dict):
             m = re.match('^([^=]+)=(.*)$', l.strip())
             if m:
                 k, v = m.groups()
+                k = k.replace('-', '_')
                 
                 if re.match('^\-?\d+$', v):
                     ty = 'int'
@@ -56,7 +57,6 @@ class Properties(dict):
             m = re.match('^plugin\.(.+)\.(.+)$', k)
             if m:
                 plugin, k2 = m.groups()
-                k2 = k2.replace('-', '_')
                 
                 if plugin not in plugins:
                     plugins[plugin] = {}
