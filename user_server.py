@@ -22,6 +22,7 @@ class Scrollback:
         if n:
             c = min(c, n)
         
+        
         #index
         i = 0 if self.data[-1] == None else self.index
         
@@ -60,7 +61,7 @@ class UserServerProtocol(LineReceiver):
         
         elif ty == "detach":
             self.dispatch(events.UserDetach(user=msg['user']))
-            self.loseConnection()
+            self.transport.loseConnection()
         
         elif ty == "input":
             self.dispatch(events.UserInput(user=msg['user'], line=msg['line']))
