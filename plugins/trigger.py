@@ -26,8 +26,8 @@ class Trigger(Plugin):
             if self.triggers:
                 self.register(self.trigger, ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> \!(\w+)')
     
-    def trigger(self, match):
-        user, trigger = match.groups()
+    def trigger(self, event):
+        user, trigger = event.match.groups()
         if trigger in self.triggers:
             for line in self.triggers[trigger]:
                 self.send(self.command.format(user=user, message=line))
