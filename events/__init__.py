@@ -8,6 +8,7 @@ ACCEPTED = 1
 FINISHED = 2
 
 class Event:
+    doc                = ""
     contains           = None
     requires           = tuple() # required kwargs
     requires_predicate = tuple() # required register() kwargs
@@ -100,9 +101,15 @@ def get_timestamp(t=None):
 
 #get an event type by name
 def get_by_name(name):
-    for n, c in inspect.getmembers(sys.modules[__name__], inspect.isclass):
-        if n.lower() == name.lower() and issubclass(c, Event):
+    for n, c in get_all():
+        if n.lower() == name.lower():
             return c
+
+#get all events
+def get_all():
+    for n, c in inspect.getmembers(sys.modules[__name__], inspect.isclass):
+        if issubclass(c, Event):
+            yield n, c
 
 def from_json(data):
     data = json.loads(data)

@@ -58,7 +58,8 @@ class Manager(MultiService):
         self.events = events.EventDispatcher()
         
         #add some handlers
-        self.events.register(self.handle_commands,      events.Hook, public=True, name="help", doc="displays this message")
+        self.events.register(self.handle_cmd_help,      events.Hook, public=True, name="help", doc="displays this message")
+        self.events.register(self.handle_cmd_events,    events.Hook, public=True, name="events", doc="lists events")
         self.events.register(self.handle_console,       events.Console)
         self.events.register(self.handle_fatal,         events.FatalError)
         self.events.register(self.handle_server_output, events.ServerOutput, pattern='.*')
@@ -159,20 +160,30 @@ class Manager(MultiService):
     def send(self, line):
         self.events.dispatch(events.ServerInput(line=line))
     
+    def table(self, v):
+        m = 0
+        for name, doc in v:
+            m = max(m, len(name))
+        
+        for name, doc in sorted(v, key=lambda x: x[0]):
+            self.console(" ~%s | %s" % (name.ljust(m), doc))
+            
     #handlers
-    def handle_commands(self, event):
+    def handle_cmd_help(self, event):
         o = []
         m = 0
         for callback, args in self.events.get(events.Hook):
             if args.get('public', False):
                 o.append((args['name'], args.get('doc', '')))
-                m = max(m, len(args['name']))
         
-        o = sorted(o, key=lambda x: x[0])
+        
         
         self.console("The following commands are available:")
-        for name, doc in o:
-            self.console(" ~%s | %s" % (name.ljust(m), doc))
+        self.table(o)
+    
+    def handle_cmd_events(self, event):
+        self.console("The following events are available:")
+        self.table([(n, c.doc) for n, c in events.get_all()])
     
     def handle_console(self, event):
         if self.initial_output:
@@ -209,14 +220,7 @@ class Manager(MultiService):
     def handle_user_input(self, event):
         self.console(event.line, user=event.user, source="user")
         if event.line.startswith("~"):
-            t = event.line.split(" ", 1)
-            k = {
-                'name': t[0][1:],
-                'is_command': True
-            }
-            if len(t) == 2:
-                k['args'] = t[1]
-            r = self.events.dispatch(events.Hook(**k))
+            r = self.events.dispatch(events.Hook(line = event.line))
             if not r & events.ACCEPTED:
                 self.console("unknown command.")
         else:
