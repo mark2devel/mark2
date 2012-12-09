@@ -1,7 +1,10 @@
 import feedparser
+import re
 from twisted.web.client import getPage
 
 from plugins import Plugin
+
+reddit_link = re.compile('http://(?:www\.)?redd(?:\.it/|it\.com/(?:tb|(?:r/[\w\.]+/)?comments)/)(\w+)(/.+/)?(\w{7})?')
 
 #Many thanks to Adam Wight for this
 class FeedPoller(object):
@@ -38,4 +41,7 @@ class RSS(Plugin):
     
     def update_feeds(self, data):
         for entry in self.poller.parse(data):
+            m = reddit_link.match(entry['link'])
+            if m:
+                entry['link'] = "http://redd.it/" + m.group(1)
             self.send(self.command.format(**entry))
