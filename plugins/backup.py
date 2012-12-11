@@ -17,7 +17,7 @@ class Backup(Plugin):
     
     def shutdown(self, event):
         timestamp = time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime())
-        path = self.path.format(timestamp=timestamp, name=self.parent.name)
+        path = self.path.format(timestamp=timestamp, name=self.parent.server_name)
         if not os.path.exists(os.path.dirname(path)):
             try:
                 os.makedirs(os.path.dirname(path))
