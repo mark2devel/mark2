@@ -21,13 +21,13 @@
 #           of the above. you can define the subshell and user to run under
 #           in your mark2.properties
 
-#  #------------------------ Minute (0 - 59)
-#  |   #-------------------- Hour   (0 - 23)
-#  |   |   #---------------- Day of the Month (1 - 31)
-#  |   |   |   #------------ Month  (1 - 12)
-#  |   |   |   |   #-------- Day of the Week (0 - 6)
-#  |   |   |   |   |   #---- Command to run
-#  |   |   |   |   |   |
-   */5 *   *   *   *   ~save 1m
-   *   */2 *   *   *   ~restart 10m;5m;1m
-   @mark2stopped       $echo THE END IS NIGH | wall
+#   #------------------------ Minute (0 - 59)
+#   |   #-------------------- Hour   (0 - 23)
+#   |   |   #---------------- Day of the Month (1 - 31)
+#   |   |   |   #------------ Month  (1 - 12)
+#   |   |   |   |   #-------- Day of the Week (0 - 6)
+#   |   |   |   |   |   #---- Command to run
+#   |   |   |   |   |   |
+    */5 *   *   *   *   ~save 1m
+    0   */2 *   *   *   ~restart 10m 5m 1m
+#   @serverstopped      $echo THE END IS NIGH | wall
