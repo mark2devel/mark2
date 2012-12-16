@@ -42,13 +42,18 @@ class UserServerProtocol(LineReceiver):
     tab_last = None
     tab_index = 0
     
+    attached_user = None
+    
     def connectionMade(self):
-        self.register(self.handle_console, events.Console)
+        self.register(self.console_helper, events.Console)
         self.register(self.handle_attach,  events.UserAttach)
         self.register(self.handle_detach,  events.UserDetach)
     
     def connectionLost(self, reason):
-        self.unregister(self.handle_console, events.Console)
+        if self.attached_user:
+            self.dispatch(events.UserDetach(user=self.attached_user))
+        
+        self.unregister(self.console_helper, events.Console)
         self.unregister(self.handle_attach,  events.UserAttach)
         self.unregister(self.handle_detach,  events.UserDetach)
     
@@ -57,18 +62,15 @@ class UserServerProtocol(LineReceiver):
         ty = msg["type"]
         
         if ty == "attach":
+            self.attached_user = msg['user']
             self.dispatch(events.UserAttach(user=msg['user']))
-        
-        elif ty == "detach":
-            self.dispatch(events.UserDetach(user=msg['user']))
-            self.transport.loseConnection()
         
         elif ty == "input":
             self.dispatch(events.UserInput(user=msg['user'], line=msg['line']))
         
         elif ty == "get_lines":
-            for l in self.factory.scrollback.get(msg['line_count']):
-                self.send_helper("console", line=l)
+            for e in self.factory.scrollback.get(msg['line_count']):
+                self.console_helper(e)
         
         elif ty == "get_users":
             for u in self.factory.users:
@@ -98,8 +100,8 @@ class UserServerProtocol(LineReceiver):
         k["type"] = ty
         self.sendLine(json.dumps(k))
     
-    def handle_console(self, event):
-        self.send_helper("console", line=event.line)#, time=event.time, user=event.user, source=event.source, kind=event.kind)
+    def console_helper(self, event):
+        self.send_helper("console", **{ k : getattr(event, k) for k in event.contains })
     
     def handle_attach(self, event):
         self.send_helper("user_status", user=event.user, online=True)
@@ -137,7 +139,7 @@ class UserServerFactory(Factory):
         return p
 
     def handle_console(self, event):
-        self.scrollback.put(event.line)
+        self.scrollback.put(event)
     
     def handle_attach(self, event):
         self.users.add(event.user)

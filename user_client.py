@@ -13,6 +13,7 @@ import subprocess
 import sys
 
 import term_prompt
+from shared import console_repr
 
 FORMAT = {
     'attached_server':  'bold green on black',
@@ -56,13 +57,13 @@ class UserFactory(ClientFactory):
     client = None #current client
     stats  = None
     def __init__(self, server, socketdir):
-        print "starting up..."
         self.socketdir = socketdir
         self.sockets = []
         if server == '':
             self.current = (None, None)
         else:
             self.current = (server, os.path.join(socketdir, "%s.sock" % server))
+        
         self.user = getpass.getuser()
         self.users = Users()
 
@@ -79,14 +80,10 @@ class UserFactory(ClientFactory):
         
         print self.term.enter_fullscreen, 
         
-        
-        
         if self.current == (None, None):
             self.socket_index = 0
-            self.switch_server()
-        else:
-            self.update_servers()
         
+        self.switch_server()
         self.printer()
         
         #listen on stdin
@@ -101,7 +98,6 @@ class UserFactory(ClientFactory):
         reactor.run()
     
     def buildProtocol(self, addr):
-        print "building a protocol."
         if self.client:
             self.client.clean_up()
         
@@ -114,8 +110,11 @@ class UserFactory(ClientFactory):
     
     def stopFactory(self):
         self.prompt.clean_up()
-        self.client.clean_up()
         print self.term.exit_fullscreen,
+        
+        if self.client:
+            self.client.clean_up()
+        
     
     def fatal_error(self, err):
         self.stopFactory()
@@ -123,6 +122,9 @@ class UserFactory(ClientFactory):
     
     def switch_server(self, move=0):
         print self.term.clear
+        
+        if self.client:
+            self.client.transport.loseConnection()
         
         #Switch to the next socket
         self.update_servers()
@@ -222,9 +224,8 @@ class UserFactory(ClientFactory):
         elif self.client:
             self.client.send_helper("tab", line=line, index=index)
     #client handlers:
-    def handle_output(self, line):
-        #if format:
-        #    line = self.cap(format) + line
+    def handle_output(self, item):
+        line = console_repr(item)
         self.printer(line)
     
     def handle_tab_response(self, line):
@@ -261,7 +262,9 @@ class UserProtocol(LineReceiver):
         ty = msg["type"]
         
         if ty == "console":
-            self.factory.handle_output(msg["line"])
+            #TODO: this is a stupid hack.
+            x = type('console', (object,), msg)()
+            self.factory.handle_output(x)
             #self.manager.server_output(msg["data"], format=msg.get("kind", None))
         
         if ty == "tab":
@@ -284,8 +287,7 @@ class UserProtocol(LineReceiver):
             self.sendLine(json.dumps(k))
     
     def clean_up(self):
-        self.send_helper("detach", user=self.factory.user)
-        self.transport.loseConnection()
+        pass
 
 if __name__ == '__main__':
     print 'Use `mark2 attach` to start this program.'
