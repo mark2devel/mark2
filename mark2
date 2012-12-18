@@ -10,8 +10,6 @@ server.
 
 from clize import clize, run
 import os
-import os.path
-import shutil
 import signal
 import stat
 import subprocess
@@ -19,7 +17,6 @@ import sys
 import errno
 
 import user_client
-import properties
 
 
 SOCKET_BASE = '/tmp/mark2/'
@@ -51,7 +48,7 @@ def ensure_basedir(directory, need_write=False):
     try:
         os.chmod(directory, good_modes)
         return True
-    except Exception as e:
+    except Exception:
         raise Mark2Error('{} does not have the necessary modes to run mark2 and I do not have\npermission to change them!'.format(directory))
 
 
@@ -81,14 +78,13 @@ def check_config():
         response = raw_input('Would you like to edit it now? [yes]') or 'yes'
         if response == 'yes':
             try:
-                subprocess.call(['sensible-editor', path])
+                subprocess.call(['sensible-editor', path_new])
             except Exception:
                 raise Mark2Error('Couldn\'t start editor')
 
-    
 
-@clize
-def start(*path):
+@clize(alias={'quiet': ('q',)})
+def start(quiet=False, *path):
     '''
     Start a mark2 server.
     
@@ -138,21 +134,29 @@ def start(*path):
     # we don't want to listen to twistd
     dev_null = open('/dev/null', 'w')
     
+    # print a helpful message
+    if not quiet:
+        print 'Server starting. Please wait...'
+        
     # run!
     subprocess.call(['twistd'] + twistd_options + ['mark2'] + mark2_options, stdout=dev_null)
     
     # close our copy of the write end of the pipe
     os.close(w)
     
+    # just exit now if we're in quiet mode
+    if quiet:
+        return
+    
     # write output
     while True:
-        read = os.read(r, 512)
+        read = os.read(r, 32)
         if not read:
             break
         sys.stdout.write(read)
 
-#TODO: rewrite this
 
+#TODO: rewrite this
 @clize(alias={'hard': ('h',)})
 def kill(hard=False, *path):
     '''
@@ -181,7 +185,7 @@ def kill(hard=False, *path):
     try:
         os.kill(pid, signal.SIGKILL if hard else signal.SIGINT)
         #wait for it to finish
-        while True:    
+        while True:
             try:
                 os.kill(pid, 0)
             except OSError as err:
@@ -204,7 +208,7 @@ def attach(*path):
     ensure_basedir(SOCKET_BASE, need_write=False)
     
     # run the client in our own context, why not
-    m = user_client.UserFactory(' '.join(path), SOCKET_BASE)
+    user_client.UserFactory(' '.join(path), SOCKET_BASE)
 
 # never mind how someone managed to import this, stop them
 if __name__ != '__main__':
