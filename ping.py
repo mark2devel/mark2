@@ -6,6 +6,7 @@ from twisted.internet.protocol import Protocol, ClientFactory
 
 from events import StatPlayerCount
 
+
 class PingProtocol(Protocol):
     def connectionMade(self):
         self.buff = ""
@@ -15,16 +16,20 @@ class PingProtocol(Protocol):
         self.buff += data
         if len(self.buff) >= 3:
             l = struct.unpack('>h', self.buff[1:3])[0]
-            if len(self.buff) >= 3 + l*2:
+            
+            if len(self.buff) >= 3 + l * 2:
                 data = self.buff[9:].decode('utf-16be').split('\x00')
                 self.dispatch(StatPlayerCount(source="ping", players_current=data[3], players_max=data[4]))
+                self.transport.loseConnection()
+
 
 class PingFactory(ClientFactory):
     noisy = False
+    
     def __init__(self, interval, host, port, dispatch):
         self.host = host
         self.port = port
-        self.dispach = dispatch
+        self.dispatch = dispatch
         t = task.LoopingCall(self.loop)
         t.start(interval, now=False)
     
@@ -36,11 +41,12 @@ class PingFactory(ClientFactory):
         pr.dispatch = self.dispatch
         return pr
 
+
 class Ping(Service):
     name = "ping"
+    
     def __init__(self, parent, host, port, interval):
         self.factory = PingFactory(interval, host, port, parent.events.dispatch)
-        self.factory.dispatch = parent.events.dispatch
 
     def stopService(self):
         self.factory.stopFactory()
