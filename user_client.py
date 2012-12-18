@@ -27,6 +27,15 @@ FORMAT = {
     'error':            'red'
 }
 
+
+class AttributeDict(dict):
+    def __getattr__(self, attr):
+        return self[attr]
+        
+    def __setattr__(self, attr, value):
+        self[attr] = value
+
+
 class Users:
     def __init__(self):
         self.reset()
@@ -54,8 +63,9 @@ class Users:
 
 
 class UserFactory(ClientFactory):
-    client = None #current client
+    client = None  # current client
     stats  = None
+    
     def __init__(self, server, socketdir):
         self.socketdir = socketdir
         self.sockets = []
@@ -67,7 +77,7 @@ class UserFactory(ClientFactory):
         self.user = getpass.getuser()
         self.users = Users()
 
-        self.term = blessings.Terminal() 
+        self.term = blessings.Terminal()
         self.format = dict(FORMAT)
         if not self.term.is_a_tty:
             self.fatal_error('I need a tty.')
@@ -78,7 +88,7 @@ class UserFactory(ClientFactory):
             self.handle_tab,
             self.switch_server)
         
-        print self.term.enter_fullscreen, 
+        print self.term.enter_fullscreen,
         
         if self.current == (None, None):
             self.socket_index = 0
@@ -94,7 +104,6 @@ class UserFactory(ClientFactory):
         t = task.LoopingCall(self.update_data)
         t.start(3)
         
-        
         reactor.run()
     
     def buildProtocol(self, addr):
@@ -109,17 +118,19 @@ class UserFactory(ClientFactory):
         return p
     
     def stopFactory(self):
+        ClientFactory.stopFactory(self)
         self.prompt.clean_up()
         print self.term.exit_fullscreen,
         
         if self.client:
             self.client.clean_up()
         
-    
     def fatal_error(self, err):
         self.stopFactory()
         print err
-    
+        if not reactor.running:
+            sys.exit(1)
+            
     def switch_server(self, move=0):
         print self.term.clear
         
@@ -128,11 +139,12 @@ class UserFactory(ClientFactory):
         
         #Switch to the next socket
         self.update_servers()
-        self.socket_index = (self.socket_index+move) % len(self.sockets)
+        self.socket_index = (self.socket_index + move) % len(self.sockets)
         self.current = self.sockets[self.socket_index]
         
         #Connect!
         reactor.connectUNIX(self.current[1], self)
+        return True
       
     def update_servers(self):
         #sockets
@@ -147,6 +159,8 @@ class UserFactory(ClientFactory):
         
         if len(self.sockets) == 0:
             self.fatal_error("no servers running!")
+            reactor.stop()
+            return
         
         if current != (None, None):
             if current in self.sockets:
@@ -160,7 +174,6 @@ class UserFactory(ClientFactory):
         if self.client:
             self.client.update_data()
     
-    
     def cap(self, name):
         return getattr(self.term, self.format.get(name, 'normal').replace(' ', '_'))
     
@@ -168,7 +181,7 @@ class UserFactory(ClientFactory):
 
         ###
         ### Main output
-        ###        
+        ###
         # clear the line
         sys.stdout.write('\r' + self.term.clear_eol)
         
@@ -198,7 +211,7 @@ class UserFactory(ClientFactory):
             sys.stdout.write(right)
         
         #second line
-        sys.stdout.write("\n"+self.term.clear_eol)
+        sys.stdout.write("\n" + self.term.clear_eol)
         if self.client and self.stats:
             format = u"tick: {tick_time}ms // mem: {memory_current}MB of {memory_max}MB // players: {players_current} of {players_max}"
             sys.stdout.write(format.format(**self.stats))
@@ -218,11 +231,13 @@ class UserFactory(ClientFactory):
     def handle_command(self, command):
         if self.client:
             self.client.send_helper("input", line=command, user=self.user)
+    
     def handle_tab(self, line, index):
         if line == "":
             self.prompt.write("say ")
         elif self.client:
             self.client.send_helper("tab", line=line, index=index)
+    
     #client handlers:
     def handle_output(self, item):
         line = console_repr(item)
@@ -246,8 +261,10 @@ class UserFactory(ClientFactory):
         self.socket_index = 0
         self.update_servers()
 
+
 class UserProtocol(LineReceiver):
     delimiter = '\n'
+    
     def connectionMade(self):
         self.alive = 1
         self.send_helper("attach", user=self.factory.user)
@@ -262,20 +279,20 @@ class UserProtocol(LineReceiver):
         ty = msg["type"]
         
         if ty == "console":
-            #TODO: this is a stupid hack.
-            x = type('console', (object,), msg)()
-            self.factory.handle_output(x)
-            #self.manager.server_output(msg["data"], format=msg.get("kind", None))
+            self.factory.handle_output(AttributeDict(msg))
         
-        if ty == "tab":
+        elif ty == "tab":
             self.factory.handle_tab_response(msg["line"])
         
-        if ty == "user_status":
+        elif ty == "user_status":
             self.factory.handle_user_status(msg["user"], msg["online"])
         
-        if ty == "stats":
+        elif ty == "stats":
             #print msg
             self.factory.handle_stats(msg["stats"])
+        
+        else:
+            self.factory.printer(line)
     
     def update_data(self):
         self.send_helper("get_users")
@@ -292,4 +309,3 @@ class UserProtocol(LineReceiver):
 if __name__ == '__main__':
     print 'Use `mark2 attach` to start this program.'
     sys.exit(0)
-
