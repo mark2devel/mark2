@@ -38,9 +38,10 @@ class Event:
     def to_json(self):
         data = {
             'name': self.__class__.__name__,
-            'data': { k : getattr(self, k) for k in self.contains }}
+            'data': {k: getattr(self, k) for k in self.contains}}
         return json.dumps(data)
-        
+
+
 class EventDispatcher:
     registered = {}
     
@@ -67,7 +68,7 @@ class EventDispatcher:
         r = False
         for r_callback, r_args in self.get(event.__class__):
             
-            o  = event.consider(r_args)
+            o = event.consider(r_args)
             #log.msg("handler %s %s returned %d" % (str(r_callback), str(r_args), o))
             if o & ACCEPTED:
                 r = True
@@ -91,13 +92,15 @@ class EventDispatcher:
     def get(self, event_type):
         return self.registered.get(event_type, [])[::-1]
 
+
 def get_timestamp(t=None):
     if t == None:
         return time.strftime("%Y-%m-%d %H:%M:%S")
     elif len(t) == 8:
-        return t.strftime("%Y-%m-%d ") + t
+        return time.strftime("%Y-%m-%d ") + t
     else:
         return t
+
 
 #get an event type by name
 def get_by_name(name):
@@ -105,11 +108,13 @@ def get_by_name(name):
         if n.lower() == name.lower():
             return c
 
+
 #get all events
 def get_all():
     for n, c in inspect.getmembers(sys.modules[__name__], inspect.isclass):
         if issubclass(c, Event):
             yield n, c
+
 
 def from_json(data):
     data = json.loads(data)
