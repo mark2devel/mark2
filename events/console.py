@@ -1,10 +1,10 @@
 from events import Event, get_timestamp
 from shared import console_repr
 
+
 class Console(Event):
     contains = ('line', 'time', 'user', 'source', 'kind', 'data', 'level')
     requires = ('line',)
-    
     
     kind = None
     time = None

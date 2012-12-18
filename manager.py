@@ -44,7 +44,7 @@ class Manager(MultiService):
         Service.startService(self)
         try:
             self.startServiceReal()
-        except Exception as e:
+        except Exception:
             for l in traceback.format_exc().split("\n"):
                 self.console(l, kind='error')
         finally:

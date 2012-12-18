@@ -6,6 +6,7 @@ import json
 
 import events
 
+
 class Scrollback:
     def __init__(self, length):
         self.index  = 0
@@ -22,19 +23,18 @@ class Scrollback:
         if n:
             c = min(c, n)
         
-        
         #index
         i = 0 if self.data[-1] == None else self.index
         
         #output
         while c > 0:
             d = self.data[i]
-            if d == None: return
+            if d == None:
+                return
             yield d
             i = (i + 1) % self.length
             c -= 1
-        
-    
+
 
 class UserServerProtocol(LineReceiver):
     delimiter = '\n'
@@ -101,7 +101,7 @@ class UserServerProtocol(LineReceiver):
         self.sendLine(json.dumps(k))
     
     def console_helper(self, event):
-        self.send_helper("console", **{ k : getattr(event, k) for k in event.contains })
+        self.send_helper("console", **{k: getattr(event, k) for k in event.contains})
     
     def handle_attach(self, event):
         self.send_helper("user_status", user=event.user, online=True)
@@ -110,9 +110,8 @@ class UserServerProtocol(LineReceiver):
         self.send_helper("user_status", user=event.user, online=False)
 
 
-
 class UserServerFactory(Factory):
-    players  = []
+    players = []
     
     def __init__(self, parent):
         self.parent     = parent
@@ -128,7 +127,7 @@ class UserServerFactory(Factory):
         self.parent.events.register(self.handle_memory,       events.StatMemory)
         self.parent.events.register(self.handle_tick_time,    events.StatTickTime)
         
-        self.stats = { k : '___' for k in ('tick_time', 'memory_current', 'memory_max', 'players_current', 'players_max') }
+        self.stats = {k: '___' for k in ('tick_time', 'memory_current', 'memory_max', 'players_current', 'players_max')}
     
     def buildProtocol(self, addr):
         p = UserServerProtocol()
@@ -162,9 +161,9 @@ class UserServerFactory(Factory):
     def handle_tick_time(self, event):
         self.stats['tick_time'] = event.tick_time
 
+
 class UserServer(UNIXServer):
     def __init__(self, parent, socket):
         self.parent = parent
         factory = UserServerFactory(parent)
         UNIXServer.__init__(self, socket, factory)
-

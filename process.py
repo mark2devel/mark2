@@ -1,13 +1,10 @@
 from twisted.internet import protocol, reactor, error, defer
 from twisted.application.service import Service
-from itertools import chain
-import os
 import glob
 import subprocess
 
 import events
-
-from twisted.python import log
+import re
 
 class ProcessProtocol(protocol.ProcessProtocol):
     obuff = ""
@@ -26,7 +23,7 @@ class ProcessProtocol(protocol.ProcessProtocol):
     def processEnded(self, reason):
         self.alive = False
         if isinstance(reason.value, error.ProcessTerminated) and reason.value.exitCode:
-            self.dispatch(events.FatalError(reason = reason.getErrorMessage()))
+            self.dispatch(events.FatalError(reason=reason.getErrorMessage()))
         else:
             self.dispatch(events.ServerStopped())
             
@@ -36,6 +33,7 @@ class Process(Service):
     protocol = None
     respawn = False
     service_stopping = None
+    transport = None
     
     running = False
     
@@ -88,7 +86,7 @@ class Process(Service):
     
     def server_stop(self, *a, **k):
         announce = True
-        if len(a)==1:
+        if len(a) == 1:
             e = a[0]
             e.handled = True
             self.server_stop_real(e.respawn, e.kill, e.reason, e.announce)
@@ -132,11 +130,13 @@ class Process(Service):
             self.service_stopping = defer.Deferred()
             return self.service_stopping
 
+
 #returns a list of dicts. Each list element is a thread in the process.
 def get_usage(pid):
     o = subprocess.check_output(['top', '-bH', '-n', '1', '-p', str(pid)])
-    o = [re.findall('[^ ]+', x) for x in o[o.find('\n\n')+2:].split('\n')]
+    o = [re.findall('[^ ]+', x) for x in o[o.find('\n\n') + 2:].split('\n')]
     return [dict(zip(o[0], x)) for x in o[1:-1]]
+
 
 def find_jar(search_patterns, hint=None):
     if hint:

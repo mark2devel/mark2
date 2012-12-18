@@ -288,7 +288,6 @@ class UserProtocol(LineReceiver):
             self.factory.handle_user_status(msg["user"], msg["online"])
         
         elif ty == "stats":
-            #print msg
             self.factory.handle_stats(msg["stats"])
         
         else:
