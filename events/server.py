@@ -22,7 +22,6 @@ class ServerOutput(Event):
     data = None
     time = None
     
-    _returns = ACCEPTED
     
     def setup(self):
         m = re.match(r'(\d{4}-\d{2}-\d{2} |)(\d{2}:\d{2}:\d{2}) \[([A-Z]+)\] (.*)', self.line)
@@ -46,14 +45,19 @@ class ServerOutput(Event):
             return 0
         
         self.match = m
-        return self._returns
+        
+        r = ACCEPTED
+        if d.get('once', False):
+            r |= FINISHED
+        
+        return r
 
 class ServerOutputConsumer(ServerOutput):
     """Issued prior to the ServerOutput handlers seeing it. Takes
     the same handler parameters as ServerOutput. In most cases
     you shouldn't specify a callback"""
     
-    _returns = ACCEPTED | FINISHED
+    pass
     
 # start
 
