@@ -21,8 +21,8 @@ class StatMemory(Event):
     requires = ('memory_current', 'memory_max') #in bytes
 
 #provider: `top`
-class StatCPU(Event):
-    requires = ('cpu',)
+class StatThreads(Event):
+    requires = ('threads',) #list of dicts
 
 #provider: snoop
 class StatTickTime(Event):

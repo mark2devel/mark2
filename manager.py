@@ -8,13 +8,9 @@ from twisted.python import log
 #mark2 things
 import events
 import properties
-
-#services
 import user_server
 import process
-import ping
-import query
-import snoop
+from services import ping, query, snoop, top
 
 #plugins
 import plugins
@@ -117,6 +113,11 @@ class Manager(MultiService):
                 self.config['mark2.service.query.interval'], 
                 self.properties['server_ip'], 
                 self.properties['server_port']))
+        
+        if self.config['mark2.service.top.enabled']:
+            self.addService(top.Top(
+                self,
+                self.config['mark2.service.top.interval']))
         
         if self.config['mark2.service.snoop.enabled'] and self.properties['snooper_enabled']:
             self.addService(snoop.Snoop(
