@@ -131,13 +131,6 @@ class Process(Service):
             return self.service_stopping
 
 
-#returns a list of dicts. Each list element is a thread in the process.
-def get_usage(pid):
-    o = subprocess.check_output(['top', '-bH', '-n', '1', '-p', str(pid)])
-    o = [re.findall('[^ ]+', x) for x in o[o.find('\n\n') + 2:].split('\n')]
-    return [dict(zip(o[0], x)) for x in o[1:-1]]
-
-
 def find_jar(search_patterns, hint=None):
     if hint:
         search_patterns.insert(0, hint)
