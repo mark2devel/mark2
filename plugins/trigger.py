@@ -30,4 +30,4 @@ class Trigger(Plugin):
         user, trigger = event.match.groups()
         if trigger in self.triggers:
             for line in self.triggers[trigger]:
-                self.send(self.command.format(user=user, message=line))
+                self.send(self.command.format(user=user, message=line), parseColors=True)

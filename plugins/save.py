@@ -21,7 +21,7 @@ class Save(Plugin):
             self.repeating_task(chain, interval)
     
     def warn(self, delay):
-        self.send("say %s" % self.warn_message.format(delay=delay))
+        self.send("say %s" % self.warn_message.format(delay=delay), parseColors=True)
     
     def save(self, event):
         action = self.save_real
@@ -31,6 +31,6 @@ class Save(Plugin):
         event.handled = True
 
     def save_real(self):
-        self.send('say %s' % self.message)
+        self.send('say %s' % self.message, parseColors=True)
         self.send('save-all')
     

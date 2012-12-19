@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from os import path
 import imp
 import inspect
@@ -68,7 +69,9 @@ class Plugin:
                 t._stop()
         self._tasks = []
         
-    def send(self, l):
+    def send(self, l, parseColors=False):
+        if parseColors:
+            l = l.replace('&', '\xa7')
         self.dispatch(ServerInput(line=l))
     
     def action_chain(self, spec, callbackWarn, callbackAction):

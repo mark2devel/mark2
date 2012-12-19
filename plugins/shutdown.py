@@ -30,10 +30,10 @@ class Shutdown(Plugin):
             self.delayed_task(first_warn, self.parse_time(self.repeat_delay)[1] - warn_length)
 
     def warn_restart(self, delay):
-        self.send("say %s" % self.restart_warn_message.format(delay=delay))
+        self.send("say %s" % self.restart_warn_message.format(delay=delay), parseColors=True)
     
     def warn_stop(self, delay):
-        self.send("say %s" % self.stop_warn_message.format(delay=delay))
+        self.send("say %s" % self.stop_warn_message.format(delay=delay), parseColors=True)
 
     def nice_stop(self, respawn, kill):
         if not kill:
