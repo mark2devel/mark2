@@ -224,6 +224,8 @@ class Manager(MultiService):
             r = self.events.dispatch(events.Hook(line = event.line))
             if not r & events.ACCEPTED:
                 self.console("unknown command.")
+        elif event.line.startswith('#'):
+            pass
         else:
             self.events.dispatch(events.ServerInput(line=event.line))
     
