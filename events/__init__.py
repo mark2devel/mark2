@@ -2,8 +2,6 @@ import inspect, sys, time, json
 
 from twisted.internet import reactor, task
 
-from twisted.python import log
-
 ACCEPTED = 1
 FINISHED = 2
 
