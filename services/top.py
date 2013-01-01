@@ -24,7 +24,7 @@ class Top(Service):
         self.parent.events.register(self.server_starting, events.ServerStarting)
     
     def stopService(self):
-        if self.transport and self.transport.alive:
+        if self.transport:
             self.transport.loseConnection()
         return Service.stopService(self)
     

@@ -2,10 +2,10 @@ from twisted.internet.protocol import Factory
 from twisted.protocols.basic import LineReceiver
 from twisted.application.internet import UNIXServer
 
+import os
 import json
 
 import events
-
 
 class Scrollback:
     def __init__(self, length):
@@ -165,5 +165,7 @@ class UserServerFactory(Factory):
 class UserServer(UNIXServer):
     def __init__(self, parent, socket):
         self.parent = parent
+        if os.path.exists(socket):
+            os.remove(socket)
         factory = UserServerFactory(parent)
         UNIXServer.__init__(self, socket, factory)

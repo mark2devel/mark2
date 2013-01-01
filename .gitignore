@@ -1,3 +1,7 @@
+twisted/plugins/dropin.cache
 *.pyc
 *.sublime-*
+.idea
 resources/mark2.properties
+config
+testserver
