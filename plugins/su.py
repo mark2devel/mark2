@@ -1,6 +1,5 @@
 from plugins import Plugin
 from events import UserInput
-import re
 
 class Su(Plugin):
     command = "sudo -su {user} -- {command}"

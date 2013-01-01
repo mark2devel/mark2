@@ -1,11 +1,13 @@
 import os
+import sys
 import traceback
 
-from twisted.internet import reactor, defer
+from twisted.internet import reactor, defer, error
 from twisted.application.service import MultiService, Service
 from twisted.python import log
 
 #mark2 things
+import signal
 import events
 import properties
 import user_server
@@ -27,15 +29,15 @@ This is the 'main' class that handles most of the logic
 
 class Manager(MultiService):
     name = "manager"
+    started = False
     
-    def __init__(self, path, initial_output, socketdir, jarfile=None):
+    def __init__(self, shared_path, server_name, server_path, jar_file=None):
         MultiService.__init__(self)
-        self.path = path
-        self.server_name = os.path.basename(path)
-        self.initial_output = initial_output
-        self.socketdir = socketdir
-        self.jarfile = jarfile
-    
+        self.shared_path = shared_path
+        self.server_name = server_name
+        self.server_path = server_path
+        self.jar_file = jar_file
+
     def startService(self):
         Service.startService(self)
         try:
@@ -43,12 +45,16 @@ class Manager(MultiService):
         except Exception:
             for l in traceback.format_exc().split("\n"):
                 self.console(l, kind='error')
-        finally:
-            #close initial pipe
-            if self.initial_output != None:
-                os.close(self.initial_output)
-                self.initial_output = None
-        
+            self.shutdown()
+
+    def stopService(self):
+        def finish_up(d):
+            self.console("mark2 stopped.")
+
+        d = MultiService.stopService(self)
+        d.addCallback(finish_up)
+        return d
+
     def startServiceReal(self):
         #start event dispatcher
         self.events = events.EventDispatcher()
@@ -58,43 +64,45 @@ class Manager(MultiService):
         self.events.register(self.handle_cmd_events,    events.Hook, public=True, name="events", doc="lists events")
         self.events.register(self.handle_console,       events.Console)
         self.events.register(self.handle_fatal,         events.FatalError)
-        self.events.register(self.handle_server_output, events.ServerOutput, pattern='.*')
         self.events.register(self.handle_server_save,   events.ServerSave)
+        self.events.register(self.handle_server_started,events.ServerStarted)
         self.events.register(self.handle_user_attach,   events.UserAttach)
         self.events.register(self.handle_user_detach,   events.UserDetach)
         self.events.register(self.handle_user_input,    events.UserInput)
-        
+
+        self.console("mark2 starting...")
+
         #change to server directory
-        os.chdir(self.path)
+        os.chdir(self.server_path)
         
         #load config
         self.config = properties.load(os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties')
-        if self.config == None:
-            self.fatal(reason="couldn't find mark2.properties")
+        if self.config is None:
+            return self.fatal_error(reason="couldn't find mark2.properties")
         
         #load server.properties
         self.properties = properties.load(os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
-        if self.properties == None:
-            self.fatal(reason="couldn't find server.properties")
+        if self.properties is None:
+            return self.fatal_error(reason="couldn't find server.properties")
             
         #find jar file
-        if not self.jarfile:
-            self.jarfile = process.find_jar(
+        if self.jar_file is None:
+            self.jar_file = process.find_jar(
                 self.config['mark2.jar_path'].split(';'),
-                self.jarfile)
-            if not self.jarfile:
-                self.fatal_error("Couldn't find server jar!")
+                self.jar_file)
+            if self.jar_file is None:
+                return self.fatal_error("Couldn't find server jar!")
                 
         #start services
         
         #if using snoop, we need to wait for the jar to be patched
         
-        proc_o = process.Process(self, self.jarfile)
+        proc_o = process.Process(self, self.jar_file)
         
         def proc_s(x):
             self.addService(proc_o)
         def proc_e(e):
-            self.fatal_error("Failed to patch server jar!")
+            return self.fatal_error("Failed to patch server jar!")
             
         proc_d = defer.Deferred()
         proc_d.addCallback(proc_s)
@@ -123,12 +131,12 @@ class Manager(MultiService):
             self.addService(snoop.Snoop(
                 self, 
                 self.config['mark2.service.snoop.interval']*1000, 
-                os.path.abspath(self.jarfile),
+                os.path.abspath(self.jar_file),
                 proc_d))
         else:
             proc_d.callback(None)
         
-        self.addService(user_server.UserServer(self, os.path.join(self.socketdir, "%s.sock" % self.server_name)))
+        self.addService(user_server.UserServer(self, os.path.join(self.shared_path, "%s.sock" % self.server_name)))
         
         #load plugins
         loaded = []
@@ -147,9 +155,11 @@ class Manager(MultiService):
         self.console("loaded plugins: " + ", ".join(loaded))
         
         self.events.dispatch(events.ServerStart())
-        
     
     #helpers
+    def shutdown(self):
+        reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
+
     def console(self, line, **k):
         k['line'] = str(line)
         self.events.dispatch(events.Console(**k))
@@ -172,7 +182,6 @@ class Manager(MultiService):
     #handlers
     def handle_cmd_help(self, event):
         o = []
-        m = 0
         for callback, args in self.events.get(events.Hook):
             if args.get('public', False):
                 o.append((args['name'], args.get('doc', '')))
@@ -187,30 +196,22 @@ class Manager(MultiService):
         self.table([(n, c.doc) for n, c in events.get_all()])
     
     def handle_console(self, event):
-        if self.initial_output:
-            os.write(self.initial_output, "%s\n" % event)
+        for line in str(event).split("\n"):
+            log.msg(line, system="mark2")
     
     def handle_fatal(self, event):
-        s = "FATAL: %s" % event.reason
-        log.msg(s)
+        s = "fatal error: %s" % event.reason
         self.console(s, kind="error")
-        reactor.stop()
-        
-    def handle_server_output(self, event):
-        consumed = self.events.dispatch(events.ServerOutputConsumer(line=event.line))
-        if not consumed: #not consumed
-            e = events.Console(
-                source = 'server',
-                line = event.line,
-                time = event.time,
-                level= event.level,
-                data = event.data)
-                
-            self.events.dispatch(e)
+        self.shutdown()
     
     def handle_server_save(self, event):
         self.send('save-all')
         event.handled = True
+
+    def handle_server_started(self, event):
+        if not self.started:
+            self.console("mark2 started.")
+            self.started = True
 
     def handle_user_attach(self, event):
         self.console("%s attached" % event.user, kind="joinpart")
@@ -231,4 +232,4 @@ class Manager(MultiService):
     
     def handle_command(self, user, text):
         self.console(text, prompt=">", user=user)
-        self.send(self.expand_command(user, text))
+        self.send(text)

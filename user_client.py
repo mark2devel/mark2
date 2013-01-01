@@ -7,7 +7,6 @@ import blessings
 import json
 import glob
 import os
-import os.path
 import getpass
 import subprocess
 import sys

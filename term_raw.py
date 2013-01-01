@@ -1,8 +1,5 @@
 import sys
-import tty
 import termios
-import fcntl
-import os
 import re
 
 TYPE_CHAR = 1
