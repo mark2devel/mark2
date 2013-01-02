@@ -65,13 +65,10 @@ class UserFactory(ClientFactory):
     client = None  # current client
     stats  = None
     
-    def __init__(self, server, socketdir):
+    def __init__(self, socketdir, server):
         self.socketdir = socketdir
         self.sockets = []
-        if server == '':
-            self.current = (None, None)
-        else:
-            self.current = (server, os.path.join(socketdir, "%s.sock" % server))
+        self.current = (server, os.path.join(socketdir, "%s.sock" % server))
         
         self.user = getpass.getuser()
         self.users = Users()

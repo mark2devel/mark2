@@ -12,24 +12,24 @@ stderr = sys.stderr
 
 
 class Options(usage.Options):
-    optParameters = [["dir", None, "", "The directory in which to find a server."],
-                     ["fd", None, None, "File descriptor to write startup output."],
-                     ["sockets", None, "/tmp/mark2/", "Socket base directory"],
-                     ["jarfile", None, None, "Name of the server jar"]]
+    optParameters = [["shared-path", None, "/tmp/mark2/", "mark2 temp directory"],
+                     ["server-name", None, None, "Name of the server."],
+                     ["server-path", None, None, "Socket base directory"],
+                     ["jar-file",    None, None, "Name of the server jar"]]
 
 
 class Mark2ServiceMaker(object):
     implements(IServiceMaker, IPlugin)
     tapname = "mark2"
-    description = "Minecraft server wrapper"
+    description = "minecraft server wrapper"
     options = Options
 
     def makeService(self, options):
-        fd = int(options["fd"]) if options["fd"] else None
-        return Manager(options["dir"],
-                       initial_output=fd,
-                       socketdir=options["sockets"],
-                       jarfile=options["jarfile"])
+        return Manager(
+            options['shared-path'],
+            options['server-name'],
+            options['server-path'],
+            options['jar-file'])
 
 
 serviceMaker = Mark2ServiceMaker()

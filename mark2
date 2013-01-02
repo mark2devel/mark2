@@ -1,222 +1,345 @@
 #!/usr/bin/python
 
-'''
-mark2
+usage_text = "usage: mark2 [options] command ..."
 
-The main entry point for mark2. It performs housekeeping and, depending on
-how it is invoked, will also run the client or invoke `twistd` to run the
-server.
-'''
+help_text = """
+mark2 is a minecraft server wrapper
 
-from clize import clize, run
+{usage}
+
+commands:
+  start   [path]
+  list
+  attach
+  stop
+  kill
+  send    input...
+
+flags:
+  -h  --help       display this message
+  -i  --immediate  don't wait for server output (only affects start and stop)
+
+options:
+  -b  --base       the directory to put mark2-related temp files (default: /tmp/mark2)
+  -n  --name       choose this named server (useful if you run more than one)
+
+examples:
+  mark2 start /home/you/mcservers/pvp
+  mark2 attach -n pvp
+  mark2 send -n pvp say hello!
+  mark2 stop -i -n pvp
+""".format(usage=usage_text)
+
 import os
-import signal
-import stat
-import subprocess
 import sys
-import errno
+import glob
+import stat
+import time
 
+#start:
+import subprocess
+
+#attach:
 import user_client
 
+#stop/kill
+import signal
+import errno
 
-SOCKET_BASE = '/tmp/mark2/'
-
+#send
+import json
+import socket
 
 class Mark2Error(Exception):
-    error = ''
-
     def __init__(self, error):
         self.error = error
 
     def __str__(self):
-        return self.error
+        return "error: %s" % self.error
+
+class Mark2ParseError(Mark2Error):
+    def __str__(self):
+        return "%s\nparse error: %s" % (usage_text, self.error)
 
 
-def ensure_basedir(directory, need_write=False):
-    need_modes = stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH
-    if need_write:
-        need_modes |= stat.S_IRWXG | stat.S_IRWXO
+def make_writable(directory):
+    need_modes = stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH | stat.S_IRWXG | stat.S_IRWXO
     good_modes = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO | stat.S_ISVTX
-    
+
     if not os.path.exists(directory):
         os.makedirs(directory, good_modes)
-    
+
     st = os.stat(directory)
     if (st.st_mode & need_modes) == need_modes:
         return True
-    
+
     try:
         os.chmod(directory, good_modes)
         return True
     except Exception:
         raise Mark2Error('{} does not have the necessary modes to run mark2 and I do not have\npermission to change them!'.format(directory))
 
-
 def check_config():
-    path = lambda *a: os.path.join(sys.path[0], *a)
-    
-    path_old = path('resources', 'mark2.default.properties')
-    path_new = path('config',    'mark2.properties')
-    
+    path_old = 'resources/mark2.default.properties'
+    path_new = 'config/mark2.properties'
+
     if not os.path.exists(path_new):
-        ensure_basedir(path('config'), need_write=True)
+        make_writable('config')
         file_old = open(path_old, 'r')
         file_new = open(path_new, 'w')
-        
+
         l = ''
         while l.strip() == '' or l.startswith('### ###'):
             l = file_old.readline()
-        
+
         while l != '':
             file_new.write(l)
             l = file_old.readline()
-        
+
         file_old.close()
         file_new.close()
-            
+
         print 'I\'ve created a default configuration file at {}'.format(path_new)
         response = raw_input('Would you like to edit it now? [yes]') or 'yes'
         if response == 'yes':
             try:
                 subprocess.call(['sensible-editor', path_new])
             except Exception:
-                raise Mark2Error('Couldn\'t start editor')
+                raise Mark2Error('couldn\'t start editor')
+
+class Skeleton:
+    def __init__(self, shared_path, server_name=None, server_path=None, jar_file=None):
+        self.shared_path = shared_path
+
+        self.servers = self.get_servers()
+
+        if server_name:
+            self.server_name = server_name
+        else:
+            if len(self.servers) > 0:
+                self.server_name = self.servers[0]
+            else:
+                raise Mark2Error("no servers running!")
+
+        self.server_path = server_path
+        self.jar_file    = jar_file
+
+    def shared(self, ty, name=None):
+        if name is None:
+            name = self.server_name
+
+        return os.path.join(self.shared_path, "%s.%s" % (name, ty))
+
+    def get_servers(self):
+        o = []
+        for path in glob.glob(self.shared('pid', '*')):
+            with open(path) as fp:
+                pid = int(fp.read())
+                try:
+                    os.kill(pid, 0)
+                except OSError as err:
+                    if err.errno == errno.ESRCH:
+                        os.remove(path)
+                        continue
+            f = os.path.basename(path)
+            f = os.path.splitext(f)[0]
+            o.append(f)
+
+        return sorted(o)
+
+    def is_running(self):
+        return self.server_name in self.servers
+
+    def kill(self, sig):
+        f = open(self.shared('pid'), 'r')
+        pid = int(f.read())
+        f.close()
+        os.kill(pid, sig)
+
+    def wait(self, *tokens):
+        with open(self.shared('log'), 'r') as f:
+            f.seek(0,2)
+            while True:
+                line = f.readline().rstrip()
+                if not line:
+                    time.sleep(0.1)
+                    continue
+
+                if line[0] in (" ", "\t"):
+                    print line
+                    continue
+
+                line = line.split(" ", 3)
+                if line[2] == '[mark2]':
+                    print line[3]
+                    line = line[3].split(" ", 2)
+                    for t in tokens:
+                        if line[2].startswith(t):
+                            return
 
 
-@clize(alias={'quiet': ('q',)})
-def start(quiet=False, *path):
-    '''
-    Start a mark2 server.
-    
-    path: path to the server to run
-    '''
-    # let twistd run our our server
-    
-    # first make sure we can properly run
-    ensure_basedir(SOCKET_BASE, need_write=True)
-    
-    # we need the path to pass to twistd as absolute
-    path = os.path.abspath(' '.join(path))
-    
-    # target has to at least exist
-    if not os.path.exists(path):
-        raise Mark2Error('{} does not exist.'.format(path))
-    
-    # if it's a file and its extension is .jar, take the directory as the path
-    # and tell mark2 to use its name as the jarfile
-    if os.path.isfile(path):
-        if os.path.splitext(path)[1] != '.jar':
-            raise Mark2Error('{} is not a directory or jarfile'.format(path))
-        path, jarfile = os.path.split(path)
-    else:
-        jarfile = None
-    
-    # move to the directory this script is in
-    os.chdir(sys.path[0])
-    
-    # check we've got config/mark2.properties
-    check_config()
-    
-    # set up options for twistd
-    pidfile = os.path.join(path, 'mark2.pid')
-    logfile = os.path.join(path, 'mark2.log')
-    twistd_options = ['--pidfile', pidfile, '--logfile', logfile]
-    mark2_options = ['--sockets', SOCKET_BASE]
-    if path:
-        mark2_options += ['--dir', path]
-    if jarfile:
-        mark2_options += ['--jarfile', jarfile]
-    
-    # we need a pipe to watch output
-    r, w = os.pipe()
-    mark2_options += ['--fd', str(w)]
-    
-    # we don't want to listen to twistd
-    dev_null = open('/dev/null', 'w')
-    
-    # print a helpful message
-    if not quiet:
-        print 'Server starting. Please wait...'
-        
-    # run!
-    subprocess.call(['twistd'] + twistd_options + ['mark2'] + mark2_options, stdout=dev_null)
-    
-    # close our copy of the write end of the pipe
-    os.close(w)
-    
-    # just exit now if we're in quiet mode
-    if quiet:
-        return
-    
-    # write output
-    while True:
-        read = os.read(r, 32)
-        if not read:
+    def do_start(self):
+        #clear remnants
+        open(self.shared('log'), 'w').close()
+        if os.path.exists(self.shared('sock')):
+            os.remove(self.shared('sock'))
+
+        #build command
+        command = [
+                'twistd',
+                '--pidfile', self.shared('pid'),
+                '--logfile', self.shared('log'),
+                'mark2',
+                '--shared-path', self.shared_path,
+                '--server-name', os.path.basename(self.server_name),
+                '--server-path', self.server_path]
+
+        if self.jar_file:
+            command += ['--jar-file', self.jar_file]
+
+        subprocess.Popen(command, close_fds=True)
+
+    def do_list(self):
+        for server in self.servers:
+            print server
+
+    def do_attach(self):
+        user_client.UserFactory(self.shared_path, self.server_name)
+
+    def do_stop(self):
+        self.kill(signal.SIGINT)
+
+    def do_kill(self):
+        self.kill(signal.SIGKILL)
+
+    def do_send(self, data):
+        d = {
+            'type': 'input',
+            'user': '@script',
+            'line': data
+        }
+        d = json.dumps(d) + "\n"
+
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.connect(self.shared('sock'))
+        s.send(d)
+        s.close()
+
+def main():
+    immediate   = False
+    shared_path = '/tmp/mark2'
+    script_path = sys.path[0]
+    server_name = None
+    command = None
+
+    args = sys.argv[1:]
+
+    while len(args) > 0:
+        if args[0].startswith('-'):
+            a = args.pop(0)
+            if a in ('-h', '--help'):
+                print help_text
+                return
+            elif a in ('-i', '--immediate'):
+                immediate = True
+            elif a in ('-b', '--base'):
+                shared_path = args.pop(0)
+            elif a in ('-n', '--name'):
+                server_name = args.pop(0)
+            else:
+                raise Mark2ParseError("unknown flag: " + a)
+        elif not command:
+            command = args.pop(0)
+        else:
             break
-        sys.stdout.write(read)
 
+    if command is None:
+        raise Mark2ParseError('missing command!')
 
-#TODO: rewrite this
-@clize(alias={'hard': ('h',)})
-def kill(hard=False, *path):
-    '''
-    Stop a mark2 server.
-    
-    path: path to the server to kill
-    
-    hard: use SIGKILL instead of SIGINT (not recommended)
-    '''
-    # send SIGINT to the twistd running at a given path
-    path = os.path.abspath(' '.join(path))
-    
-    pidfile = os.path.join(path, 'mark2.pid')
-    if not os.path.exists(path):
-        raise Mark2Error('Invalid path specified.')
-    elif not os.path.exists(pidfile):
-        raise Mark2Error('Server is not running.')
+    #check shared dir
+    make_writable(shared_path)
+
+    if command == 'start':
+        #get server path
+        if len(args) == 0:
+            server_path = ""
+        elif len(args) == 1:
+            server_path = args[0]
+        else:
+            raise Mark2ParseError("unknown token after server path: " + " ".join(args[1:]))
+        server_path = os.path.abspath(server_path)
+
+        #check path exists and parse a path to a .jar
+        jar_file = None
+        if os.path.isdir(server_path):
+            pass
+        elif os.path.isfile(server_path):
+            if server_path.endswith('.jar'):
+                server_path, jar_file = os.path.split(server_path)
+            else:
+                raise Mark2Error("unknown file type: " + server_path)
+        else:
+            raise Mark2Error("path does not exist: " + server_path)
+
+        #get server name
+        if server_name is None:
+            server_name = os.path.basename(server_path)
+
+        # move to the directory this script is in
+        os.chdir(script_path)
+
+        # check we've got config/mark2.properties
+        check_config()
+
+        skel = Skeleton(shared_path, server_name, server_path, jar_file)
+        if skel.is_running():
+            raise Mark2Error("server already running: " + server_name)
+        skel.do_start()
+
+        if not immediate:
+            skel.wait('# mark2 started.', '# mark2 stopped.')
+
+    elif command == 'list':
+        if len(args) > 0:
+            raise Mark2ParseError("unknown token: " + " ".join(args))
+        skel = Skeleton(shared_path)
+        skel.do_list()
+
+    elif command == 'attach':
+        if len(args) > 0:
+            raise Mark2ParseError("unknown token: " + " ".join(args))
+        skel = Skeleton(shared_path, server_name)
+        if not skel.is_running():
+            raise Mark2Error("server not running: " + server_name)
+        skel.do_attach()
+    elif command == 'stop':
+        if len(args) > 0:
+            raise Mark2ParseError("unknown token: " + " ".join(args))
+        skel = Skeleton(shared_path, server_name)
+        if not skel.is_running():
+            raise Mark2Error("server not running: " + server_name)
+        skel.do_stop()
+        skel.wait('# mark2 stopped.')
+    elif command == 'kill':
+        if len(args) > 0:
+            raise Mark2ParseError("unknown token: " + " ".join(args))
+        skel = Skeleton(shared_path, server_name)
+        if not skel.is_running():
+            raise Mark2Error("server not running: " + server_name)
+        if not immediate:
+            skel.do_kill()
+    elif command == 'send':
+        if len(args) == 0:
+            raise Mark2ParseError("nothing to send!")
+        skel = Skeleton(shared_path, server_name)
+        if not skel.is_running():
+            raise Mark2Error("server not running: " + server_name)
+        skel.do_send(" ".join(args))
+    else:
+        raise Mark2ParseError("unknown command: " + command)
+
+if __name__ == '__main__':
     try:
-        with open(pidfile, 'r') as f:
-            pid = int(f.readline())
-    except IOError:
-        raise Mark2Error('Can\'t read {}.'.format(pidfile))
-        return
-    except ValueError:
-        raise Mark2Error('Invalid pidfile: {}.'.format(pidfile))
-    try:
-        os.kill(pid, signal.SIGKILL if hard else signal.SIGINT)
-        #wait for it to finish
-        while True:
-            try:
-                os.kill(pid, 0)
-            except OSError as err:
-                if err.errno == errno.ESRCH:
-                    break
-        print 'Server at {} terminated.'.format(path)
-    except OSError:
-        raise Mark2Error('Failed to signal process {}, is the server running?.'.format(pid))
-
-
-@clize
-def attach(*path):
-    '''
-    Open a mark2 client and attach it to a server.
-    
-    server: name of the server to attach to. If not specified mark2 will
-    choose the first server alphabetically.
-    '''
-    # first make sure we can properly run
-    ensure_basedir(SOCKET_BASE, need_write=False)
-    
-    # run the client in our own context, why not
-    user_client.UserFactory(' '.join(path), SOCKET_BASE)
-
-# never mind how someone managed to import this, stop them
-if __name__ != '__main__':
-    print 'You\'re doing it wrong.'
-    sys.exit(1)
-
-try:
-    sys.argv[0] = os.path.basename(sys.argv[0])
-    run((start, kill, attach))
-except Mark2Error as e:
-    print 'Failed: {}'.format(e)
+        main()
+    except Mark2Error, e:
+        print e

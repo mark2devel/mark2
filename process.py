@@ -74,7 +74,7 @@ class Process(Service):
             e.handled = True
 
     def server_input(self, e):
-        if self.protocol and self.protocol.alive and self.transport:
+        if self.protocol and self.protocol.alive:
             l = e.line
             if not l.endswith('\n'):
                 l += '\n'
@@ -86,7 +86,7 @@ class Process(Service):
 
     def server_stop(self, e):
         e.handled = True
-        if self.transport is None or not self.transport.alive:
+        if self.protocol is None or not self.protocol.alive:
             return
         if e.announce:
             self.parent.events.dispatch(events.ServerStopping(respawn=e.respawn, reason=e.reason, kill=e.kill))
@@ -115,7 +115,7 @@ class Process(Service):
             reactor.stop()
 
     def stopService(self):
-        if self.transport and self.transport.alive:
+        if self.protocol and self.protocol.alive:
             self.parent.events.dispatch(events.ServerStop(reason="SIGINT", respawn=False))
             self.service_stopping = defer.Deferred()
             return self.service_stopping
