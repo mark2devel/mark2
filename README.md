@@ -40,12 +40,11 @@ plugin interface. It has no requirement on craftbukkit.
 * twisted-web
 * twisted-words (for IRC support)
 * blessings
-* clize
 
 On ubuntu/debian:
 
     # apt-get install python-twisted python-twisted-web python-twisted-words
-    $ pip install blessings clize
+    $ pip install blessings
 
 ## installation
 
@@ -77,7 +76,7 @@ To start a minecraft server:
 
     $ mark2 start /path/to/servers/server-name
 
-If you're already in the right directory, you can omit the last parameter.
+If you're already in the right directory, you can omit the path.
 
 mark2 now refers to your server by the name of the directory containing the
 server jar, in this case 'server-name'
@@ -86,7 +85,7 @@ server jar, in this case 'server-name'
 
 To attach to a wrapped server:
 
-    $ mark2 attach server-name
+    $ mark2 attach -n server-name
 
 Swap out 'server-name' for whatever your server is actually called, for
 example 'pvp' or 'creative'.
@@ -112,20 +111,15 @@ This is handy for talking to other attached admins.
 
 You can send commands to the server from the command line, for example:
 
-    $ mark2 send server-name kick Notch
+    $ mark2 send -n server-name kick Notch
 
 ## stopping/restarting
 
-mark2 provides a few aliases here, equivilent to running, for example, 
-`mark2 send server-name ~kill`
+    $ mark2 stop -n server-name
+    $ mark2 kill -n server-name
 
-    $ mark2 stop server-name
-    $ mark2 kill server-name
-    $ mark2 restart server-name
-    $ mark2 restart-kill server-name
-
-'stop' and 'restart' will attempt to gracefully shut down the server, and will
-kill it after a configurable timeout.
+'stop' will attempt to gracefully shut down the server, and will kill it after
+a configurable timeout.
 
 ## tips
 
@@ -144,5 +138,5 @@ And run it like
     
     $ mcstart pvp
 
-Likewise if `mark2 attach` becomes a little too much, you could always 
-`alias at='mark2 attach'`
+Likewise if `mark2 attach -n blah` becomes a little too much, you could always 
+`alias at='mark2 attach -n'`
