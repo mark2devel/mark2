@@ -5,3 +5,4 @@ twisted/plugins/dropin.cache
 resources/mark2.properties
 config
 testserver
+test*.py
