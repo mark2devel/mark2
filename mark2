@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from twisted.internet import reactor
 
 usage_text = "usage: mark2 [options] command ..."
 
@@ -8,12 +9,14 @@ mark2 is a minecraft server wrapper
 {usage}
 
 commands:
-  start   [path]
-  list
-  attach
-  stop
-  kill
-  send    input...
+  start     [path]    start a server
+  list                list running servers
+  attach              attach to a server
+  stop                stop mark2
+  kill                kill mark2
+  send      input...  send a console command
+  jar-list            list server jars
+  jar-get   name      download a server jar
 
 flags:
   -h  --help       display this message
@@ -21,7 +24,9 @@ flags:
 
 options:
   -b  --base       the directory to put mark2-related temp files (default: /tmp/mark2)
+                   does not apply to 'jar-list' or 'jar-get'
   -n  --name       choose this named server (useful if you run more than one)
+                   does not apply to 'list', 'jar-list' or 'jar-get'
 
 examples:
   mark2 start /home/you/mcservers/pvp
@@ -49,6 +54,9 @@ import errno
 #send
 import json
 import socket
+
+#jar-list/jar-get
+import servers
 
 class Mark2Error(Exception):
     def __init__(self, error):
@@ -335,6 +343,50 @@ def main():
         if not skel.is_running():
             raise Mark2Error("server not running: " + server_name)
         skel.do_send(" ".join(args))
+    elif command == 'jar-list':
+        if len(args) > 0:
+            raise Mark2ParseError("unknown token: " + " ".join(args))
+
+        def err(what):
+            reactor.stop()
+            print "error: %s" % what.value
+
+        def handle(listing):
+            reactor.stop()
+            if len(listing) == 0:
+                print "error: no server jars found!"
+            else:
+                print "The following server jars/zips are available:"
+                print listing
+
+        d = servers.jar_list()
+        d.addCallbacks(handle, err)
+        reactor.run()
+    elif command == 'jar-get':
+        if len(args) == 0:
+            raise Mark2ParseError("missing jar type!")
+        elif len(args) == 1:
+            name = args[0]
+        else:
+            raise Mark2ParseError("unknown token after jar type: " + " ".join(args[1:]))
+
+        def err(what):
+            reactor.stop()
+            print "error: %s" % what.value
+
+        def handle((filename, data)):
+            reactor.stop()
+            if os.path.exists(filename):
+                print "error: %s already exists!" % filename
+            else:
+                f = open(filename, 'wb')
+                f.write(data)
+                f.close()
+                print "success! saved as %s" % filename
+
+        d = servers.jar_get(name)
+        d.addCallbacks(handle, err)
+        reactor.run()
     else:
         raise Mark2ParseError("unknown command: " + command)
 
