@@ -1,5 +1,5 @@
 from twisted.internet import reactor, defer, ssl
-from twisted.web.client import getPage, HTTPClientFactory, _parse #TODO: shouldn't be importing private functions
+from twisted.web.client import getPage, HTTPClientFactory
 
 class Jar:
     def __init__(self, channel, artifact, url, channel_short=None, artifact_short=None):
