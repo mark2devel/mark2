@@ -51,9 +51,7 @@ class Shutdown(Plugin):
         action = lambda: self.nice_stop(False, False)
         if event and event.args:
             warn_length, action = self.action_chain(event.args, self.warn_stop, action)
-        self.console("running action")
         action()
-        self.console("done!")
     
 
     def h_restart(self, event=None):
@@ -63,8 +61,7 @@ class Shutdown(Plugin):
         action()
     
     def h_kill(self, event):
-        self.nice_stop('Server going down for maintainence.', False, True)
+        self.nice_stop(False, True)
     
     def h_kill_restart(self, event):
-        self.nice_stop('Server restarting.', True, True)
-    
+        self.nice_stop(True, True)
