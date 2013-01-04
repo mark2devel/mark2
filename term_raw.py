@@ -21,6 +21,7 @@ keys = {
 
 class TermMode:
     when = termios.TCSANOW
+    fd = sys.stdin.fileno()
     def __init__(self, *modes):
         self.modes = modes
         self.enable  = lambda: self.switch(True)
@@ -31,14 +32,19 @@ class TermMode:
             act = lambda a, b: a | b
         else:
             act = lambda a, b: a & ~b
-        
-        fd = sys.stdin.fileno()
-        x = termios.tcgetattr(fd)[:]
+
+        x = termios.tcgetattr(self.fd)[:]
         
         for i, m in self.modes:
             x[i] = act(x[i], m)
         
-        termios.tcsetattr(fd, self.when, x)
+        termios.tcsetattr(self.fd, self.when, x)
+
+    def save(self):
+        self.saved = termios.tcgetattr(self.fd)[:]
+
+    def restore(self):
+        termios.tcsetattr(self.fd, self.when, self.saved)
 
 def decode_char(s):
     if s[0] == '\x1B':
