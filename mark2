@@ -20,7 +20,7 @@ commands:
 
 flags:
   -h  --help       display this message
-  -i  --immediate  don't wait for server output (only affects start and stop)
+  -i  --immediate  don't wait for server output (only affects start, stop and kill)
 
 options:
   -b  --base       the directory to put mark2-related temp files (default: /tmp/mark2)
@@ -215,15 +215,17 @@ class Skeleton:
         user_client.UserFactory(self.shared_path, self.server_name)
 
     def do_stop(self):
-        self.kill(signal.SIGINT)
+        #self.kill(signal.SIGINT)
+        self.do_send('~stop')
 
     def do_kill(self):
-        self.kill(signal.SIGKILL)
+        #self.kill(signal.SIGKILL)
+        self.do_send('~kill')
 
     def do_send(self, data):
         d = {
             'type': 'input',
-            'user': '@script',
+            'user': '@external',
             'line': data
         }
         d = json.dumps(d) + "\n"
@@ -327,15 +329,17 @@ def main():
         if not skel.is_running():
             raise Mark2Error("server not running: " + server_name)
         skel.do_stop()
-        skel.wait('# mark2 stopped.')
+        if not immediate:
+            skel.wait('# mark2 stopped.')
     elif command == 'kill':
         if len(args) > 0:
             raise Mark2ParseError("unknown token: " + " ".join(args))
         skel = Skeleton(shared_path, server_name)
         if not skel.is_running():
             raise Mark2Error("server not running: " + server_name)
+        skel.do_kill()
         if not immediate:
-            skel.do_kill()
+            skel.wait('# mark2 stopped.')
     elif command == 'send':
         if len(args) == 0:
             raise Mark2ParseError("nothing to send!")
