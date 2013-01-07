@@ -1,5 +1,5 @@
 from plugins import Plugin
-from events import Hook, ServerSave
+from events import Hook
 
 
 class Save(Plugin):
@@ -8,7 +8,6 @@ class Save(Plugin):
     
     def setup(self):
         self.register(self.save, Hook, public=True, name='save', doc='save the map')
-        self.register(self.save_real, ServerSave)
     
     def warn(self, delay):
         self.send("say %s" % self.warn_message.format(delay=delay), parseColors=True)

@@ -64,7 +64,6 @@ class Manager(MultiService):
         self.events.register(self.handle_cmd_events,    events.Hook, public=True, name="events", doc="lists events")
         self.events.register(self.handle_console,       events.Console)
         self.events.register(self.handle_fatal,         events.FatalError)
-        self.events.register(self.handle_server_save,   events.ServerSave)
         self.events.register(self.handle_server_started,events.ServerStarted)
         self.events.register(self.handle_user_attach,   events.UserAttach)
         self.events.register(self.handle_user_detach,   events.UserDetach)
@@ -203,10 +202,6 @@ class Manager(MultiService):
         s = "fatal error: %s" % event.reason
         self.console(s, kind="error")
         self.shutdown()
-    
-    def handle_server_save(self, event):
-        self.send('save-all')
-        event.handled = True
 
     def handle_server_started(self, event):
         if not self.started:

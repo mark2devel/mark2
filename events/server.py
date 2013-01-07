@@ -106,9 +106,3 @@ class ServerStopping(Event):
 class ServerStopped(Event):
     """When the server process finally dies, this event is raised"""
     pass
-
-#other
-
-class ServerSave(Event):
-    """Issue this event to save."""
-    pass
