@@ -6,7 +6,7 @@ class Hook(Event):
     requires_predicate = ('name',)
     name = None
     is_command = False
-    args = None
+    args = ""
     line = None
     
     def setup(self):
