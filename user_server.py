@@ -9,32 +9,19 @@ import events
 
 class Scrollback:
     def __init__(self, length):
-        self.index  = 0
         self.length = length
-        self.data   = [None] * length
-    
-    def put(self, line):
-        self.data[self.index] = line
-        self.index = (self.index + 1) % self.length
-    
-    def get(self, n=None):
-        #counter
-        c = self.length
-        if n:
-            c = min(c, n)
-        
-        #index
-        i = 0 if self.data[-1] == None else self.index
-        
-        #output
-        while c > 0:
-            d = self.data[i]
-            if d == None:
-                return
-            yield d
-            i = (i + 1) % self.length
-            c -= 1
+        self.data = []
 
+    def put(self, line):
+        self.data.append(line)
+        if len(self.data) > self.length:
+            self.data.pop(0)
+
+    def get(self, max_items = None):
+        if max_items is None:
+            return self.data[:]
+        else:
+            return self.data[-max_items:]
 
 class UserServerProtocol(LineReceiver):
     delimiter = '\n'
