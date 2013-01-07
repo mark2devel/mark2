@@ -1,5 +1,5 @@
 from plugins import Plugin
-from events import ServerOutput, ServerOutputConsumer, StatPlayerCount
+from events import ServerOutput, ServerOutputConsumer, StatPlayerCount, ServerStop
 from events import ACCEPTED, FINISHED
 
 class HangChecker(Plugin):
