@@ -3,10 +3,6 @@ from events import Hook, ServerStop, StatPlayers
 
 
 class Shutdown(Plugin):
-    repeat=True
-    repeat_delay         = "2h"
-    repeat_warn_interval = "10m;5m;1m"
-    
     restart_warn_message = "WARNING: planned restart in {delay}."
     stop_warn_message    = "WARNING: server going down for planned maintainence in {delay}."
     restart_message      = "Server restarting."
@@ -24,11 +20,6 @@ class Shutdown(Plugin):
         self.register(self.h_kill,          Hook, public=True, name="kill",         doc='kill the server')
         self.register(self.h_kill_restart,  Hook, public=True, name="kill-restart", doc='kill the server and bring it back up')
     
-    def server_started(self, event):
-        if self.repeat:
-            warn_length, first_warn = self.action_chain(self.repeat_warn_interval, self.warn_restart, self.h_restart)
-            self.delayed_task(first_warn, self.parse_time(self.repeat_delay)[1] - warn_length)
-
     def warn_restart(self, delay):
         self.send("say %s" % self.restart_warn_message.format(delay=delay), parseColors=True)
     
