@@ -3,17 +3,20 @@ import re
 from twisted.words.protocols import irc
 from twisted.internet import protocol
 from twisted.internet import reactor
-from plugins import Plugin, Interest
+from plugins import Plugin
+from events import ServerOutput
 
 
 class IRCBot(irc.IRCClient):
-    """def connectionMade(self):
-        irc.IRCClient.connectionMade(self)
-
-    def connectionLost(self, reason):
-        irc.IRCClient.connectionLost(self, reason)"""
-        
-    in_chan = False
+    def __init__(self, factory, plugin):
+        self.factory     = factory
+        self.nickname    = plugin.nickname
+        self.realname    = plugin.realname
+        self.username    = plugin.username
+        self.password    = plugin.password
+        self.channel     = plugin.channel
+        self.console     = plugin.console
+        self.irc_message = plugin.irc_message
 
     def signedOn(self):
         self.console("irc: connected")
@@ -50,22 +53,15 @@ class IRCBotFactory(protocol.ClientFactory):
         self.parent = parent
 
     def clientConnectionLost(self, connector, reason):
-        print('client connection lost')
+        self.parent.console("irc: lost connection with server: %s" % reason)
+        self.parent.console("irc: reconnecting...")
         connector.connect()
 
     def clientConnectionFailed(self, connector, reason):
-        print('client connection failed')
-        #reactor.stop()
+        self.parent.console("irc: connection attempt failed: %s" % reason)
     
     def buildProtocol(self, addr):
-        p = IRCBot()
-        p.factory  = self
-        p.nickname = self.parent.nickname
-        p.realname = self.parent.realname
-        p.username = self.parent.username
-        p.password = self.parent.password
-        p.channel  = self.parent.channel
-        p.console  = self.parent.console
+        p = IRCBot(self, self.parent)
         return p
     
     def irc_relay(self, message):
@@ -73,7 +69,24 @@ class IRCBotFactory(protocol.ClientFactory):
             self.client.irc_relay(message)
 
 class IRC(Plugin):
-    channel = None
+    #connection
+    host=None
+    port=None
+    ssl=False
+    channel=None
+
+    #user
+    nickname="RelayBot"
+    realname="RelayBot"
+    username="RelayBot"
+    password=""
+
+    #settings
+    game_to_irc_enabled=True
+    game_to_irc_format="<{username}> {message}"
+    irc_to_game_enabled=False
+    irc_to_game_command="say [IRC] <{nickname}> {message}"
+
     def setup(self):
         if self.game_to_irc_enabled:
             self.register(self.chat_message, ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> (.+)')
@@ -91,7 +104,8 @@ class IRC(Plugin):
             reactor.connectTCP(self.host, self.port, self.factory)
         
 
-    def chat_message(self, match):
+    def chat_message(self, event):
+        match = event.match
         self.factory.irc_relay(self.game_to_irc_format.format(username=match.group(1), message=match.group(2)))
     
     def irc_message(self, user, message):
