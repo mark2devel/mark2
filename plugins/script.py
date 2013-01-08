@@ -111,3 +111,6 @@ class Script(Plugin):
     def step(self, event):
         for script in self.scripts:
             script.step()
+
+    def server_stopping(self, event):
+        pass #don't cancel tasks
