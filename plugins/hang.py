@@ -33,7 +33,7 @@ class HangChecker(Plugin):
             self.repeating_task(self.crash_loop, self.crash_interval)
             
         if self.ping_enabled:
-            self.repeating_task(self.ping_loop, self.config['mark2.service.ping.interval'])
+            self.repeating_task(self.ping_loop, self.config['mark2.service.ping.interval']+1)
         
         if self.pcount_enabled:
             self.repeating_task(self.pcount_loop, self.pcount_interval)
