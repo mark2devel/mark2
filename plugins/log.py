@@ -3,7 +3,7 @@ import gzip
 import os
 
 from plugins import Plugin
-from events import Console, ServerStopped, ServerStopping
+from events import Console, ServerStopped, ServerStopping, ServerOutput
 
 
 class Log(Plugin):
