@@ -48,14 +48,16 @@ class IRCBot(irc.IRCClient):
 class IRCBotFactory(protocol.ClientFactory):
     protocol = IRCBot
     client = None
+    reconnect = True
 
     def __init__(self, parent):
         self.parent = parent
 
     def clientConnectionLost(self, connector, reason):
         self.parent.console("irc: lost connection with server: %s" % reason)
-        self.parent.console("irc: reconnecting...")
-        connector.connect()
+        if self.reconnect:
+            self.parent.console("irc: reconnecting...")
+            connector.connect()
 
     def clientConnectionFailed(self, connector, reason):
         self.parent.console("irc: connection attempt failed: %s" % reason)
@@ -102,7 +104,11 @@ class IRC(Plugin):
         
         else:
             reactor.connectTCP(self.host, self.port, self.factory)
-        
+    
+    def unloading(self, reason="reloading"):
+        self.factory.reconnect = False
+        if self.factory.client:
+            self.factory.client.quit("Plugin " + reason)
 
     def chat_message(self, event):
         match = event.match

@@ -62,6 +62,7 @@ class Manager(MultiService):
         #add some handlers
         self.events.register(self.handle_cmd_help,      events.Hook, public=True, name="help", doc="displays this message")
         self.events.register(self.handle_cmd_events,    events.Hook, public=True, name="events", doc="lists events")
+        self.events.register(self.handle_cmd_reload,    events.Hook, public=True, name="reload", doc="reload plugins")
         self.events.register(self.handle_console,       events.Console)
         self.events.register(self.handle_fatal,         events.FatalError)
         self.events.register(self.handle_server_started,events.ServerStarted)
@@ -156,6 +157,31 @@ class Manager(MultiService):
         self.events.dispatch(events.ServerStart())
     
     #helpers
+    def reload(self):
+        self.config = properties.load(os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties') or self.config
+        
+        stopped = []
+        for name, plugin in self.plugins.items():
+            plugin.stop_tasks()
+            plugin.unregister_events()
+            plugin.unloading("reloading" if name in [x for x, y in self.config.get_plugins()] else "disabled")
+            stopped.append(name)
+        self.console("stopped plugins: " + ", ".join(stopped))
+        self.plugins = {}
+        
+        loaded = []
+        for name, kwargs in self.config.get_plugins():
+            try:
+                ref = plugins.load(name, **kwargs)
+                self.plugins[name] = ref(self, name, **kwargs)
+                loaded.append(name)
+            except:
+                self.console("plugin '%s' failed to load. stack trace follows" % name, kind='error')
+                for l in traceback.format_exc().split("\n"):
+                    self.console(l, kind='error')
+        
+        self.console("loaded plugins: " + ", ".join(loaded))
+    
     def shutdown(self):
         reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
 
@@ -185,14 +211,16 @@ class Manager(MultiService):
             if args.get('public', False):
                 o.append((args['name'], args.get('doc', '')))
         
-        
-        
         self.console("The following commands are available:")
         self.table(o)
     
     def handle_cmd_events(self, event):
         self.console("The following events are available:")
         self.table([(n, c.doc) for n, c in events.get_all()])
+    
+    def handle_cmd_reload(self, event):
+        self.console("Reloading mark2")
+        self.reload()
     
     def handle_console(self, event):
         for line in str(event).split("\n"):
