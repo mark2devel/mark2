@@ -57,7 +57,7 @@ class EventDispatcher:
     def unregister(self, callback, event_type, **predicate_args):
         try:
             self.registered[event_type].remove((callback, predicate_args))
-        except e:
+        except:
             return False
         return True
     

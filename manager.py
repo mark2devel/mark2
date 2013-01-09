@@ -160,20 +160,20 @@ class Manager(MultiService):
     def reload(self):
         self.config = properties.load(os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties') or self.config
         
-        stopped = []
+        stopped = {}
         for name, plugin in self.plugins.items():
             plugin.stop_tasks()
             plugin.unregister_events()
-            plugin.unloading("reloading" if name in [x for x, y in self.config.get_plugins()] else "disabled")
-            stopped.append(name)
-        self.console("stopped plugins: " + ", ".join(stopped))
-        self.plugins = {}
+            d = plugin.unloading("reloading" if name in [x for x, y in self.config.get_plugins()] else "disabled")
+            stopped[name] = d
+        self.console("stopped plugins: " + ", ".join(stopped.keys()))
         
+        self.plugins = {}
         loaded = []
         for name, kwargs in self.config.get_plugins():
             try:
                 ref = plugins.load(name, **kwargs)
-                self.plugins[name] = ref(self, name, **kwargs)
+                self.plugins[name] = ref(self, name, restore=stopped.get(name, None), **kwargs)
                 loaded.append(name)
             except:
                 self.console("plugin '%s' failed to load. stack trace follows" % name, kind='error')

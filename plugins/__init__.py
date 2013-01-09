@@ -21,6 +21,8 @@ class Plugin:
         self.dispatch_delayed   = self.parent.events.dispatch_delayed
         self.dispatch_repeating = self.parent.events.dispatch_repeating
         
+        self.restore = None
+        
         self._tasks = []
         self._events = []
         self._services = []
@@ -49,7 +51,6 @@ class Plugin:
     def unregister_events(self):
         for callback, event_type, args in self._events:
             self.parent.events.unregister(callback, event_type, **args)
-    
     
     def unloading(self, reason):
         pass
