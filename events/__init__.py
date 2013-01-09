@@ -42,24 +42,34 @@ class Event:
 
 class EventDispatcher:
     registered = {}
-    
-    #args: [callback] event_type [kwargs ...]
+    registered_ids = []
+
     def register(self, callback, event_type, **predicate_args):
-        d = self.registered.get(event_type, [])
+        if not event_type in self.registered:
+            self.registered[event_type] = []
+        d = self.registered[event_type]
         
         for p in event_type.requires_predicate:
             if not p in predicate_args:
                 raise Exception("missing required predicate argument for %s: %s" % (event_type.__class__, p))
         
         d.append((callback, predicate_args))
-        self.registered[event_type] = d
+        self.registered_ids.append((callback, event_type, predicate_args)
+        return len(self.registered_ids)-1
     
-    def unregister(self, callback, event_type, **predicate_args):
-        try:
-            self.registered[event_type].remove((callback, predicate_args))
-        except e:
-            return False
-        return True
+    def unregister(self, ident):
+        if len(self.registered_ids) < (ident-1):
+            raise KeyError("unknown handler id #%d" % ident)
+
+        handler = self.registered_ids[ident]
+        if handler is None:
+            raise Exception("handler #%d already unregistered" % ident)
+
+        callback, event_type, predicate_args = handler
+        self.registered[event_type].remove((callback, predicate_args))
+        self.registered_ids[ident] = None
+
+
     
     def dispatch(self, event):
         #log.msg("dispatching %s event" % event.__class__.__name__)
@@ -121,6 +131,7 @@ def from_json(data):
 from console import *
 from error   import *
 from hook    import *
+from player  import *
 from server  import *
 from stat    import *
 from user    import *

@@ -4,7 +4,7 @@ from twisted.words.protocols import irc
 from twisted.internet import protocol
 from twisted.internet import reactor
 from plugins import Plugin
-from events import ServerOutput
+from events import PlayerChat
 
 
 class IRCBot(irc.IRCClient):
@@ -89,7 +89,7 @@ class IRC(Plugin):
 
     def setup(self):
         if self.game_to_irc_enabled:
-            self.register(self.chat_message, ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> (.+)')
+            self.register(self.chat_message, PlayerChat)
         
         self.factory = IRCBotFactory(self)
         
@@ -105,8 +105,7 @@ class IRC(Plugin):
         
 
     def chat_message(self, event):
-        match = event.match
-        self.factory.irc_relay(self.game_to_irc_format.format(username=match.group(1), message=match.group(2)))
+        self.factory.irc_relay(self.game_to_irc_format.format(username=event.username, message=event.message))
     
     def irc_message(self, user, message):
         if self.irc_to_game_enabled:
