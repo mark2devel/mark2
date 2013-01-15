@@ -54,13 +54,13 @@ class IRCBotFactory(protocol.ClientFactory):
         self.parent = parent
 
     def clientConnectionLost(self, connector, reason):
-        self.parent.console("irc: lost connection with server: %s" % reason)
         if self.reconnect:
+            self.parent.console("irc: lost connection with server: %s" % reason.getErrorMessage())
             self.parent.console("irc: reconnecting...")
             connector.connect()
 
     def clientConnectionFailed(self, connector, reason):
-        self.parent.console("irc: connection attempt failed: %s" % reason)
+        self.parent.console("irc: connection attempt failed: %s" % reason.getErrorMessage())
     
     def buildProtocol(self, addr):
         p = IRCBot(self, self.parent)
@@ -83,72 +83,94 @@ class IRC(Plugin):
     username="RelayBot"
     password=""
 
-    #settings
-    game_to_irc_enabled=True
-    game_to_irc_format="<{username}> {message}"
-    server_message_format="[Server] {message}"
-    status_message_format="* ({message})"
-    irc_to_game_enabled=False
-    irc_to_game_command="say [IRC] <{nickname}> {message}"
+    #general
+
+    #game -> irc settings
+    game_columns = True
+
+    game_status_enabled = True
+    game_status_left    = "!"
+    game_status_right   = " | server {what}."
+
+    game_chat_enabled = True
+    game_chat_left    = "{username}"
+    game_chat_right   = " | {message}"
+
+    game_join_enabled = True
+    game_join_left    = "*"
+    game_join_right   = " | --> {username}"
+
+    game_quit_enabled = True
+    game_quit_left    = "*"
+    game_quit_right   = " | <-- {username}"
+
+    game_server_message_enabled = True
+    game_server_message_left    = "#server"
+    game_server_message_right   = " | {message}"
+
+    #bukkit only
+    game_me_enabled = True
+    game_me_left    = "*"
+    game_me_right   = " | {username} {message}"
+
+    #irc -> game settings
+    irc_chat_enabled = True
+    irc_chat_command = "say [IRC] <{nickname}> {message}"
 
     def setup(self):
-        if self.game_to_irc_enabled:
-            self.pattern(self.game_to_irc_format,    r'<(?P<username>[A-Za-z0-9_]{1,16})> (?P<message>.+)')
-            self.pattern(self.server_message_format, r'\[(?:Server|SERVER)\] (?P<message>.+)')
-            self.pattern('{} connected',             r'(?P<username>[A-Za-z0-9_]{1,16})\[/[\d.:]+\] logged in')
-            self.pattern('{} disconnected',          r'(?P<username>[A-Za-z0-9_]{1,16}) lost connection')
-            self.pattern('* {} {}',                  r'\* (?P<username>[A-Za-z0-9_]{1,16}) (?P<message>.+)')
-            # cocks
-            self.register(self.handle_shutdown, ServerStopping)
-        
-        if self.restore:
-            self.factory = self.restore
-            if self.factory.client:
-                self.factory.client.setNick(self.nickname)
-                self.factory.irc_relay(self.status_message_format.format(message="Plugin reloaded"))
-            return
-        
         self.factory = IRCBotFactory(self)
-        
         if self.ssl:
             try:
                 from twisted.internet import ssl
                 reactor.connectSSL(self.host, self.port, self.factory, ssl.ClientContextFactory())
             except ImportError:
                 self.parent.fatal_error("Couldn't load SSL for IRC")
-        
         else:
             reactor.connectTCP(self.host, self.port, self.factory)
-    
-    def pattern(self, format, pattern):
-        def handler(event):
-            self.factory.irc_relay(format.format(*event.match.groups(), **event.match.groupdict()))
+
+        if self.game_status_enabled:
+            self.register(self.handle_stopping, ServerStopping)
+            self.register(self.handle_starting,  ServerStarting)
+
+        if self.game_chat_enabled:
+            self.pattern(self.game_chat_left, self.game_chat_right, r'<(?P<username>[A-Za-z0-9_]{1,16})> (?P<message>.+)')
+
+        if self.game_join_enabled:
+            self.pattern(self.game_join_left, self.game_join_right, r'(?P<username>[A-Za-z0-9_]{1,16})\[/[\d.:]+\] logged in')
+
+        if self.game_quit_enabled:
+            self.pattern(self.game_quit_left, self.game_quit_right, r'(?P<username>[A-Za-z0-9_]{1,16}) lost connection')
+
+        if self.game_server_message_enabled:
+            self.pattern(self.game_server_message_left, self.game_server_message_right, r'\[(?:Server|SERVER)\] (?P<message>.+)')
+
+        if self.game_me_enabled:
+            self.pattern(self.game_me_left, self.game_me_right, r'\* (?P<username>[A-Za-z0-9_]{1,16}) (?P<message>.+)')
+
+
+    def teardown(self):
+        self.factory.reconnect = False
+        if self.factory.client:
+            self.factory.client.quit("Plugin unloading.")
+
+    def format(self, left, right):
+        if self.game_columns:
+            left = left.rjust(16)
+        return left+right
+
+    def pattern(self, left, right, pattern):
+        def handler(event,left=left, right=right):
+            left  = left.format (*event.match.groups(), **event.match.groupdict())
+            right = right.format(*event.match.groups(), **event.match.groupdict())
+            self.factory.irc_relay(self.format(left, right))
         self.register(handler, ServerOutput, pattern=pattern)
-    
-    def has_cfg_changed(self):
-        keys = ['host', 'port', 'ssl', 'channel', 'realname', 'username', 'password']
-        pl = dict(self.parent.config.get_plugins())
-        if 'irc' not in pl: return True
-        pl = pl['irc']
-        for k in keys:
-            if getattr(self, k) != pl.get(k, None): return True
-        return False
-    
-    def unloading(self, reason="reloading"):
-        if self.has_cfg_changed():
-            self.factory.reconnect = False
-            if self.factory.client:
-                self.factory.client.quit("Plugin " + reason)
-        else:
-            return self.factory
-    
-    def handle_shutdown(self, event):
-        self.factory.irc_relay(self.status_message_format.format(message="Server " + ("restarting" if event.respawn else "stopping")))
-    
-    def chat_message(self, event):
-        match = event.match
-        self.factory.irc_relay(self.game_to_irc_format.format(username=match.group(1), message=match.group(2)))
-    
+
+    def handle_starting(self, event):
+        self.factory.irc_relay(self.format(self.game_status_left, self.game_status_right.format(what="starting")))
+
+    def handle_stopping(self, event):
+        self.factory.irc_relay(self.format(self.game_status_left, self.game_status_right.format(what="stopping")))
+
     def irc_message(self, user, message):
-        if self.irc_to_game_enabled:
-            self.send(self.irc_to_game_command.format(nickname=user, message=message), parseColors=True)
+        if self.irc_chat_enabled:
+            self.send(self.irc_chat_command.format(nickname=user, message=message), parseColors=True)
