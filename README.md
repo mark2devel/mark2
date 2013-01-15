@@ -9,7 +9,7 @@ plugin interface. It has no requirement on craftbukkit.
 * Your server runs in the background
 * Multiple users can attach at once, with their own local prompt and command 
   buffer
-* Built in monitoring using the [snooper](http://wiki.vg/Session#Snoop), 
+* Built in monitoring using [top](http://en.wikipedia.org/wiki/top_(software)), 
   [query](http://wiki.vg/Query), and [ping](http://wiki.vg/Server_List_Ping)
 * Tab-complete player names
 

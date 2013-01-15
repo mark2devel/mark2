@@ -10,6 +10,8 @@ def load(*files):
         
 class Properties(dict):
     def __init__(self, path, parent=None):
+        dict.__init__(self)
+
         if parent:
             self.update(parent)
             self.types = dict(parent.types)
@@ -19,7 +21,7 @@ class Properties(dict):
         decoder = {
             'int': int,
             'bool': lambda a: a == 'true',
-            'string': lambda a: a.replace('\:', ':').replace('\=', '=').strip(),
+            'string': lambda a: a.replace('\:', ':').replace('\=', '='),
             'none': lambda a: None
         }
         ty = None
@@ -66,8 +68,9 @@ class Properties(dict):
                         enabled.append(plugin)
                 else:
                     plugins[plugin][k2] = v
-        
-        return [(plugin, plugins[plugin]) for plugin in enabled]
+
+        for n in sorted(enabled):
+            yield n, plugins[n]
 
     def get_jvm_options(self):
         options = []

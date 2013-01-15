@@ -3,6 +3,7 @@ from os import path
 import imp
 import inspect
 import re
+import traceback
 
 from twisted.internet import task, reactor
 from twisted.internet.error import AlreadyCancelled
@@ -21,8 +22,6 @@ class Plugin:
         self.dispatch_delayed   = self.parent.events.dispatch_delayed
         self.dispatch_repeating = self.parent.events.dispatch_repeating
         
-        self.restore = None
-        
         self._tasks = []
         self._events = []
         self._services = []
@@ -34,8 +33,13 @@ class Plugin:
         self.register(self.server_stopping, ServerStopping)
         
         self.setup()
-    
+
+    #called on plugin load
     def setup(self):
+        pass
+
+    #called on plugin unload
+    def teardown(self):
         pass
     
     def server_started(self, event):
@@ -44,15 +48,18 @@ class Plugin:
     def server_stopping(self, event):
         self.stop_tasks()
     
-    def register(self, callback, event_type, **args):
-        self._events.append((callback, event_type, args))
-        self.parent.events.register(callback, event_type, **args)
+    def register(self, *a, **k):
+        ident = self.parent.events.register(*a, **k)
+        self._events.append(ident)
+
+    def unregister_all(self):
+        for ident in self._events:
+            self.parent.events.unregister(ident)
     
-    def unregister_events(self):
-        for callback, event_type, args in self._events:
-            self.parent.events.unregister(callback, event_type, **args)
-    
-    def unloading(self, reason):
+    def save_state(self):
+        pass
+
+    def load_state(self, state):
         pass
     
     def delayed_task(self, callback, delay, name=None):
@@ -117,10 +124,68 @@ class Plugin:
         
         return name, time
 
-def load(module_name, **kwargs):
-    p = path.join(path.dirname(path.realpath(__file__)), module_name + '.py')
-    module = imp.load_source(module_name, p)
-    classes = inspect.getmembers(module, inspect.isclass)
-    for name, cls in classes:
-        if issubclass(cls, Plugin) and cls != Plugin:
-            return cls
+
+
+
+class PluginManager(dict):
+    def __init__(self, parent):
+        self.parent = parent
+        self.states  = {}
+        dict.__init__(self)
+
+    def load(self, module_name, **kwargs):
+        self.parent.console("... loading: %s" % module_name)
+        found = False
+        p = path.join(path.dirname(path.realpath(__file__)), module_name + '.py')
+        try:
+            module = imp.load_source(module_name, p)
+            classes = inspect.getmembers(module, inspect.isclass)
+            for name, cls in classes:
+                if issubclass(cls, Plugin) and not cls is Plugin:
+                    #instantiate plugin
+                    plugin = cls(self.parent, name, **kwargs)
+
+                    #restore state
+                    if name in self.states:
+                        plugin.load_state(self.states[name])
+                        del self.states[name]
+
+                    #register plugin
+                    self[name] = plugin
+
+                    #return
+                    return plugin
+
+            #if we've reached this point, there's no subclass of Plugin in the file!
+            raise Exception("Couldn't find class!")
+        except Exception:
+            self.parent.console("plugin '%s' failed to load. stack trace follows" % module_name, kind='error')
+            for l in traceback.format_exc().split("\n"):
+                self.parent.console(l, kind='error')
+
+    def unload(self, name):
+        self.parent.console("... unloading: %s" % name)
+        plugin = self[name]
+        self.states[name] = plugin.save_state()
+        plugin.teardown()
+        plugin.stop_tasks()
+        plugin.unregister_all()
+        del self[name]
+
+    def reload(self, name):
+        self.unload(name)
+        kwargs = self.parent.config.get_plugins().get(name, None)
+        if not kwargs is None:
+            self.load(name, **kwargs)
+
+    def load_all(self):
+        for name, kwargs in self.parent.config.get_plugins():
+            self.load(name, **kwargs)
+
+    def unload_all(self):
+        for name in self.keys():
+            self.unload(name)
+
+    def reload_all(self):
+        self.unload_all()
+        self.load_all()

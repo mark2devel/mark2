@@ -60,9 +60,11 @@ class Manager(MultiService):
         self.events = events.EventDispatcher()
         
         #add some handlers
-        self.events.register(self.handle_cmd_help,      events.Hook, public=True, name="help", doc="displays this message")
-        self.events.register(self.handle_cmd_events,    events.Hook, public=True, name="events", doc="lists events")
-        self.events.register(self.handle_cmd_reload,    events.Hook, public=True, name="reload", doc="reload plugins")
+        self.events.register(self.handle_cmd_help,          events.Hook, public=True, name="help", doc="displays this message")
+        self.events.register(self.handle_cmd_events,        events.Hook, public=True, name="events", doc="lists events")
+        self.events.register(self.handle_cmd_reload_plugin, events.Hook, public=True, name="reload-plugin", doc="reload a plugin.")
+        self.events.register(self.handle_cmd_reload,        events.Hook, public=True, name="reload", doc="reload config and all plugins.")
+
         self.events.register(self.handle_console,       events.Console)
         self.events.register(self.handle_fatal,         events.FatalError)
         self.events.register(self.handle_server_started,events.ServerStarted)
@@ -142,48 +144,17 @@ class Manager(MultiService):
         self.addService(user_server.UserServer(self, os.path.join(self.shared_path, "%s.sock" % self.server_name)))
         
         #load plugins
-        loaded = []
-        self.plugins = {}
-        
-        for name, kwargs in self.config.get_plugins():
-            try:
-                ref = plugins.load(name, **kwargs)
-                self.plugins[name] = ref(self, name, **kwargs)
-                loaded.append(name)
-            except:
-                self.console("plugin '%s' failed to load. stack trace follows" % name, kind='error')
-                for l in traceback.format_exc().split("\n"):
-                    self.console(l, kind='error')
-        
-        self.console("loaded plugins: " + ", ".join(loaded))
-        
+        self.plugins = plugins.PluginManager(self)
+        self.load_plugins()
+
+        #start the server
         self.events.dispatch(events.ServerStart())
-    
+
     #helpers
-    def reload(self):
-        self.config = properties.load(os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties') or self.config
-        
-        stopped = {}
-        for name, plugin in self.plugins.items():
-            plugin.stop_tasks()
-            plugin.unregister_events()
-            d = plugin.unloading("reloading" if name in [x for x, y in self.config.get_plugins()] else "disabled")
-            stopped[name] = d
-        self.console("stopped plugins: " + ", ".join(stopped.keys()))
-        
-        self.plugins = {}
-        loaded = []
-        for name, kwargs in self.config.get_plugins():
-            try:
-                ref = plugins.load(name, **kwargs)
-                self.plugins[name] = ref(self, name, restore=stopped.get(name, None), **kwargs)
-                loaded.append(name)
-            except:
-                self.console("plugin '%s' failed to load. stack trace follows" % name, kind='error')
-                for l in traceback.format_exc().split("\n"):
-                    self.console(l, kind='error')
-        
-        self.console("loaded plugins: " + ", ".join(loaded))
+    def load_plugins(self):
+        self.config = properties.load(os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties')
+        self.plugins.config = self.config
+        self.plugins.load_all()
     
     def shutdown(self):
         reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
@@ -221,10 +192,17 @@ class Manager(MultiService):
         self.console("The following events are available:")
         self.table([(n, c.doc) for n, c in events.get_all()])
     
+    def handle_cmd_reload_plugin(self, event):
+        if event.args in self.plugins:
+            self.plugins.reload(event.args)
+        else:
+            self.console("unknown plugin.")
+            self.plugins.reload_all()
+
     def handle_cmd_reload(self, event):
-        self.console("Reloading mark2")
-        self.reload()
-    
+        self.plugins.unload_all()
+        self.load_plugins()
+
     def handle_console(self, event):
         for line in str(event).split("\n"):
             log.msg(line, system="mark2")
@@ -262,12 +240,12 @@ class Manager(MultiService):
 
     def handle_player_join(self, event):
         g = event.match.groups()
-        self.events.dispatch(events.PlayerJoin(g[0], ip=g[1]))
+        self.events.dispatch(events.PlayerJoin(username=g[0], ip=g[1]))
 
     def handle_player_quit(self, event):
         g = event.match.groups()
-        self.events.dispatch(events.PlayerJoin(g[0], reason=g[1]))
+        self.events.dispatch(events.PlayerQuit(username=g[0], reason=g[1]))
 
     def handle_player_chat(self, event):
         g = event.match.groups()
-        self.events.dispatch(events.PlayerJoin(g[0], message=g[1]))
+        self.events.dispatch(events.PlayerChat(username=g[0], message=g[1]))
