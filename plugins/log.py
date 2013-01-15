@@ -23,12 +23,12 @@ class Log(Plugin):
         self.register(self.shutdown, ServerStopped)
         self.register(self.pre_shutdown, ServerStopping)
         
-        if self.restore:
-            self.log = self.restore + "-log interrupted by plugin reload-\n"
-    
-    def unloading(self, reason):
+    def save_state(self):
         return self.log
-    
+
+    def load_state(self, state):
+        self.log = state
+
     def vanilla_logger(self, event):
         self.log += "%s\n" % event.line
     
