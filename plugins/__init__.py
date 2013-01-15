@@ -50,11 +50,22 @@ class Plugin:
     
     def register(self, *a, **k):
         ident = self.parent.events.register(*a, **k)
-        self._events.append(ident)
+        track = True
+        if 'track' in k:
+            track = k['track']
+            del k['track']
+
+        if track:
+            self._events.append(ident)
+
+    def unregister(self, ident):
+        self.parent.events.unregister(ident)
+        if ident in self._events:
+            self._events.remove(ident)
 
     def unregister_all(self):
         for ident in self._events:
-            self.parent.events.unregister(ident)
+            self.unregister(ident)
     
     def save_state(self):
         pass
