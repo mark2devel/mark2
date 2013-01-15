@@ -54,7 +54,7 @@ class EventDispatcher:
                 raise Exception("missing required predicate argument for %s: %s" % (event_type.__class__, p))
         
         d.append((callback, predicate_args))
-        self.registered_ids.append((callback, event_type, predicate_args)
+        self.registered_ids.append((callback, event_type, predicate_args))
         return len(self.registered_ids)-1
     
     def unregister(self, ident):
