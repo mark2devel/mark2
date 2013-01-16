@@ -12,7 +12,7 @@ import events
 import properties
 import user_server
 import process
-from services import ping, query, snoop, top
+from services import ping, query, top
 
 #plugins
 import plugins
@@ -99,20 +99,7 @@ class Manager(MultiService):
                 return self.fatal_error("Couldn't find server jar!")
                 
         #start services
-        
-        #if using snoop, we need to wait for the jar to be patched
-        
-        proc_o = process.Process(self, self.jar_file)
-        
-        def proc_s(x):
-            self.addService(proc_o)
-        def proc_e(e):
-            return self.fatal_error("Failed to patch server jar!")
-            
-        proc_d = defer.Deferred()
-        proc_d.addCallback(proc_s)
-        proc_d.addErrback(proc_e)
-        
+
         if self.config['mark2.service.ping.enabled']:
             self.addService(ping.Ping(
                 self,
@@ -131,16 +118,8 @@ class Manager(MultiService):
             self.addService(top.Top(
                 self,
                 self.config['mark2.service.top.interval']))
-        
-        if self.config['mark2.service.snoop.enabled'] and self.properties['snooper_enabled']:
-            self.addService(snoop.Snoop(
-                self, 
-                self.config['mark2.service.snoop.interval']*1000, 
-                os.path.abspath(self.jar_file),
-                proc_d))
-        else:
-            proc_d.callback(None)
-        
+
+        self.addService(process.Process(self, self.jar_file))
         self.addService(user_server.UserServer(self, os.path.join(self.shared_path, "%s.sock" % self.server_name)))
         
         #load plugins
