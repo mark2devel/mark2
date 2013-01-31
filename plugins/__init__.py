@@ -102,7 +102,7 @@ class Plugin:
         
     def send(self, l, parseColors=False):
         if parseColors:
-            l = l.replace('&', '\xa7')
+            l = l.replace('&', u"\u00a7")
         self.dispatch(ServerInput(line=l))
     
     def action_chain(self, spec, callbackWarn, callbackAction):
