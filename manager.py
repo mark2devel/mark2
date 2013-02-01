@@ -73,7 +73,7 @@ class Manager(MultiService):
         self.events.register(self.handle_user_input,    events.UserInput)
         self.events.register(self.handle_player_join,   events.ServerOutput, pattern='([A-Za-z0-9_]{1,16})\[/([0-9\.]+):\d+\] logged in with entity id .+')
         self.events.register(self.handle_player_quit,   events.ServerOutput, pattern='([A-Za-z0-9_]{1,16}) lost connection: (.+)')
-        self.events.register(self.handle_player_join,   events.ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> (.+)')
+        self.events.register(self.handle_player_chat,   events.ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> (.+)')
 
         self.console("mark2 starting...")
 
@@ -183,7 +183,7 @@ class Manager(MultiService):
         self.load_plugins()
 
     def handle_console(self, event):
-        for line in str(event).split("\n"):
+        for line in event.value().encode('utf8').split("\n"):
             log.msg(line, system="mark2")
     
     def handle_fatal(self, event):
