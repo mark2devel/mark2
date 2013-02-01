@@ -11,7 +11,7 @@ class Log(Plugin):
     path      = "logs/server-{timestamp}-{status}.log.gz"
     vanilla = False
     
-    log = ""
+    log = u""
     
     reason = "unknown"
     
@@ -30,10 +30,10 @@ class Log(Plugin):
         self.log = state
 
     def vanilla_logger(self, event):
-        self.log += "%s\n" % event.line
+        self.log += u"%s\n" % event.line
     
     def logger(self, event):
-        self.log += "%s\n" % event
+        self.log += u"%s\n" % event
     
     def pre_shutdown(self, event):
         self.reason = event.reason
@@ -60,7 +60,7 @@ class Log(Plugin):
         else:
             f = open(path, 'w')
         
-        f.write(self.log)
+        f.write(self.log.encode('utf8'))
         f.close()
         self.console("server.log written to %s" % os.path.realpath(path))
         self.log = ""
