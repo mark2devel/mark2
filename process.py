@@ -5,8 +5,12 @@ import glob
 import events
 
 class ProcessProtocol(protocol.ProcessProtocol):
-    obuff = ""
+    obuff = u""
     alive = True
+
+    def __init__(self, dispatch, locale):
+        self.dispatch = dispatch
+        self.locale = locale
 
     def output(self, line):
         event_1 = events.ServerOutputConsumer(line=line)
@@ -18,6 +22,7 @@ class ProcessProtocol(protocol.ProcessProtocol):
             self.dispatch(event_3)
 
     def errReceived(self, data):
+        data = data.decode(self.locale)
         data = data.split("\n")
         data[0] = self.obuff + data[0]
         self.obuff = data.pop()
@@ -68,8 +73,7 @@ class Process(Service):
     def server_start(self, e=None):
         self.parent.console("starting minecraft server")
         self.locale = locale.getpreferredencoding()
-        self.protocol = ProcessProtocol()
-        self.protocol.dispatch = self.parent.events.dispatch
+        self.protocol = ProcessProtocol(self.parent.events.dispatch, self.locale)
         cmd = self.build_command()
         self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd, env=None)
         if e:
