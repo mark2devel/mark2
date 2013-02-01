@@ -9,6 +9,10 @@ class ServerInput(Event):
     is available: self.send("say hello")"""
     
     requires = ('line',)
+    parse_colors = False
+    def setup(self):
+        if self.parse_colors:
+            self.line = re.sub("\&([0-9a-fklmnor])", u"\u00a7\\1", self.line, flags=re.IGNORECASE)
 
 class ServerOutput(Event):
     """Issued when the server gives us a line on stdout. Note
