@@ -19,5 +19,5 @@ class Console(Event):
         if not self.data:
             self.data = self.line
         
-    def __repr__(self):
+    def value(self):
         return console_repr(self)
