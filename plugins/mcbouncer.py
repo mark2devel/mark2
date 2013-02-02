@@ -1,3 +1,4 @@
+from twisted.python import log
 import urllib
 import json
 
@@ -19,7 +20,7 @@ class BouncerAPI:
             raise AttributeError
         
         def inner(*args, **kwargs):
-            args = [urllib.quote(a, "") for a in args]
+            args = [urllib.quote(a.encode('utf8'), "") for a in args]
             callback = kwargs.get('callback', None)
             addr = '/'.join([self.api_base, method, self.api_key] + args)
             deferred = getPage(addr)
