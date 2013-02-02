@@ -101,9 +101,7 @@ class Plugin:
         self._tasks = []
         
     def send(self, l, parseColors=False):
-        if parseColors:
-            l = l.replace('&', u"\u00a7")
-        self.dispatch(ServerInput(line=l))
+        self.dispatch(ServerInput(line=l, parse_colors=parseColors))
     
     def action_chain(self, spec, callbackWarn, callbackAction):
         intervals = [self.parse_time(i) for i in spec.split(';')]
