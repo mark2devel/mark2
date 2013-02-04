@@ -53,7 +53,7 @@ class Users:
     
     def update_logged_in(self):
         self.logged_in = set()
-        for line in subprocess.check_output(['w', '-sh']).split("\n"):
+        for line in subprocess.check_output(['w', '-h']).split("\n"):
             self.logged_in.add(line.split(" ", 1)[0])
 
     def get_all(self):
