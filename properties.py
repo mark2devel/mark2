@@ -21,8 +21,7 @@ class Properties(dict):
         decoder = {
             'int': int,
             'bool': lambda a: a == 'true',
-            'string': lambda a: a.replace('\:', ':').replace('\=', '='),
-            'none': lambda a: None
+            'string': lambda a: a
         }
 
         c_seperator  = (':', '=')
@@ -33,18 +32,6 @@ class Properties(dict):
         r_unescaped  = '(?<!\\\\)(?:\\\\\\\\)*'
         r_whitespace = '[' + re.escape(''.join(c_whitespace)) + ']*'
         r_seperator  = r_whitespace + r_unescaped + '[' + re.escape(''.join(c_seperator + c_whitespace)) + ']' + r_whitespace
-
-        f = open(path)
-        d = f.read()
-        f.close()
-
-        #Deal with Windows / Mac OS linebreaks
-        d = d.replace('\r\n','\n')
-        d = d.replace('\r', '\n')
-        #Strip leading whitespace
-        d = re.sub('\n\s*', '\n', d, flags=re.MULTILINE)
-        #Split logical lines
-        d = re.split(r_unescaped+'\n', d, flags=re.MULTILINE)
 
         #This handles backslash escapes in keys/values
         def parse(input):
@@ -71,6 +58,18 @@ class Properties(dict):
                     out += c
 
             return out
+
+        f = open(path)
+        d = f.read()
+        f.close()
+
+        #Deal with Windows / Mac OS linebreaks
+        d = d.replace('\r\n','\n')
+        d = d.replace('\r', '\n')
+        #Strip leading whitespace
+        d = re.sub('\n\s*', '\n', d, flags=re.MULTILINE)
+        #Split logical lines
+        d = re.split(r_unescaped+'\n', d, flags=re.MULTILINE)
 
         for line in d:
             #Strip comments and empty lines
