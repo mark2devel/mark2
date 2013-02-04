@@ -7,7 +7,7 @@ def load(*files):
         if os.path.isfile(f):
             o = Properties(f, o)
     return o
-        
+
 class Properties(dict):
     def __init__(self, path, parent=None):
         dict.__init__(self)
@@ -17,40 +17,104 @@ class Properties(dict):
             self.types = dict(parent.types)
         else:
             self.types = {}
-        
+
         decoder = {
             'int': int,
             'bool': lambda a: a == 'true',
             'string': lambda a: a.replace('\:', ':').replace('\=', '='),
             'none': lambda a: None
         }
-        ty = None
-        
+
+        c_seperator  = (':', '=')
+        c_newline    = ('\n', '\r', '')
+        c_whitespace = (' ', '\t', '\f')
+        c_escapes    = ('t','n','r','f')
+        c_comment    = ('#','!')
+
         f = open(path)
-        for l in f:
-            #Comment
-            if l.startswith('#'):
+        while True:
+            #skip whitespace
+            c = f.read(1)
+            while c in c_whitespace:
+                c = f.read(1)
+
+            #finish on EOF
+            if c == '':
+                break
+
+            #skip comments
+            if c in c_comment:
+                f.readline()
                 continue
-            
-            #K,V pair
-            m = re.match('^([^=]+)=(.*)$', l.strip())
-            if m:
-                k, v = m.groups()
-                k = k.replace('-', '_')
-                
-                if re.match('^\-?\d+$', v):
-                    ty = 'int'
-                elif v in ('true', 'false'):
-                    ty = 'bool'
-                elif v != '':
-                    ty = 'string'
-                elif k in self.types:
-                    ty = self.types[k]
+
+            #skip blank lines
+            if c in c_newline:
+                continue
+
+            #read key
+            k = ""
+            while True:
+                if c in c_newline:
+                    break
+
+                elif c in c_seperator + c_whitespace:
+                    c = f.read(1)
+                    break
+
+                elif c == '\\':
+                    c = f.read(1)
+                    if c in c_escapes:
+                        k += ('\\'+c).decode('string-escape')
+                    elif c == 'u':
+                        k += unichr(int(f.read(4)))
+                    else:
+                        k += c
+
                 else:
-                    ty = 'string'
-                
-                self.types[k] = ty
-                self[k] = decoder[ty](v)
+                    k += c
+
+                c = f.read(1)
+
+
+            #skip whitespace
+            while c in c_whitespace:
+                c = f.read(1)
+
+            #read value
+            v = ""
+            while True:
+                if c in c_newline:
+                    break
+
+                elif c == '\\':
+                    c = f.read(1)
+                    if c in c_escapes:
+                        v += ('\\'+c).decode('string-escape')
+                    elif c == 'u':
+                        v += unichr(int(f.read(4)))
+                    else:
+                        v += c
+                else:
+                    v += c
+
+                c = f.read(1)
+
+            k = k.replace('-', '_')
+
+            if re.match('^\-?\d+$', v):
+                ty = 'int'
+            elif v in ('true', 'false'):
+                ty = 'bool'
+            elif v != '':
+                ty = 'string'
+            elif k in self.types:
+                ty = self.types[k]
+            else:
+                ty = 'string'
+
+            self.types[k] = ty
+            self[k] = decoder[ty](v)
+        f.close()
 
     def get_plugins(self):
         plugins = {}
