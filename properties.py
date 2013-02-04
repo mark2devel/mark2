@@ -26,80 +26,72 @@ class Properties(dict):
         }
 
         c_seperator  = (':', '=')
-        c_newline    = ('\n', '\r', '')
         c_whitespace = (' ', '\t', '\f')
         c_escapes    = ('t','n','r','f')
         c_comment    = ('#','!')
 
+        r_unescaped  = '(?<!\\\\)(?:\\\\\\\\)*'
+        r_whitespace = '[' + re.escape(''.join(c_whitespace)) + ']*'
+        r_seperator  = r_whitespace + r_unescaped + '[' + re.escape(''.join(c_seperator + c_whitespace)) + ']' + r_whitespace
+
         f = open(path)
-        while True:
-            #skip whitespace
-            c = f.read(1)
-            while c in c_whitespace:
-                c = f.read(1)
+        d = f.read()
+        f.close()
 
-            #finish on EOF
-            if c == '':
-                break
+        #Deal with Windows / Mac OS linebreaks
+        d = d.replace('\r\n','\n')
+        d = d.replace('\r', '\n')
+        #Strip leading whitespace
+        d = re.sub('\n\s*', '\n', d, flags=re.MULTILINE)
+        #Split logical lines
+        d = re.split(r_unescaped+'\n', d, flags=re.MULTILINE)
 
-            #skip comments
-            if c in c_comment:
-                f.readline()
+        #This handles backslash escapes in keys/values
+        def parse(input):
+            token = list(input)
+            out = ""
+
+            while len(token) > 0:
+                c = token.pop(0)
+                if c == '\\':
+                    try:
+                        c = token.pop(0)
+                        if c in c_escapes:
+                            out += ('\\'+c).decode('string-escape')
+                        elif c == 'u':
+                            b = ""
+                            for i in range(4):
+                                b += token.pop(0)
+                            out += unichr(int(b, 16))
+                        else:
+                            out += c
+                    except IndexError:
+                        raise ValueError("Invalid escape sequence in input: %s" % input)
+                else:
+                    out += c
+
+            return out
+
+        for line in d:
+            #Strip comments and empty lines
+            if line == '' or line[0] in c_comment:
                 continue
 
-            #skip blank lines
-            if c in c_newline:
-                continue
+            #Strip escaped newlines
+            line = line.replace('\\\n', '')
+            assert not '\n' in line
 
-            #read key
-            k = ""
-            while True:
-                if c in c_newline:
-                    break
+            #Split into k,v
+            x = re.split(r_seperator, line, maxsplit=1)
 
-                elif c in c_seperator + c_whitespace:
-                    c = f.read(1)
-                    break
+            #No seperator, parse as empty value.
+            if len(x) == 1:
+                k, v = x[0], ""
+            else:
+                k, v = x
 
-                elif c == '\\':
-                    c = f.read(1)
-                    if c in c_escapes:
-                        k += ('\\'+c).decode('string-escape')
-                    elif c == 'u':
-                        k += unichr(int(f.read(4)))
-                    else:
-                        k += c
-
-                else:
-                    k += c
-
-                c = f.read(1)
-
-
-            #skip whitespace
-            while c in c_whitespace:
-                c = f.read(1)
-
-            #read value
-            v = ""
-            while True:
-                if c in c_newline:
-                    break
-
-                elif c == '\\':
-                    c = f.read(1)
-                    if c in c_escapes:
-                        v += ('\\'+c).decode('string-escape')
-                    elif c == 'u':
-                        v += unichr(int(f.read(4)))
-                    else:
-                        v += c
-                else:
-                    v += c
-
-                c = f.read(1)
-
-            k = k.replace('-', '_')
+            k = parse(k).replace('-', '_')
+            v = parse(v)
 
             if re.match('^\-?\d+$', v):
                 ty = 'int'
