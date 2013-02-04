@@ -77,7 +77,7 @@ class Properties(dict):
                 continue
 
             #Strip escaped newlines
-            line = line.replace('\\\n', '')
+            line = re.sub(r_unescaped+'(\\\\\n)', '', line, flags=re.MULTILINE)
             assert not '\n' in line
 
             #Split into k,v
