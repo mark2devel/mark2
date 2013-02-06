@@ -16,14 +16,6 @@ class StatWorlds(Event):
 class StatPlugins(Event):
     requires = ('plugins',) #list of strings
 
-#provider: snoop
-class StatMemory(Event):
-    requires = ('memory_current', 'memory_max') #in bytes
-
 #provider: `top`
 class StatThreads(Event):
     requires = ('threads',) #list of dicts
-
-#provider: snoop
-class StatTickTime(Event):
-    requires = ('tick_time',) #int

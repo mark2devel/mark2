@@ -210,7 +210,7 @@ class UserFactory(ClientFactory):
         #second line
         sys.stdout.write("\n" + self.term.clear_eol)
         if self.client and self.stats:
-            format = u"tick: {tick_time}ms // mem: {memory_current}MB of {memory_max}MB // players: {players_current} of {players_max}"
+            format = u"cpu: {cpu:.2f}% // mem: {memory:.2f}% // players: {players_current} of {players_max}"
             sys.stdout.write(format.format(**self.stats))
         
         # PROMPT
