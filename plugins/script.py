@@ -82,10 +82,11 @@ class Script(Plugin):
     
     def setup(self):
         self.uid = None
-        try:
-            self.uid = pwd.getpwnam(self.user).pw_uid
-        except KeyError:
-            self.console("warning: couldn't get uid of script user '%s'" % self.user)
+        if self.user != '':
+            try:
+                self.uid = pwd.getpwnam(self.user).pw_uid
+            except KeyError:
+                self.console("warning: couldn't get uid of script user '%s'" % self.user)
         
         self.scripts = []
         if not os.path.isfile(self.path):
