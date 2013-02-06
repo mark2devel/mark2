@@ -124,8 +124,8 @@ class Properties(dict):
                 else:
                     plugins[plugin][k2] = v
 
-        for n in sorted(enabled):
-            yield n, plugins[n]
+        return [(n, plugins[n]) for n in sorted(enabled)]
+
 
     def get_jvm_options(self):
         options = []

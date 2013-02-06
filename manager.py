@@ -62,8 +62,9 @@ class Manager(MultiService):
         #add some handlers
         self.events.register(self.handle_cmd_help,          events.Hook, public=True, name="help", doc="displays this message")
         self.events.register(self.handle_cmd_events,        events.Hook, public=True, name="events", doc="lists events")
-        self.events.register(self.handle_cmd_reload_plugin, events.Hook, public=True, name="reload-plugin", doc="reload a plugin.")
-        self.events.register(self.handle_cmd_reload,        events.Hook, public=True, name="reload", doc="reload config and all plugins.")
+        self.events.register(self.handle_cmd_plugins,       events.Hook, public=True, name="plugins", doc="lists running plugins")
+        self.events.register(self.handle_cmd_reload_plugin, events.Hook, public=True, name="reload-plugin", doc="reload a plugin")
+        self.events.register(self.handle_cmd_reload,        events.Hook, public=True, name="reload", doc="reload config and all plugins")
 
         self.events.register(self.handle_console,       events.Console)
         self.events.register(self.handle_fatal,         events.FatalError)
@@ -170,7 +171,10 @@ class Manager(MultiService):
     def handle_cmd_events(self, event):
         self.console("The following events are available:")
         self.table([(n, c.doc) for n, c in events.get_all()])
-    
+
+    def handle_cmd_plugins(self, events):
+        self.console("These plugins are running: " + ", ".join(sorted(self.plugins.keys())))
+
     def handle_cmd_reload_plugin(self, event):
         if event.args in self.plugins:
             self.plugins.reload(event.args)

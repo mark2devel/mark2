@@ -64,7 +64,7 @@ class Plugin:
             self._events.remove(ident)
 
     def unregister_all(self):
-        for ident in self._events:
+        for ident in list(self._events):
             self.unregister(ident)
     
     def save_state(self):
@@ -142,14 +142,13 @@ class PluginManager(dict):
         self.states  = {}
         dict.__init__(self)
 
-    def load(self, module_name, **kwargs):
-        self.parent.console("... loading: %s" % module_name)
+    def load(self, name, **kwargs):
         found = False
-        p = path.join(path.dirname(path.realpath(__file__)), module_name + '.py')
+        p = path.join(path.dirname(path.realpath(__file__)), name + '.py')
         try:
-            module = imp.load_source(module_name, p)
+            module = imp.load_source(name, p)
             classes = inspect.getmembers(module, inspect.isclass)
-            for name, cls in classes:
+            for n, cls in classes:
                 if issubclass(cls, Plugin) and not cls is Plugin:
                     #instantiate plugin
                     plugin = cls(self.parent, name, **kwargs)
@@ -173,7 +172,6 @@ class PluginManager(dict):
                 self.parent.console(l, kind='error')
 
     def unload(self, name):
-        self.parent.console("... unloading: %s" % name)
         plugin = self[name]
         self.states[name] = plugin.save_state()
         plugin.teardown()
@@ -183,7 +181,7 @@ class PluginManager(dict):
 
     def reload(self, name):
         self.unload(name)
-        kwargs = self.parent.config.get_plugins().get(name, None)
+        kwargs = dict(self.parent.config.get_plugins()).get(name, None)
         if not kwargs is None:
             self.load(name, **kwargs)
 
