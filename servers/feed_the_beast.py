@@ -28,15 +28,16 @@ class FeedTheBeast(JarProvider):
             artifact = attr(node, 'name')
             artifact = re.sub(' Pack$',           '', artifact)
             artifact = re.sub('^Feed The Beast ', '', artifact)
+            artifact = re.sub('^FTB ',            '', artifact)
 
             url = self.base + 'direct/FTB2/' + self.token + '/'
             url+= '^'.join((
                 'modpacks',
                 attr(node, 'dir'),
-                attr(node, 'version'),
+                attr(node, 'version').replace('.', '_'),
                 filename))
 
-            self.add('Feed The Beast', artifact, url, channel_short='ftb')
+            self.add(('Feed The Beast', artifact), ('ftb', None), url)
 
         self.commit()
 

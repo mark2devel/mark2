@@ -2,23 +2,20 @@ from twisted.internet import reactor, defer, ssl
 from twisted.web.client import getPage, HTTPClientFactory
 
 class Jar:
-    def __init__(self, channel, artifact, url, channel_short=None, artifact_short=None):
-        self.channel  = channel
-        self.artifact = artifact
-        self.url      = str(url)
+    def __init__(self, name_long, name_short, url):
+        self.name_long  = list(name_long)
+        self.name_short = list(name_short)
+        self.url = str(url)
 
-        if channel_short is None:
-            self.channel_short = channel.replace(' ', '-').lower()
-        else:
-            self.channel_short = channel_short
-
-        if artifact_short is None:
-            self.artifact_short = artifact.replace(' ', '-').lower()
-        else:
-            self.artifact_short = artifact_short
+        for i, l in enumerate(self.name_long):
+            l = l.replace(' ', '-').lower()
+            if i > len(self.name_short):
+                self.name_short.append(l)
+            elif self.name_short[i] is None:
+                self.name_short[i] = l
 
     def __repr__(self):
-        return "%s-%s" % (self.channel_short, self.artifact_short)
+        return '-'.join(self.name_short)
 
 class JarProvider:
     major = None
@@ -31,6 +28,7 @@ class JarProvider:
         d = getPage(str(url))
         d.addCallback(callback)
         d.addErrback(self.error)
+        return d
 
     def add(self, *a, **k):
         self.response.append(Jar(*a, **k))
@@ -44,12 +42,12 @@ class JarProvider:
     def work(self):
         raise NotImplementedError
 
-import vanilla, bukkit, tekkit, feed_the_beast
+import vanilla, bukkit, technic, feed_the_beast
 
 def get_raw():
     d_results = defer.Deferred()
     dd = []
-    for mod in vanilla, bukkit, tekkit, feed_the_beast:
+    for mod in vanilla, bukkit, technic, feed_the_beast:
         d = defer.Deferred()
         mod.ref(d)
         dd.append(d)
@@ -75,8 +73,8 @@ def jar_list():
         o = []
         m = 0
         for r in results:
-            left  = r.channel_short + '-' + r.artifact_short
-            right = r.channel       + ' ' + r.artifact
+            left  = '-'.join(r.name_short)
+            right = ' '.join(r.name_long)
             m = max(m, len(left))
             o.append((left, right))
 
@@ -110,7 +108,7 @@ def jar_get(name):
 
     def got_results(results):
         for r in results:
-            if name == r.channel_short + '-' + r.artifact_short:
+            if name == '-'.join(r.name_short):
                 factory = HTTPClientFactory(r.url)
 
                 if factory.scheme == 'https':
