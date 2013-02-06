@@ -32,17 +32,20 @@ class UserServerProtocol(LineReceiver):
     attached_user = None
     
     def connectionMade(self):
-        self.register(self.console_helper, events.Console)
-        self.register(self.handle_attach,  events.UserAttach)
-        self.register(self.handle_detach,  events.UserDetach)
+        self._handlers = []
+        for callback, ty in (
+            (self.console_helper, events.Console),
+            (self.handle_attach,  events.UserAttach),
+            (self.handle_detach,  events.UserDetach)):
+            self._handlers.append(self.register(callback, ty))
     
     def connectionLost(self, reason):
         if self.attached_user:
             self.dispatch(events.UserDetach(user=self.attached_user))
-        
-        self.unregister(self.console_helper, events.Console)
-        self.unregister(self.handle_attach,  events.UserAttach)
-        self.unregister(self.handle_detach,  events.UserDetach)
+
+        for i in self._handlers:
+            self.unregister(i)
+        self._handlers = []
     
     def lineReceived(self, line):
         msg = json.loads(str(line))

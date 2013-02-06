@@ -7,48 +7,105 @@ def load(*files):
         if os.path.isfile(f):
             o = Properties(f, o)
     return o
-        
+
 class Properties(dict):
     def __init__(self, path, parent=None):
+        dict.__init__(self)
+
         if parent:
             self.update(parent)
             self.types = dict(parent.types)
         else:
             self.types = {}
-        
+
         decoder = {
             'int': int,
             'bool': lambda a: a == 'true',
-            'string': lambda a: a.replace('\:', ':').replace('\=', '=').strip(),
-            'none': lambda a: None
+            'string': lambda a: a
         }
-        ty = None
-        
-        f = open(path)
-        for l in f:
-            #Comment
-            if l.startswith('#'):
-                continue
-            
-            #K,V pair
-            m = re.match('^([^=]+)=(.*)$', l.strip())
-            if m:
-                k, v = m.groups()
-                k = k.replace('-', '_')
-                
-                if re.match('^\-?\d+$', v):
-                    ty = 'int'
-                elif v in ('true', 'false'):
-                    ty = 'bool'
-                elif v != '':
-                    ty = 'string'
-                elif k in self.types:
-                    ty = self.types[k]
+
+        c_seperator  = (':', '=')
+        c_whitespace = (' ', '\t', '\f')
+        c_escapes    = ('t','n','r','f')
+        c_comment    = ('#','!')
+
+        r_unescaped  = '(?<!\\\\)(?:\\\\\\\\)*'
+        r_whitespace = '[' + re.escape(''.join(c_whitespace)) + ']*'
+        r_seperator  = r_unescaped + r_whitespace + r_unescaped + '[' + re.escape(''.join(c_seperator + c_whitespace)) + ']' + r_whitespace
+
+        #This handles backslash escapes in keys/values
+        def parse(input):
+            token = list(input)
+            out = ""
+
+            while len(token) > 0:
+                c = token.pop(0)
+                if c == '\\':
+                    try:
+                        c = token.pop(0)
+                        if c in c_escapes:
+                            out += ('\\'+c).decode('string-escape')
+                        elif c == 'u':
+                            b = ""
+                            for i in range(4):
+                                b += token.pop(0)
+                            out += unichr(int(b, 16))
+                        else:
+                            out += c
+                    except IndexError:
+                        raise ValueError("Invalid escape sequence in input: %s" % input)
                 else:
-                    ty = 'string'
-                
-                self.types[k] = ty
-                self[k] = decoder[ty](v)
+                    out += c
+
+            return out
+
+        f = open(path)
+        d = f.read()
+        f.close()
+
+        #Deal with Windows / Mac OS linebreaks
+        d = d.replace('\r\n','\n')
+        d = d.replace('\r', '\n')
+        #Strip leading whitespace
+        d = re.sub('\n\s*', '\n', d, flags=re.MULTILINE)
+        #Split logical lines
+        d = re.split(r_unescaped+'\n', d, flags=re.MULTILINE)
+
+        for line in d:
+            #Strip comments and empty lines
+            if line == '' or line[0] in c_comment:
+                continue
+
+            #Strip escaped newlines
+            line = re.sub(r_unescaped+'(\\\\\n)', '', line, flags=re.MULTILINE)
+            assert not '\n' in line
+
+            #Split into k,v
+            x = re.split(r_seperator, line, maxsplit=1)
+
+            #No seperator, parse as empty value.
+            if len(x) == 1:
+                k, v = x[0], ""
+            else:
+                k, v = x
+
+            k = parse(k).replace('-', '_')
+            v = parse(v)
+
+            if re.match('^\-?\d+$', v):
+                ty = 'int'
+            elif v in ('true', 'false'):
+                ty = 'bool'
+            elif v != '':
+                ty = 'string'
+            elif k in self.types:
+                ty = self.types[k]
+            else:
+                ty = 'string'
+
+            self.types[k] = ty
+            self[k] = decoder[ty](v)
+        f.close()
 
     def get_plugins(self):
         plugins = {}
@@ -66,8 +123,9 @@ class Properties(dict):
                         enabled.append(plugin)
                 else:
                     plugins[plugin][k2] = v
-        
-        return [(plugin, plugins[plugin]) for plugin in enabled]
+
+        return [(n, plugins[n]) for n in sorted(enabled)]
+
 
     def get_jvm_options(self):
         options = []

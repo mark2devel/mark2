@@ -12,7 +12,7 @@ import events
 import properties
 import user_server
 import process
-from services import ping, query, snoop, top
+from services import ping, query, top
 
 #plugins
 import plugins
@@ -60,8 +60,12 @@ class Manager(MultiService):
         self.events = events.EventDispatcher()
         
         #add some handlers
-        self.events.register(self.handle_cmd_help,      events.Hook, public=True, name="help", doc="displays this message")
-        self.events.register(self.handle_cmd_events,    events.Hook, public=True, name="events", doc="lists events")
+        self.events.register(self.handle_cmd_help,          events.Hook, public=True, name="help", doc="displays this message")
+        self.events.register(self.handle_cmd_events,        events.Hook, public=True, name="events", doc="lists events")
+        self.events.register(self.handle_cmd_plugins,       events.Hook, public=True, name="plugins", doc="lists running plugins")
+        self.events.register(self.handle_cmd_reload_plugin, events.Hook, public=True, name="reload-plugin", doc="reload a plugin")
+        self.events.register(self.handle_cmd_reload,        events.Hook, public=True, name="reload", doc="reload config and all plugins")
+
         self.events.register(self.handle_console,       events.Console)
         self.events.register(self.handle_fatal,         events.FatalError)
         self.events.register(self.handle_server_started,events.ServerStarted)
@@ -70,7 +74,7 @@ class Manager(MultiService):
         self.events.register(self.handle_user_input,    events.UserInput)
         self.events.register(self.handle_player_join,   events.ServerOutput, pattern='([A-Za-z0-9_]{1,16})\[/([0-9\.]+):\d+\] logged in with entity id .+')
         self.events.register(self.handle_player_quit,   events.ServerOutput, pattern='([A-Za-z0-9_]{1,16}) lost connection: (.+)')
-        self.events.register(self.handle_player_join,   events.ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> (.+)')
+        self.events.register(self.handle_player_chat,   events.ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> (.+)')
 
         self.console("mark2 starting...")
 
@@ -96,20 +100,7 @@ class Manager(MultiService):
                 return self.fatal_error("Couldn't find server jar!")
                 
         #start services
-        
-        #if using snoop, we need to wait for the jar to be patched
-        
-        proc_o = process.Process(self, self.jar_file)
-        
-        def proc_s(x):
-            self.addService(proc_o)
-        def proc_e(e):
-            return self.fatal_error("Failed to patch server jar!")
-            
-        proc_d = defer.Deferred()
-        proc_d.addCallback(proc_s)
-        proc_d.addErrback(proc_e)
-        
+
         if self.config['mark2.service.ping.enabled']:
             self.addService(ping.Ping(
                 self,
@@ -128,37 +119,23 @@ class Manager(MultiService):
             self.addService(top.Top(
                 self,
                 self.config['mark2.service.top.interval']))
-        
-        if self.config['mark2.service.snoop.enabled'] and self.properties['snooper_enabled']:
-            self.addService(snoop.Snoop(
-                self, 
-                self.config['mark2.service.snoop.interval']*1000, 
-                os.path.abspath(self.jar_file),
-                proc_d))
-        else:
-            proc_d.callback(None)
-        
+
+        self.addService(process.Process(self, self.jar_file))
         self.addService(user_server.UserServer(self, os.path.join(self.shared_path, "%s.sock" % self.server_name)))
         
         #load plugins
-        loaded = []
-        self.plugins = {}
-        
-        for name, kwargs in self.config.get_plugins():
-            try:
-                ref = plugins.load(name, **kwargs)
-                self.plugins[name] = ref(self, name, **kwargs)
-                loaded.append(name)
-            except:
-                self.console("plugin '%s' failed to load. stack trace follows" % name, kind='error')
-                for l in traceback.format_exc().split("\n"):
-                    self.console(l, kind='error')
-        
-        self.console("loaded plugins: " + ", ".join(loaded))
-        
+        self.plugins = plugins.PluginManager(self)
+        self.load_plugins()
+
+        #start the server
         self.events.dispatch(events.ServerStart())
-    
+
     #helpers
+    def load_plugins(self):
+        self.config = properties.load(os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties')
+        self.plugins.config = self.config
+        self.plugins.load_all()
+    
     def shutdown(self):
         reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
 
@@ -188,17 +165,29 @@ class Manager(MultiService):
             if args.get('public', False):
                 o.append((args['name'], args.get('doc', '')))
         
-        
-        
         self.console("The following commands are available:")
         self.table(o)
     
     def handle_cmd_events(self, event):
         self.console("The following events are available:")
         self.table([(n, c.doc) for n, c in events.get_all()])
-    
+
+    def handle_cmd_plugins(self, events):
+        self.console("These plugins are running: " + ", ".join(sorted(self.plugins.keys())))
+
+    def handle_cmd_reload_plugin(self, event):
+        if event.args in self.plugins:
+            self.plugins.reload(event.args)
+        else:
+            self.console("unknown plugin.")
+            self.plugins.reload_all()
+
+    def handle_cmd_reload(self, event):
+        self.plugins.unload_all()
+        self.load_plugins()
+
     def handle_console(self, event):
-        for line in str(event).split("\n"):
+        for line in event.value().encode('utf8').split("\n"):
             log.msg(line, system="mark2")
     
     def handle_fatal(self, event):
@@ -234,12 +223,12 @@ class Manager(MultiService):
 
     def handle_player_join(self, event):
         g = event.match.groups()
-        self.events.dispatch(events.PlayerJoin(g[0], ip=g[1]))
+        self.events.dispatch(events.PlayerJoin(username=g[0], ip=g[1]))
 
     def handle_player_quit(self, event):
         g = event.match.groups()
-        self.events.dispatch(events.PlayerJoin(g[0], reason=g[1]))
+        self.events.dispatch(events.PlayerQuit(username=g[0], reason=g[1]))
 
     def handle_player_chat(self, event):
         g = event.match.groups()
-        self.events.dispatch(events.PlayerJoin(g[0], message=g[1]))
+        self.events.dispatch(events.PlayerChat(username=g[0], message=g[1]))

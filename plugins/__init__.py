@@ -3,6 +3,7 @@ from os import path
 import imp
 import inspect
 import re
+import traceback
 
 from twisted.internet import task, reactor
 from twisted.internet.error import AlreadyCancelled
@@ -14,16 +15,16 @@ class Plugin:
         self.parent = parent
         self.name = name
         
-        
         self.config             = self.parent.config
         self.console            = self.parent.console
         self.fatal_error        = self.parent.fatal_error
         self.dispatch           = self.parent.events.dispatch
         self.dispatch_delayed   = self.parent.events.dispatch_delayed
         self.dispatch_repeating = self.parent.events.dispatch_repeating
-        self.register           = self.parent.events.register
         
         self._tasks = []
+        self._events = []
+        self._services = []
     
         for n, v in kwargs.iteritems():
             setattr(self, n, v)
@@ -32,8 +33,13 @@ class Plugin:
         self.register(self.server_stopping, ServerStopping)
         
         self.setup()
-    
+
+    #called on plugin load
     def setup(self):
+        pass
+
+    #called on plugin unload
+    def teardown(self):
         pass
     
     def server_started(self, event):
@@ -41,6 +47,31 @@ class Plugin:
     
     def server_stopping(self, event):
         self.stop_tasks()
+    
+    def register(self, *a, **k):
+        ident = self.parent.events.register(*a, **k)
+        track = True
+        if 'track' in k:
+            track = k['track']
+            del k['track']
+
+        if track:
+            self._events.append(ident)
+
+    def unregister(self, ident):
+        self.parent.events.unregister(ident)
+        if ident in self._events:
+            self._events.remove(ident)
+
+    def unregister_all(self):
+        for ident in list(self._events):
+            self.unregister(ident)
+    
+    def save_state(self):
+        pass
+
+    def load_state(self, state):
+        pass
     
     def delayed_task(self, callback, delay, name=None):
         hook = self._task(callback, name)
@@ -70,9 +101,7 @@ class Plugin:
         self._tasks = []
         
     def send(self, l, parseColors=False):
-        if parseColors:
-            l = l.replace('&', '\xa7')
-        self.dispatch(ServerInput(line=l))
+        self.dispatch(ServerInput(line=l, parse_colors=parseColors))
     
     def action_chain(self, spec, callbackWarn, callbackAction):
         intervals = [self.parse_time(i) for i in spec.split(';')]
@@ -104,10 +133,66 @@ class Plugin:
         
         return name, time
 
-def load(module_name, **kwargs):
-    p = path.join(path.dirname(path.realpath(__file__)), module_name + '.py')
-    module = imp.load_source(module_name, p)
-    classes = inspect.getmembers(module, inspect.isclass)
-    for name, cls in classes:
-        if issubclass(cls, Plugin) and cls != Plugin:
-            return cls
+
+
+
+class PluginManager(dict):
+    def __init__(self, parent):
+        self.parent = parent
+        self.states  = {}
+        dict.__init__(self)
+
+    def load(self, name, **kwargs):
+        found = False
+        p = path.join(path.dirname(path.realpath(__file__)), name + '.py')
+        try:
+            module = imp.load_source(name, p)
+            classes = inspect.getmembers(module, inspect.isclass)
+            for n, cls in classes:
+                if issubclass(cls, Plugin) and not cls is Plugin:
+                    #instantiate plugin
+                    plugin = cls(self.parent, name, **kwargs)
+
+                    #restore state
+                    if name in self.states:
+                        plugin.load_state(self.states[name])
+                        del self.states[name]
+
+                    #register plugin
+                    self[name] = plugin
+
+                    #return
+                    return plugin
+
+            #if we've reached this point, there's no subclass of Plugin in the file!
+            raise Exception("Couldn't find class!")
+        except Exception:
+            self.parent.console("plugin '%s' failed to load. stack trace follows" % module_name, kind='error')
+            for l in traceback.format_exc().split("\n"):
+                self.parent.console(l, kind='error')
+
+    def unload(self, name):
+        plugin = self[name]
+        self.states[name] = plugin.save_state()
+        plugin.teardown()
+        plugin.stop_tasks()
+        plugin.unregister_all()
+        del self[name]
+
+    def reload(self, name):
+        self.unload(name)
+        kwargs = dict(self.parent.config.get_plugins()).get(name, None)
+        if not kwargs is None:
+            self.load(name, **kwargs)
+
+    def load_all(self):
+        for name, kwargs in self.parent.config.get_plugins():
+            self.load(name, **kwargs)
+
+    def unload_all(self):
+        for name in self.keys():
+            self.unload(name)
+
+    def reload_all(self):
+        self.unload_all()
+        self.load_all()

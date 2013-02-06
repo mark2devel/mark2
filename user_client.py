@@ -53,8 +53,9 @@ class Users:
     
     def update_logged_in(self):
         self.logged_in = set()
-        for line in subprocess.check_output(['w', '-sh']).split("\n"):
-            self.logged_in.add(line.split(" ", 1)[0])
+        for line in subprocess.check_output(['last']).split("\n"):
+            if line.rstrip().endswith('still logged in'):
+                self.logged_in.add(line.split(" ", 1)[0])
 
     def get_all(self):
         for u in self.logged_in:

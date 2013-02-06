@@ -1,11 +1,16 @@
+import locale
 from twisted.internet import protocol, reactor, error, defer
 from twisted.application.service import Service
 import glob
 import events
 
 class ProcessProtocol(protocol.ProcessProtocol):
-    obuff = ""
+    obuff = u""
     alive = True
+
+    def __init__(self, dispatch, locale):
+        self.dispatch = dispatch
+        self.locale = locale
 
     def output(self, line):
         event_1 = events.ServerOutputConsumer(line=line)
@@ -17,6 +22,7 @@ class ProcessProtocol(protocol.ProcessProtocol):
             self.dispatch(event_3)
 
     def errReceived(self, data):
+        data = data.decode(self.locale)
         data = data.split("\n")
         data[0] = self.obuff + data[0]
         self.obuff = data.pop()
@@ -66,10 +72,10 @@ class Process(Service):
 
     def server_start(self, e=None):
         self.parent.console("starting minecraft server")
-        self.protocol = ProcessProtocol()
-        self.protocol.dispatch = self.parent.events.dispatch
+        self.locale = locale.getpreferredencoding()
+        self.protocol = ProcessProtocol(self.parent.events.dispatch, self.locale)
         cmd = self.build_command()
-        self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd)
+        self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd, env=None)
         if e:
             e.handled = True
 
@@ -78,7 +84,7 @@ class Process(Service):
             l = e.line
             if not l.endswith('\n'):
                 l += '\n'
-            self.transport.write(str(l))
+            self.transport.write(l.encode(self.locale))
             e.handled = True
 
     def server_started(self, e):

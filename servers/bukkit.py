@@ -11,7 +11,7 @@ class Bukkit(JarProvider):
         for channel in data['results']:
             name = channel['name']
             slug = channel['slug']
-            self.add('Bukkit', name, 'http://dl.bukkit.org/latest-%s/craftbukkit.jar' % slug, artifact_short=slug)
+            self.add(('Bukkit', name), (None, slug), 'http://dl.bukkit.org/latest-%s/craftbukkit.jar' % slug)
 
         self.commit()
 

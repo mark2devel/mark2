@@ -6,7 +6,7 @@ class Vanilla(JarProvider):
     base = 'http://assets.minecraft.net/'
     target = '/minecraft_server.jar'
     def work(self):
-        self.add('Vanilla', 'Stable', 'https://s3.amazonaws.com/MinecraftDownload/launcher/minecraft_server.jar')
+        self.add(('Vanilla', 'Stable'), (None, None), 'https://s3.amazonaws.com/MinecraftDownload/launcher/minecraft_server.jar')
         self.get(self.base, self.handle_latest)
 
     def handle_latest(self, data):
@@ -25,7 +25,7 @@ class Vanilla(JarProvider):
                     c_path = path
 
         if not c_path is None:
-            self.add('Vanilla', 'Latest', self.base + c_path)
+            self.add(('Vanilla', 'Latest'), (None, None), self.base + c_path)
 
         self.commit()
 

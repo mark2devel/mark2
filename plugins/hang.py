@@ -59,7 +59,7 @@ class HangChecker(Plugin):
                 self.dispatch(ServerStop(reason='crashed', respawn=True))
         
         self.crash_alive = False
-        self.register(self.handle_crash_ok, ServerOutputConsumer, pattern='Unknown command.*', once=True)
+        self.register(self.handle_crash_ok, ServerOutputConsumer, pattern='Unknown command.*', once=True, track=False)
         self.send('') # Blank command to trigger 'Unknown command'
 
     # ping
