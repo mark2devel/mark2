@@ -36,7 +36,10 @@ class Top(Service):
         
         #split each line
         data = [re.findall('[^\s]+', d) for d in data.split('\n')]
-        
+
+        if len(data) < 2:
+            return
+
         #turn each data line into a dict
         data = [dict(zip(data[0], d)) for d in data[1:]]
         
