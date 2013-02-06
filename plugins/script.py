@@ -78,7 +78,7 @@ class ScriptEntry(object):
 class Script(Plugin):
     path = 'scripts.txt'
     shell = '/bin/sh'
-    user = 'script'
+    user = ''
     
     def setup(self):
         self.uid = None
