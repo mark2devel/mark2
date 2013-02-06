@@ -141,7 +141,7 @@ class IRC(Plugin):
         if self.game_quit_enabled:
             self.pattern(self.game_quit_left, self.game_quit_right, r'(?P<username>[A-Za-z0-9_]{1,16}) lost connection')
 
-        if self.game_server_message_enabled:
+        if self.game_server_message_enabled and not (self.irc_chat_enabled and self.irc_chat_command.startswith('say ')):
             self.pattern(self.game_server_message_left, self.game_server_message_right, r'\[(?:Server|SERVER)\] (?P<message>.+)')
 
         if self.game_me_enabled:
@@ -158,7 +158,14 @@ class IRC(Plugin):
             left = left.rjust(16)
         return left+right
 
-    def pattern(self, left, right, pattern):
+    def pattern_handler(self, left, right):
+        def handler(event,left=left, right=right):
+            left  = left.format (*event.match.groups(), **event.match.groupdict())
+            right = right.format(*event.match.groups(), **event.match.groupdict())
+            self.factory.irc_relay(self.format(left, right))
+        return handler
+
+    def pattern(self, left, right, pattern, handler=None):
         def handler(event,left=left, right=right):
             left  = left.format (*event.match.groups(), **event.match.groupdict())
             right = right.format(*event.match.groups(), **event.match.groupdict())
