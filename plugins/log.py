@@ -33,7 +33,7 @@ class Log(Plugin):
         self.log += u"%s\n" % event.line
     
     def logger(self, event):
-        self.log += u"%s\n" % event
+        self.log += u"%s\n" % event.value()
     
     def pre_shutdown(self, event):
         self.reason = event.reason
