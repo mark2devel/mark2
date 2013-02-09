@@ -48,7 +48,7 @@ On ubuntu/debian:
 
 ## installation
 
-    $ git clone git@github.com:mcdevs/mark2.git
+    $ git clone https://github.com/mcdevs/mark2.git
     # ln -s /path/to/mark2/mark2 /usr/bin/mark2
 
 Essentially you just need to make sure the 'mark2' executable is in your path.
