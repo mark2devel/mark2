@@ -42,12 +42,12 @@ class JarProvider:
     def work(self):
         raise NotImplementedError
 
-import vanilla, bukkit, technic, feed_the_beast
+import vanilla, bukkit, technic, feed_the_beast, spigot
 
 def get_raw():
     d_results = defer.Deferred()
     dd = []
-    for mod in vanilla, bukkit, technic, feed_the_beast:
+    for mod in vanilla, bukkit, technic, feed_the_beast, spigot:
         d = defer.Deferred()
         mod.ref(d)
         dd.append(d)
