@@ -31,7 +31,7 @@ class Properties(dict):
 
         r_unescaped  = '(?<!\\\\)(?:\\\\\\\\)*'
         r_whitespace = '[' + re.escape(''.join(c_whitespace)) + ']*'
-        r_seperator  = r_unescaped + r_whitespace + r_unescaped + '[' + re.escape(''.join(c_seperator + c_whitespace)) + ']' + r_whitespace
+        r_seperator  = r_unescaped + r_whitespace + r_unescaped + '[' + re.escape(''.join(c_seperator + c_whitespace)) + ']'
 
         #This handles backslash escapes in keys/values
         def parse(input):
