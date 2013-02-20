@@ -35,16 +35,17 @@ plugin interface. It has no requirement on craftbukkit.
 ## requirements
 
 * UNIX-like operating system (Linux, Mac OS X, BSD)
-* Python 2
+* python 2.7
 * twisted
 * twisted-web
 * twisted-words (for IRC support)
-* blessings
+* feedparser (for RSS support)
+* urwid
 
 On ubuntu/debian:
 
     # apt-get install python-twisted python-twisted-web python-twisted-words
-    $ pip install blessings
+    # pip install urwid feedparser
 
 ## installation
 
@@ -95,12 +96,13 @@ alphabetically. If you only run one server, you may as well omit this param.
 
 ### controls
 
-* You can navigate text with the left and right arrow keys, and home/end keys
 * Use command scrollback with the up and down arrow keys
+* Scroll with pageup and pagedown
 * Press tab to auto-complete a player name, or write 'say ' if you haven't
   entered any text
 * Switch between servers with ctrl + left/right arrow key.
-* Switch in and out of monitor mode with ctrl + up/down arrow key.
+* Switch to the players list with ctrl + p
+* Press f8 or ctrl-c to exit
 
 Run `~commands` to see what mark2 commands are available.
 
