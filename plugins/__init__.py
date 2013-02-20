@@ -167,7 +167,7 @@ class PluginManager(dict):
             #if we've reached this point, there's no subclass of Plugin in the file!
             raise Exception("Couldn't find class!")
         except Exception:
-            self.parent.console("plugin '%s' failed to load. stack trace follows" % module_name, kind='error')
+            self.parent.console("plugin '%s' failed to load. stack trace follows" % name, kind='error')
             for l in traceback.format_exc().split("\n"):
                 self.parent.console(l, kind='error')
 
