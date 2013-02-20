@@ -28,7 +28,7 @@ class ServerOutput(Event):
     
     
     def setup(self):
-        m = re.match(r'(\d{4}-\d{2}-\d{2} |)(\d{2}:\d{2}:\d{2}) \[([A-Z]+)\] (.*)', self.line)
+        m = re.match(r'(\d{4}-\d{2}-\d{2} |)(\d{2}:\d{2}:\d{2}) \[([A-Z]+)\] (?:\[Minecraft\] )?(.*)', self.line)
         if m:
             g = m.groups()
             self.time = g[0]+g[1]
