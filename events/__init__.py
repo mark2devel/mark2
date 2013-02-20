@@ -1,4 +1,4 @@
-import inspect, sys, time, json
+import inspect, sys, time
 
 from twisted.internet import reactor, task
 
@@ -33,11 +33,16 @@ class Event:
     def consider(self, r_args):
         return ACCEPTED
 
-    def to_json(self):
-        data = {
-            'name': self.__class__.__name__,
-            'data': {k: getattr(self, k) for k in self.contains}}
-        return json.dumps(data)
+    def serialize(self):
+        data = {k: getattr(self, k) for k in self.contains}
+        data['class_name'] = self.__class__.__name__
+        return data
+
+    def __getitem__(self, item):
+        try:
+            return getattr(self, item)
+        except AttributeError:
+            raise IndexError
 
 
 class EventDispatcher:

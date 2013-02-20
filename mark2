@@ -212,7 +212,8 @@ class Skeleton:
             print server
 
     def do_attach(self):
-        user_client.UserFactory(self.shared_path, self.server_name)
+        f = user_client.UserClientFactory(self.server_name, self.shared_path)
+        f.main()
 
     def do_stop(self):
         #self.kill(signal.SIGINT)

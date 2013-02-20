@@ -24,6 +24,7 @@ class Scrollback:
             return self.data[-max_items:]
 
 class UserServerProtocol(LineReceiver):
+    MAX_LENGTH = 999999
     delimiter = '\n'
     
     tab_last = None
@@ -54,34 +55,22 @@ class UserServerProtocol(LineReceiver):
         if ty == "attach":
             self.attached_user = msg['user']
             self.dispatch(events.UserAttach(user=msg['user']))
-        
+
         elif ty == "input":
             self.dispatch(events.UserInput(user=msg['user'], line=msg['line']))
         
-        elif ty == "get_lines":
-            for e in self.factory.scrollback.get(msg['line_count']):
-                self.console_helper(e)
-        
+        elif ty == "get_scrollback":
+            self.send_helper("scrollback", lines=[e.serialize() for e in self.factory.scrollback.get()])
+
         elif ty == "get_users":
             for u in self.factory.users:
                 self.send_helper("user_status", user=u, online=True)
-        
+
         elif ty == "get_stats":
             self.send_helper("stats", stats=self.factory.stats)
-        
-        elif ty == "tab":
-            beginning = msg["line"].split(" ")
-            end = beginning.pop().lower()
-            
-            candidates = filter(lambda p: p.lower().startswith(end), self.factory.players)
-            if len(candidates) == 0:
-                send = msg["data"]
-            else:
-                i = msg['index'] % len(candidates)
-                beginning.append(candidates[i])
-                send = " ".join(beginning)
-            
-            self.send_helper("tab", line=send)
+
+        elif ty == "get_players":
+            self.send_helper("players", players=self.factory.players)
         
         else:
             self.factory.parent.console("unknown packet: %s" % str(msg))
@@ -91,7 +80,7 @@ class UserServerProtocol(LineReceiver):
         self.sendLine(json.dumps(k))
     
     def console_helper(self, event):
-        self.send_helper("console", **{k: getattr(event, k) for k in event.contains})
+        self.send_helper("console", **event.serialize())
     
     def handle_attach(self, event):
         self.send_helper("user_status", user=event.user, online=True)
@@ -116,7 +105,7 @@ class UserServerFactory(Factory):
         self.parent.events.register(self.handle_players,      events.StatPlayers)
         self.parent.events.register(self.handle_threads,      events.StatThreads)
         
-        self.stats = {k: '___' for k in ('tick_time', 'memory_current', 'memory_max', 'players_current', 'players_max')}
+        self.stats = {k: '___' for k in ('memory', 'cpu', 'players_current', 'players_max')}
     
     def buildProtocol(self, addr):
         p = UserServerProtocol()
@@ -144,7 +133,7 @@ class UserServerFactory(Factory):
         self.players = event.players
     
     def handle_threads(self, event):
-        avg = lambda l: sum((float(a) for a in l)) / len(l)
+        avg = lambda l: '{0:.2f}'.format(sum((float(a) for a in l)) / len(l))
         self.stats['memory'] = avg([t['%CPU'] for t in event.threads])
         self.stats['cpu']    = avg([t['%MEM'] for t in event.threads])
 

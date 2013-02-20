@@ -175,3 +175,6 @@ class ClientProperties(Properties):
 
     def get_apps(self):
         return self.get_by_prefix('stats.app.')
+
+    def get_interval(self, name):
+        return self['task.%s' % name]
