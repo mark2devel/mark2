@@ -1,11 +1,11 @@
 import os
 import re
 
-def load(*files):
+def load(cls, *files):
     o = None
     for f in files:
         if os.path.isfile(f):
-            o = Properties(f, o)
+            o = cls(f, o)
     return o
 
 class Properties(dict):
@@ -107,6 +107,12 @@ class Properties(dict):
             self[k] = decoder[ty](v)
         f.close()
 
+    def get_by_prefix(self, prefix):
+        for k, v in self.iteritems():
+            if k.startswith(prefix):
+                yield k[len(prefix):], v
+
+class Mark2Properties(Properties):
     def get_plugins(self):
         plugins = {}
         enabled = []
@@ -153,3 +159,19 @@ class Properties(dict):
             if m:
                 options[m.group(1)] = v
         return options
+
+class ClientProperties(Properties):
+    def get_palette(self):
+        palette = []
+        for k, v in self.get_by_prefix('theme.%s.' % self['theme']):
+            palette.append([k,] + [t.strip() for t in v.split(',')])
+        return palette
+
+    def get_player_actions(self):
+        return self['player_actions'].split(',')
+
+    def get_player_reasons(self):
+        return self.get_by_prefix('player_actions.reasons.')
+
+    def get_apps(self):
+        return self.get_by_prefix('stats.app.')
