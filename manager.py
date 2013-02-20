@@ -105,7 +105,7 @@ class Manager(MultiService):
             self.addService(ping.Ping(
                 self,
                 self.properties['server_ip'],
-                self.properties['query.port'],
+                self.properties['server_port'],
                 self.config['mark2.service.query.interval']))
         
         if self.config['mark2.service.query.enabled'] and self.properties['enable_query']:
@@ -113,7 +113,7 @@ class Manager(MultiService):
                 self, 
                 self.config['mark2.service.query.interval'], 
                 self.properties['server_ip'], 
-                self.properties['server_port']))
+                self.properties['query.port']))
         
         if self.config['mark2.service.top.enabled']:
             self.addService(top.Top(
