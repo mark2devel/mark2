@@ -319,6 +319,8 @@ def main():
     elif command == 'attach':
         if len(args) > 0:
             raise Mark2ParseError("unknown token: " + " ".join(args))
+        # move to the directory this script is in
+        os.chdir(script_path)
         skel = Skeleton(shared_path, server_name)
         if not skel.is_running():
             raise Mark2Error("server not running: " + server_name)
