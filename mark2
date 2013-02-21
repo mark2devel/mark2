@@ -116,8 +116,9 @@ def check_config():
                 raise Mark2Error('couldn\'t start editor')
 
 class Skeleton:
-    def __init__(self, shared_path, server_name=None, server_path=None, jar_file=None):
+    def __init__(self, shared_path, server_name=None, server_path=None, jar_file=None, script_path=None):
         self.shared_path = shared_path
+        self.script_path = script_path
 
         self.servers = self.get_servers()
 
@@ -205,7 +206,14 @@ class Skeleton:
         if self.jar_file:
             command += ['--jar-file', self.jar_file]
 
-        subprocess.Popen(command, close_fds=True)
+        env = dict(os.environ)
+        pp = env.get('PYTHONPATH', '')
+        if len(pp) > 0:
+            env['PYTHONPATH'] = self.script_path + ':' + pp
+        else:
+            env['PYTHONPATH'] = self.script_path
+
+        subprocess.Popen(command, close_fds=True, env=env)
 
     def do_list(self):
         for server in self.servers:
@@ -302,7 +310,7 @@ def main():
         # check we've got config/mark2.properties
         check_config()
 
-        skel = Skeleton(shared_path, server_name, server_path, jar_file)
+        skel = Skeleton(shared_path, server_name, server_path, jar_file, shared_path)
         if skel.is_running():
             raise Mark2Error("server already running: " + server_name)
         skel.do_start()
