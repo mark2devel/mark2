@@ -282,6 +282,15 @@ def main():
     #check shared dir
     make_writable(shared_path)
 
+    #check required binaries
+    r_need = {'java', 'top', 'last'}
+    try:
+        subprocess.check_output(['which',] + list(r_need), stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError, e:
+        r_have = { os.path.basename(s) for s in e.output.split('\n') }
+        r_diff = r_need - r_have
+        raise Mark2Error("unfulfilled dependencies: %s" % ', '.join(r_diff))
+
     if command == 'start':
         #get server path
         if len(args) == 0:
