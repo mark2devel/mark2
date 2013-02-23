@@ -213,7 +213,11 @@ class Skeleton:
         else:
             env['PYTHONPATH'] = self.script_path
 
-        subprocess.Popen(command, close_fds=True, env=env)
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+        stdout, stderr = [s.strip() for s in process.communicate()]
+        if stderr != '':
+            print stderr
+            raise Mark2Error("twistd failed to start up!")
 
     def do_list(self):
         for server in self.servers:

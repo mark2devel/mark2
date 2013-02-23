@@ -82,7 +82,10 @@ class Manager(MultiService):
         os.chdir(self.server_path)
         
         #load config
-        self.config = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties')
+        self.config = properties.load(properties.Mark2Properties,
+            os.path.join(MARK2_BASE, 'resources', 'mark2.default.properties'),
+            os.path.join(MARK2_BASE, 'config', 'mark2.properties'),
+            'mark2.properties')
         if self.config is None:
             return self.fatal_error(reason="couldn't find mark2.properties")
         
@@ -90,7 +93,7 @@ class Manager(MultiService):
         self.properties = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
         if self.properties is None:
             return self.fatal_error(reason="couldn't find server.properties")
-            
+
         #find jar file
         if self.jar_file is None:
             self.jar_file = process.find_jar(
@@ -98,7 +101,11 @@ class Manager(MultiService):
                 self.jar_file)
             if self.jar_file is None:
                 return self.fatal_error("Couldn't find server jar!")
-                
+
+        #chmod log and pid
+        for ext in ('log', 'pid'):
+            os.chmod(os.path.join(self.shared_path, "%s.%s" % (self.server_name, ext)), self.config.get_umask(ext))
+
         #start services
 
         if self.config['mark2.service.ping.enabled']:

@@ -144,4 +144,4 @@ class UserServer(UNIXServer):
         if os.path.exists(socket):
             os.remove(socket)
         factory = UserServerFactory(parent)
-        UNIXServer.__init__(self, socket, factory)
+        UNIXServer.__init__(self, socket, factory, mode=parent.config.get_umask('sock'))

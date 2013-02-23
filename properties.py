@@ -160,6 +160,9 @@ class Mark2Properties(Properties):
                 options[m.group(1)] = v
         return options
 
+    def get_umask(self, ext):
+        return int(str(self['mark2.umask.' + ext]), 8)
+
 class ClientProperties(Properties):
     def get_palette(self):
         palette = []
