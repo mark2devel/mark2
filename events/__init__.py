@@ -96,9 +96,9 @@ class EventDispatcher:
         t = reactor.callLater(delay, lambda: self.dispatch(event))
         return t
     
-    def dispatch_repeating(self, event, interval):
+    def dispatch_repeating(self, event, interval, now=False):
         t = task.LoopingCall(lambda: self.dispatch(event))
-        t.start(interval, now=False)
+        t.start(interval, now)
         return t
 
     #get a list of handlers in the form (callback, {args...})

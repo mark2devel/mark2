@@ -106,10 +106,10 @@ class Script(Plugin):
         
         for script in self.scripts:
             if script.type == 'time':
-                self.delayed_task(lambda a:self.repeating_task(self.step, 60),
+                self.delayed_task(lambda a:self.repeating_task(self.step, 60, now=True),
                                   max(0, 60 - localtime().tm_sec) % 60 + 1)
                 break
-    
+
     def step(self, event):
         for script in self.scripts:
             script.step()

@@ -80,9 +80,9 @@ class Plugin:
         t._active = t.active
         self._tasks.append(t)
 
-    def repeating_task(self, callback, interval, name=None):
+    def repeating_task(self, callback, interval, name=None, now=False):
         hook = self._task(callback, name)
-        t = self.parent.events.dispatch_repeating(hook, interval)
+        t = self.parent.events.dispatch_repeating(hook, interval, now=now)
         t._stop    = t.stop
         t._active = lambda: t.running
         self._tasks.append(t)
