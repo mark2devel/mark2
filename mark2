@@ -189,9 +189,9 @@ class Skeleton:
 
     def do_start(self):
         #clear remnants
-        open(self.shared('log'), 'w').close()
-        if os.path.exists(self.shared('sock')):
-            os.remove(self.shared('sock'))
+        for x in ('log', 'sock', 'pid'):
+            if os.path.exists(self.shared(x)):
+                os.remove(self.shared(x))
 
         #build command
         command = [
