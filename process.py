@@ -2,6 +2,7 @@ import locale
 from twisted.internet import protocol, reactor, error, defer
 from twisted.application.service import Service
 import glob
+import pwd
 import events
 
 class ProcessProtocol(protocol.ProcessProtocol):
@@ -75,7 +76,19 @@ class Process(Service):
         self.locale = locale.getpreferredencoding()
         self.protocol = ProcessProtocol(self.parent.events.dispatch, self.locale)
         cmd = self.build_command()
-        self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd, env=None)
+
+        uid = None
+        gid = None
+        user = self.parent.config['java.user']
+        if user != '':
+            try:
+                d = pwd.getpwnam(user)
+                uid = d.pw_uid
+                gid = d.pw_gid
+            except KeyError:
+                pass
+
+        self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd, env=None, uid=uid, gid=gid)
         if e:
             e.handled = True
 
