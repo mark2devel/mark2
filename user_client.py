@@ -3,11 +3,11 @@ import glob
 import json
 import os
 from string import Template
-import subprocess
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory, ProcessProtocol
 from twisted.internet.task import LoopingCall
 from twisted.protocols.basic import LineReceiver
+import psutil
 import urwid
 import properties
 from shared import console_repr
@@ -337,9 +337,8 @@ class SystemUsers(set):
 
     def update_users(self):
         self.clear()
-        for line in subprocess.check_output(['last']).split("\n"):
-            if line.rstrip().endswith('still logged in'):
-                self.add(line.split(" ", 1)[0])
+        for u in psutil.get_users():
+            self.add(u.name)
 
 class App(object):
     def __init__(self, name, interval, update, shell, command):
