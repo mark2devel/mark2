@@ -16,6 +16,6 @@ class StatWorlds(Event):
 class StatPlugins(Event):
     requires = ('plugins',) #list of strings
 
-#provider: `top`
-class StatThreads(Event):
-    requires = ('threads',) #list of dicts
+#provider: psutil
+class StatProcess(Event):
+    requires = ('cpu', 'memory') #float, float

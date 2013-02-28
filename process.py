@@ -1,9 +1,10 @@
 import locale
-from twisted.internet import protocol, reactor, error, defer
+from twisted.internet import protocol, reactor, error, defer, task
 from twisted.application.service import Service
 import glob
 import pwd
 import events
+import psutil
 
 class ProcessProtocol(protocol.ProcessProtocol):
     obuff = u""
@@ -48,6 +49,7 @@ class Process(Service):
     service_stopping = None
     transport = None
     failsafe = None
+    stat_process = None
 
     def __init__(self, parent, jarfile=None):
         self.parent = parent
@@ -57,6 +59,7 @@ class Process(Service):
 
         reg(self.server_input,    events.ServerInput)
         reg(self.server_start,    events.ServerStart)
+        reg(self.server_starting, events.ServerStarting)
         reg(self.server_started,  events.ServerOutput, pattern='Done \\(([0-9\\.]+)s\\)\\!.*')
         reg(self.server_stop,     events.ServerStop)
         reg(self.server_stopping, events.ServerStopping)
@@ -101,6 +104,10 @@ class Process(Service):
             self.transport.write(l.encode(self.locale))
             e.handled = True
 
+    def server_starting(self, e):
+        self.stat_process = task.LoopingCall(self.update_stat, psutil.Process(e.pid))
+        self.stat_process.start(self.parent.config['java.ps.interval'])
+
     def server_started(self, e):
         self.parent.events.dispatch(events.ServerStarted(time=e.match.group(1)))
 
@@ -123,6 +130,8 @@ class Process(Service):
         self.respawn = e.respawn
 
     def server_stopped(self, e):
+        if self.stat_process and self.stat_process.running:
+            self.stat_process.stop()
         if self.failsafe:
             self.failsafe.cancel()
             self.failsafe = None
@@ -133,6 +142,9 @@ class Process(Service):
             self.service_stopping.callback(0)
         else:
             reactor.stop()
+
+    def update_stat(self, process):
+        self.parent.events.dispatch(events.StatProcess(cpu=process.get_cpu_percent(interval=0), memory=process.get_memory_percent()))
 
     def stopService(self):
         if self.protocol and self.protocol.alive:

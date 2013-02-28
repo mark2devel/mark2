@@ -4,6 +4,7 @@
 
 * UNIX-like operating system (Linux, Mac OS X, BSD)
 * python 2.7
+* psutil
 * urwid
 * twisted
 * twisted-web
@@ -15,7 +16,7 @@
 This should suffice:
 
     $ sudo apt-get install python-twisted python-twisted-web python-twisted-words
-    $ sudo pip install urwid feedparser
+    $ sudo pip install psutil urwid feedparser
 
 ### centos
 
@@ -39,7 +40,7 @@ won't get the binaries that ship with twisted.
 easy_install for python 2.7 is probably in `/usr/local/bin/easy_install-2.7`. You should use it to install the remaining
 mark2 dependencies:
 
-    $ sudo /usr/local/bin/easy_install-2.7 urwid feedparser
+    $ sudo /usr/local/bin/easy_install-2.7 psutil urwid feedparser
 
 After installing mark2, make sure you apply the patch described later.
 

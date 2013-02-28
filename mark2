@@ -283,7 +283,7 @@ def main():
     make_writable(shared_path)
 
     #check required binaries
-    r_need = {'java', 'top', 'last'}
+    r_need = {'java', 'last'}
     try:
         subprocess.check_output(['which',] + list(r_need), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError, e:

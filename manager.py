@@ -1,5 +1,4 @@
 import os
-import sys
 import traceback
 
 from twisted.internet import reactor, defer, error
@@ -12,7 +11,7 @@ import events
 import properties
 import user_server
 import process
-from services import ping, query, top
+from services import ping, query
 
 #plugins
 import plugins
@@ -121,11 +120,6 @@ class Manager(MultiService):
                 self.config['mark2.service.query.interval'], 
                 self.properties['server_ip'], 
                 self.properties['query.port']))
-        
-        if self.config['mark2.service.top.enabled']:
-            self.addService(top.Top(
-                self,
-                self.config['mark2.service.top.interval']))
 
         self.addService(process.Process(self, self.jar_file))
         self.addService(user_server.UserServer(self, os.path.join(self.shared_path, "%s.sock" % self.server_name)))

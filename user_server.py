@@ -103,7 +103,7 @@ class UserServerFactory(Factory):
         
         self.parent.events.register(self.handle_player_count, events.StatPlayerCount)
         self.parent.events.register(self.handle_players,      events.StatPlayers)
-        self.parent.events.register(self.handle_threads,      events.StatThreads)
+        self.parent.events.register(self.handle_process,      events.StatProcess)
         
         self.stats = {k: '___' for k in ('memory', 'cpu', 'players_current', 'players_max')}
     
@@ -132,10 +132,9 @@ class UserServerFactory(Factory):
     def handle_players(self, event):
         self.players = event.players
     
-    def handle_threads(self, event):
-        avg = lambda l: '{0:.2f}'.format(sum((float(a) for a in l)) / len(l))
-        self.stats['memory'] = avg([t['%CPU'] for t in event.threads])
-        self.stats['cpu']    = avg([t['%MEM'] for t in event.threads])
+    def handle_process(self, event):
+        for n in ('cpu', 'memory'):
+            self.stats[n] = '{0:.2f}'.format(event[n])
 
 
 class UserServer(UNIXServer):
