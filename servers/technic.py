@@ -4,9 +4,9 @@ from servers import JarProvider
 class Technic(JarProvider):
     base = 'http://mirror.technicpack.net/Technic/'
     packs   = (
-        ('Tekkit',      'tekkit',     'Tekkit_Server_{version}.zip'),
-        ('Tekkit Lite', 'tekkitlite', 'Tekkit_Lite_Server_{version}.zip'),
-        ('Voltz',       'voltz',      'Voltz_Server_v{version}.zip'))
+        ('Tekkit Classic', 'tekkit',     'Tekkit_Server_{version}.zip'),
+        ('Tekkit Lite',    'tekkitlite', 'Tekkit_Lite_Server_{version}.zip'),
+        ('Voltz',          'voltz',      'Voltz_Server_v{version}.zip'))
     builds = ('recommended', 'latest')
 
     def work(self):
