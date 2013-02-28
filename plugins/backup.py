@@ -4,7 +4,7 @@ import glob
 import os
 
 from plugins import Plugin
-from events import ServerStopped
+from events import Hook
 
 
 class Backup(Plugin):
@@ -13,9 +13,9 @@ class Backup(Plugin):
     spec = "world*"
     
     def setup(self):
-        self.register(self.shutdown, ServerStopped)
-    
-    def shutdown(self, event):
+        self.register(self.backup, Hook, public=True, name='backup', doc='backup the server to a .tar.gz')
+
+    def backup(self, event):
         timestamp = time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime())
         path = self.path.format(timestamp=timestamp, name=self.parent.server_name)
         if not os.path.exists(os.path.dirname(path)):

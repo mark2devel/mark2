@@ -30,4 +30,5 @@
 #   |   |   |   |   |   |
     */5 *   *   *   *   ~save 1m
     0   */2 *   *   *   ~restart 10m 5m 1m
-#   @serverstopped      $echo THE END IS NIGH | wall
+    @serverstopped      ~backup
+#   @serverstopped      $carto.sh
