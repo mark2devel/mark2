@@ -93,33 +93,27 @@ class IRC(Plugin):
     game_columns = True
 
     game_status_enabled = True
-    game_status_left    = "!"
-    game_status_right   = " | server {what}."
+    game_status_format  = "!, | server {what}."
 
     game_chat_enabled = True
-    game_chat_left    = "{username}"
-    game_chat_right   = " | {message}"
+    game_chat_format  = "{username}, | {message}"
 
     game_join_enabled = True
-    game_join_left    = "*"
-    game_join_right   = " | --> {username}"
+    game_join_format  = "*, | --> {username}"
 
     game_quit_enabled = True
-    game_quit_left    = "*"
-    game_quit_right   = " | <-- {username}"
+    game_quit_format  = "*, | <-- {username}"
 
     game_server_message_enabled = True
-    game_server_message_left    = "#server"
-    game_server_message_right   = " | {message}"
+    game_server_message_format  = "#server, | {message}"
 
     #bukkit only
     game_me_enabled = True
-    game_me_left    = "*"
-    game_me_right   = " | {username} {message}"
+    game_me_format  = "*, | {username} {message}"
 
     irc_players_enabled = True
     irc_players_trigger = "!players"
-    irc_players_format  = "Players currently in game: {players}"
+    irc_players_format  = "*, | players currently in game: {players}"
 
     #irc -> game settings
     irc_chat_enabled = True
@@ -141,20 +135,31 @@ class IRC(Plugin):
             self.register(self.handle_stopping, ServerStopping)
             self.register(self.handle_starting,  ServerStarting)
 
+        def register(event_type, format, *a, **k):
+            def handler(event, format):
+                if self.game_columns:
+                    f = format.split(',', 1)
+                    if len(f) == 2:
+                        format = f[0].rjust(16) + f[1]
+                d = event.match.groupdict() if hasattr(event, 'match') else event.serialize()
+                line = format.format(**d)
+                self.factory.irc_relay(line)
+            self.register(lambda e: handler(e, format), event_type, *a, **k)
+
         if self.game_chat_enabled:
-            self.pattern(self.game_chat_left, self.game_chat_right, r'<(?P<username>[A-Za-z0-9_]{1,16})> (?P<message>.+)')
+            register(PlayerChat, self.game_chat_format)
 
         if self.game_join_enabled:
-            self.pattern(self.game_join_left, self.game_join_right, r'(?P<username>[A-Za-z0-9_]{1,16})\[/[\d.:]+\] logged in')
+            register(PlayerJoin, self.game_join_format)
 
         if self.game_quit_enabled:
-            self.pattern(self.game_quit_left, self.game_quit_right, r'(?P<username>[A-Za-z0-9_]{1,16}) lost connection')
+            register(PlayerQuit, self.game_quit_format)
 
         if self.game_server_message_enabled and not (self.irc_chat_enabled and self.irc_chat_command.startswith('say ')):
-            self.pattern(self.game_server_message_left, self.game_server_message_right, r'\[(?:Server|SERVER)\] (?P<message>.+)')
+            register(ServerOutput, self.game_server_message_format, pattern=r'\[(?:Server|SERVER)\] (?P<message>.+)')
 
         if self.game_me_enabled:
-            self.pattern(self.game_me_left, self.game_me_right, r'\* (?P<username>[A-Za-z0-9_]{1,16}) (?P<message>.+)')
+            register(ServerOutput, self.game_me_format, pattern=r'\* (?P<username>[A-Za-z0-9_]{1,16}) (?P<message>.+)')
 
         if self.irc_chat_enabled:
             self.register(self.handle_players, StatPlayers)
@@ -164,24 +169,6 @@ class IRC(Plugin):
         if self.factory.client:
             self.factory.client.quit("Plugin unloading.")
 
-    def format(self, left, right):
-        if self.game_columns:
-            left = left.rjust(16)
-        return left+right
-
-    def pattern_handler(self, left, right):
-        def handler(event,left=left, right=right):
-            left  = left.format (*event.match.groups(), **event.match.groupdict())
-            right = right.format(*event.match.groups(), **event.match.groupdict())
-            self.factory.irc_relay(self.format(left, right))
-        return handler
-
-    def pattern(self, left, right, pattern, handler=None):
-        def handler(event,left=left, right=right):
-            left  = left.format (*event.match.groups(), **event.match.groupdict())
-            right = right.format(*event.match.groups(), **event.match.groupdict())
-            self.factory.irc_relay(self.format(left, right))
-        self.register(handler, ServerOutput, pattern=pattern)
 
     def handle_starting(self, event):
         self.factory.irc_relay(self.format(self.game_status_left, self.game_status_right.format(what="starting")))
