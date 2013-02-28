@@ -7,6 +7,8 @@ class Shutdown(Plugin):
     stop_warn_message    = "WARNING: server going down for planned maintainence in {delay}."
     restart_message      = "Server restarting."
     stop_message         = "Server going down for maintainence."
+    kick_command         = "kick {player} {message}"
+    kick_mode            = "all"
     
     failsafe = None
     
@@ -30,8 +32,11 @@ class Shutdown(Plugin):
         if not kill:
             self.send('save-all')
             message = self.restart_message if respawn else self.stop_message
-            for player in self.players:
-                self.send('kick %s %s' % (player, message))
+            if self.kick_mode == 'all':
+                for player in self.players:
+                    self.send(self.kick_command.format(player=player, message=message))
+            else:
+                self.send(self.kick_command.format(message=message))
         self.dispatch(ServerStop(reason='console', respawn=respawn, kill=kill))
 
     def handle_players(self, event):
