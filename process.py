@@ -65,6 +65,7 @@ class Process(Service):
     def build_command(self):
         cmd = []
         cmd.append('java')
+        #cmd.append('-server')
         cmd.extend(self.parent.config.get_jvm_options())
         cmd.append('-jar')
         cmd.append(self.jarfile)
