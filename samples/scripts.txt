@@ -4,10 +4,10 @@
 # similar to cron - http://www.adminschoice.com/crontab-quick-reference
 # currently does not support ','
 # all examples are given for the 'minute' field:
-#   *       run every minute
-#   0       run on the hour
-#   */5     run every 5 minutes
-#   0-30/5  run every 5 minutes for the first half hour of every hour
+#    *       run every minute
+#    0       run on the hour
+#    */5     run every 5 minutes
+#    0-30/5  run every 5 minutes for the first half hour of every hour
 
 # EVENT FORMAT
 # instead of specifying a time, you may specify an event to listen out for.
@@ -15,20 +15,20 @@
 # to use, replace the time spec with '@eventname', e.g. '@serverstopped'
 
 # COMMAND FORMAT
-#   /       run a minecraft command
-#   ~       run a mark2 command
-#   $       execute a script, interpretting each line of its stdout as one
-#           of the above. you can define the subshell and user to run under
-#           in your mark2.properties
+#    /       run a minecraft command
+#    ~       run a mark2 command
+#    $       execute a script, interpretting each line of its stdout as one
+#            of the above. you can define the subshell and user to run under
+#            in your mark2.properties
 
-#   #------------------------ Minute (0 - 59)
-#   |   #-------------------- Hour   (0 - 23)
-#   |   |   #---------------- Day of the Month (1 - 31)
-#   |   |   |   #------------ Month  (1 - 12)
-#   |   |   |   |   #-------- Day of the Week (0 - 6)
-#   |   |   |   |   |   #---- Command to run
-#   |   |   |   |   |   |
-    */5 *   *   *   *   ~save 1m
-    0   */2 *   *   *   ~restart 10m 5m 1m
-    @serverstopped      ~backup
-#   @serverstopped      $carto.sh
+#    #----------------------------- Minute (0 - 59)
+#    |    #------------------------ Hour   (0 - 23)
+#    |    |    #------------------- Day of the Month (1 - 31)
+#    |    |    |    #-------------- Month  (1 - 12)
+#    |    |    |    |    #--------- Day of the Week (0 - 6)
+#    |    |    |    |    |    #---- Command to run
+#    |    |    |    |    |    |
+     */5  *    *    *    *    ~save 1m
+     0    */2  *    *    *    ~restart 10m 5m 1m
+     @serverstopped           ~backup
+#    @serverstopped           $carto.sh
