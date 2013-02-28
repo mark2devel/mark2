@@ -4,7 +4,7 @@ from twisted.words.protocols import irc
 from twisted.internet import protocol
 from twisted.internet import reactor
 from plugins import Plugin
-from events import PlayerChat, PlayerJoin, PlayerQuit, ServerOutput, ServerStopping, ServerStopped, ServerStarting, ServerStarted
+from events import PlayerChat, PlayerJoin, PlayerQuit, ServerOutput, ServerStopping, ServerStopped, ServerStarting, ServerStarted, StatPlayers
 
 
 class IRCBot(irc.IRCClient):
@@ -36,7 +36,11 @@ class IRCBot(irc.IRCClient):
         m = re.match('([^\!]+)\!.*', user)
         if m:
             user = m.group(1)
-            self.factory.parent.irc_message(user, msg)
+            p = self.factory.parent
+            if p.irc_players_enabled and msg == p.irc_players_trigger:
+                self.say(self.channel, p.irc_players_format.format(players=', '.join(p.players)))
+            else:
+                p.irc_message(user, msg)
 
     def alterCollidedNick(self, nickname):
         return nickname+'_'
@@ -113,11 +117,16 @@ class IRC(Plugin):
     game_me_left    = "*"
     game_me_right   = " | {username} {message}"
 
+    irc_players_enabled = True
+    irc_players_trigger = "!players"
+    irc_players_format  = "Players currently in game: {players}"
+
     #irc -> game settings
     irc_chat_enabled = True
     irc_chat_command = "say [IRC] <{nickname}> {message}"
 
     def setup(self):
+        self.players = []
         self.factory = IRCBotFactory(self)
         if self.ssl:
             try:
@@ -147,6 +156,8 @@ class IRC(Plugin):
         if self.game_me_enabled:
             self.pattern(self.game_me_left, self.game_me_right, r'\* (?P<username>[A-Za-z0-9_]{1,16}) (?P<message>.+)')
 
+        if self.irc_chat_enabled:
+            self.register(self.handle_players, StatPlayers)
 
     def teardown(self):
         self.factory.reconnect = False
@@ -177,6 +188,9 @@ class IRC(Plugin):
 
     def handle_stopping(self, event):
         self.factory.irc_relay(self.format(self.game_status_left, self.game_status_right.format(what="stopping")))
+
+    def handle_players(self, event):
+        self.players = sorted(event.players)
 
     def irc_message(self, user, message):
         if self.irc_chat_enabled:
