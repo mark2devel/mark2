@@ -130,7 +130,7 @@ class UserServerFactory(Factory):
         self.stats['players_max']     = event.players_max
         
     def handle_players(self, event):
-        self.players = event.players
+        self.players = sorted(event.players, key=str.lower)
     
     def handle_process(self, event):
         for n in ('cpu', 'memory'):

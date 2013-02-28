@@ -180,7 +180,7 @@ class PMenuWrap(urwid.WidgetPlaceholder):
         i=0
         while len(add)>0:
             a = add.pop(0)
-            while i < len(content)-1 and content[i].original_widget.label > a:
+            while i < len(content)-1 and content[i].original_widget.label < a:
                 i+=1
             content.insert(i, urwid.AttrMap(PMenuButton(a, self.next, a), 'menu_item', 'menu_item_focus'))
             i += 1
