@@ -443,18 +443,8 @@ class UserClientFactory(ClientFactory):
 
     def update_users(self):
         self.system_users.update_users()
-        users_l = list(self.system_users)
         if self.client:
-            users_a = list(self.client.users)
-        else:
-            users_a = []
-
-
-        users = []
-        for u in sorted(set(users_l + users_a)):
-            users.append((u, u in users_a))
-
-        self.ui.set_users(users)
+            self.client.get_users()
 
     def update_players(self):
         if self.client:
@@ -491,6 +481,15 @@ class UserClientFactory(ClientFactory):
 
     def server_players(self, players):
         self.ui.set_players(players)
+
+    def server_users(self, users_a):
+        users_l = list(self.system_users)
+
+        users = []
+        for u in sorted(set(users_l + users_a)):
+            users.append((u, u in users_a))
+
+        self.ui.set_users(users)
 
     def server_stats(self, stats):
         self.stats.update(stats)
@@ -535,14 +534,16 @@ class UserClientProtocol(LineReceiver):
 
         if ty == "console":
             self.factory.server_output(msg)
+
         elif ty == "scrollback":
             self.factory.server_scrollback(msg['lines'])
+
         elif ty == "user_status":
             if msg["online"]:
                 self.users.add(msg["user"])
             else:
                 self.users.discard(msg["user"])
-            self.factory.update_users()
+            self.factory.server_users(list(self.users))
 
         elif ty == "players":
             self.players = msg['players']
@@ -567,6 +568,9 @@ class UserClientProtocol(LineReceiver):
 
     def get_stats(self):
         self.send("get_stats")
+
+    def get_users(self):
+        self.send("get_users")
 if __name__ == '__main__':
     thing = UserClientFactory('testserver')
     thing.main()
