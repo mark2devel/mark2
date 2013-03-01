@@ -139,14 +139,10 @@ class IRC(Plugin):
 
         def register(event_type, format, *a, **k):
             def handler(event, format):
-                if self.game_columns:
-                    f = format.split(',', 1)
-                    if len(f) == 2:
-                        format = f[0].rjust(16) + f[1]
                 d = event.match.groupdict() if hasattr(event, 'match') else event.serialize()
                 if self.cancel_highlight and 'user' in d:
                     d['user'] = '_' + d['user'][1:]
-                line = format.format(**d)
+                line = self.format(format, **d)
                 self.factory.irc_relay(line)
             self.register(lambda e: handler(e, format), event_type, *a, **k)
 
@@ -173,12 +169,18 @@ class IRC(Plugin):
         if self.factory.client:
             self.factory.client.quit("Plugin unloading.")
 
+    def format(self, format, **data):
+        if self.game_columns:
+            f = format.split(',', 1)
+            if len(f) == 2:
+                format = f[0].rjust(16) + f[1]
+        return format.format(**data)
 
     def handle_starting(self, event):
-        self.factory.irc_relay(self.format(self.game_status_left, self.game_status_right.format(what="starting")))
+        self.factory.irc_relay(self.format(self.game_status_format, what="starting"))
 
     def handle_stopping(self, event):
-        self.factory.irc_relay(self.format(self.game_status_left, self.game_status_right.format(what="stopping")))
+        self.factory.irc_relay(self.format(self.game_status_format, what="stopping"))
 
     def handle_players(self, event):
         self.players = sorted(event.players)

@@ -71,9 +71,6 @@ class Manager(MultiService):
         self.events.register(self.handle_user_attach,   events.UserAttach)
         self.events.register(self.handle_user_detach,   events.UserDetach)
         self.events.register(self.handle_user_input,    events.UserInput)
-        self.events.register(self.handle_player_join,   events.ServerOutput, pattern='([A-Za-z0-9_]{1,16})\[/([0-9\.]+):\d+\] logged in with entity id .+')
-        self.events.register(self.handle_player_quit,   events.ServerOutput, pattern='([A-Za-z0-9_]{1,16}) lost connection: (.+)')
-        self.events.register(self.handle_player_chat,   events.ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> (.+)')
 
         self.console("mark2 starting...")
 
@@ -87,7 +84,16 @@ class Manager(MultiService):
             'mark2.properties')
         if self.config is None:
             return self.fatal_error(reason="couldn't find mark2.properties")
-        
+
+        #register chat handlers
+        for key, e_ty in (
+            ('join', events.PlayerJoin),
+            ('quit', events.PlayerQuit),
+            ('chat', events.PlayerChat)):
+            #self.console(self.config['mark2.regex.'+key])
+            self.events.register(lambda e, e_ty=e_ty: self.events.dispatch(e_ty(**e.match.groupdict())), events.ServerOutput, pattern=self.config['mark2.regex.'+key])
+            #self.events.register(lambda e: self.console(e.match.groupdict()), events.ServerOutput, pattern=self.config['mark2.regex.'+key])
+
         #load server.properties
         self.properties = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
         if self.properties is None:
@@ -221,15 +227,3 @@ class Manager(MultiService):
     def handle_command(self, user, text):
         self.console(text, prompt=">", user=user)
         self.send(text)
-
-    def handle_player_join(self, event):
-        g = event.match.groups()
-        self.events.dispatch(events.PlayerJoin(username=g[0], ip=g[1]))
-
-    def handle_player_quit(self, event):
-        g = event.match.groups()
-        self.events.dispatch(events.PlayerQuit(username=g[0], reason=g[1]))
-
-    def handle_player_chat(self, event):
-        g = event.match.groups()
-        self.events.dispatch(events.PlayerChat(username=g[0], message=g[1]))
