@@ -89,6 +89,8 @@ class IRC(Plugin):
 
     #general
 
+    cancel_highlight = False
+
     #game -> irc settings
     game_columns = True
 
@@ -142,6 +144,8 @@ class IRC(Plugin):
                     if len(f) == 2:
                         format = f[0].rjust(16) + f[1]
                 d = event.match.groupdict() if hasattr(event, 'match') else event.serialize()
+                if self.cancel_highlight and 'user' in d:
+                    d['user'] = '_' + d['user'][1:]
                 line = format.format(**d)
                 self.factory.irc_relay(line)
             self.register(lambda e: handler(e, format), event_type, *a, **k)
