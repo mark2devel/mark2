@@ -90,7 +90,6 @@ class Script(Plugin):
         
         self.scripts = []
         if not os.path.isfile(self.path):
-            self.console("file doesn't exist: %s" % self.path, kind='error')
             return
         
         with open(self.path, 'r') as f:
