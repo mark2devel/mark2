@@ -74,10 +74,12 @@ class QueryProtocol(DatagramProtocol):
                     break
                 p = re.sub('\xa7.{1}', '', p)
                 o['players'].append(p)
-            
+
+            self.dispatch(events.StatPlugins    (source = "query", plugins = o['plugins']))
             self.dispatch(events.StatPlayerCount(source = "query", players_current = o['numplayers'], players_max = o['maxplayers']))
-            self.dispatch(events.StatPlayers    (source = "query", players         = o['players']))
-            self.dispatch(events.StatPlugins    (source = "query", plugins         = o['plugins']))
+            if o['numplayers'] < 128:
+                self.dispatch(events.StatPlayers(source = "query", players = o['players']))
+
 
 class Query(UDPServer):
     name = "query"

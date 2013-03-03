@@ -36,6 +36,7 @@ class Manager(MultiService):
         self.server_name = server_name
         self.server_path = server_path
         self.jar_file = jar_file
+        self.players = set()
 
     def startService(self):
         Service.startService(self)
@@ -71,6 +72,9 @@ class Manager(MultiService):
         self.events.register(self.handle_user_attach,   events.UserAttach)
         self.events.register(self.handle_user_detach,   events.UserDetach)
         self.events.register(self.handle_user_input,    events.UserInput)
+        self.events.register(self.handle_player_join,   events.PlayerJoin)
+        self.events.register(self.handle_player_quit,   events.PlayerQuit)
+        self.events.register(self.handle_server_stopped,events.ServerStopped)
 
         self.console("mark2 starting...")
 
@@ -90,9 +94,7 @@ class Manager(MultiService):
             ('join', events.PlayerJoin),
             ('quit', events.PlayerQuit),
             ('chat', events.PlayerChat)):
-            #self.console(self.config['mark2.regex.'+key])
             self.events.register(lambda e, e_ty=e_ty: self.events.dispatch(e_ty(**e.match.groupdict())), events.ServerOutput, pattern=self.config['mark2.regex.'+key])
-            #self.events.register(lambda e: self.console(e.match.groupdict()), events.ServerOutput, pattern=self.config['mark2.regex.'+key])
 
         #load server.properties
         self.properties = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
@@ -237,3 +239,15 @@ class Manager(MultiService):
     def handle_command(self, user, text):
         self.console(text, prompt=">", user=user)
         self.send(text)
+
+    def handle_player_join(self, event):
+        self.players.add(str(event.username))
+        self.events.dispatch(events.StatPlayers(players=list(self.players)))
+
+    def handle_player_quit(self, event):
+        self.players.discard(str(event.username))
+        self.events.dispatch(events.StatPlayers(players=list(self.players)))
+
+    def handle_server_stopped(self, event):
+        self.players.clear()
+        self.events.dispatch(events.StatPlayers(players=[]))
