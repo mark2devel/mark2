@@ -13,7 +13,8 @@ class IRCBot(irc.IRCClient):
         self.nickname    = plugin.nickname
         self.realname    = plugin.realname
         self.username    = plugin.username
-        self.password    = plugin.password
+        self.ns_password = plugin.password
+        self.password    = plugin.server_password
         self.channel     = plugin.channel
         self.console     = plugin.console
         self.irc_message = plugin.irc_message
@@ -21,8 +22,8 @@ class IRCBot(irc.IRCClient):
     def signedOn(self):
         self.console("irc: connected")
         
-        if self.password:
-            self.msg('NickServ', 'IDENTIFY %s' % self.password)
+        if self.ns_password:
+            self.msg('NickServ', 'IDENTIFY %s' % self.ns_password)
         
         self.join(self.channel)
 
@@ -79,6 +80,7 @@ class IRC(Plugin):
     host=None
     port=None
     ssl=False
+    server_password=""
     channel=None
 
     #user
