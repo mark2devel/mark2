@@ -1,6 +1,39 @@
 #!/usr/bin/python
 from twisted.internet import reactor
 
+def columns(data):
+    o = []
+    for tokens in data:
+        line = ""
+        for i, token in enumerate(tokens):
+            line += token
+            line += " "*(((i+1)*12)-len(line))
+        o.append(line)
+
+    return "\n".join(("  "+l for l in o))
+
+#so, guido says using native python data structures is better than objects wherever possible..
+help_commands = (
+#     options  name        data         description
+    ('',      'help',     '[COMMAND]', 'display help and available options'),
+    ('bnwoi', 'start',    '[PATH]',    'start a server'),
+    ('b',     'list',     '',          'list running servers'),
+    ('bn',    'attach',   '',          'attach to a server'),
+    ('bnwoi', 'stop',     '',          'stop mark2'),
+    ('bnwoi', 'kill',     '',          'kill mark2'),
+    ('bnwoi', 'send',     'INPUT...',  'send a console command'),
+    ('',      'jar-list', '',          'list server jars'),
+    ('',      'jar-get',  'NAME',      'download a server jar'))
+
+help_options = {
+    'b': ('-b  --base', 'PATH',  'the directory to put mark2-related temp files (default: /tmp/mark2)'),
+    'n': ('-n  --name', 'NAME',  'choose this named server (useful if you run more than one)'),
+    'w': ('-w  --wait', 'REGEX', 'wait for this line of output to appear on console before returning.'),
+    'o': ('-o  --only', '',      'print the matched line and no others'),
+    'i': ('-i  --immediate', '', 'don\'t wait for any output')
+
+}
+
 usage_text = "usage: mark2 [options] command ..."
 
 help_text = """
@@ -9,31 +42,16 @@ mark2 is a minecraft server wrapper
 {usage}
 
 commands:
-  start     [path]    start a server
-  list                list running servers
-  attach              attach to a server
-  stop                stop mark2
-  kill                kill mark2
-  send      input...  send a console command
-  jar-list            list server jars
-  jar-get   name      download a server jar
-
-flags:
-  -h  --help       display this message
-  -i  --immediate  don't wait for server output (only affects start, stop and kill)
-
-options:
-  -b  --base       the directory to put mark2-related temp files (default: /tmp/mark2)
-                   does not apply to 'jar-list' or 'jar-get'
-  -n  --name       choose this named server (useful if you run more than one)
-                   does not apply to 'list', 'jar-list' or 'jar-get'
+{commands}
 
 examples:
   mark2 start /home/you/mcservers/pvp
   mark2 attach -n pvp
   mark2 send -n pvp say hello!
   mark2 stop -i -n pvp
-""".format(usage=usage_text)
+""".format(usage=usage_text, commands=columns((c[1:] for c in help_commands)))
+
+
 
 import os
 import sys
@@ -255,15 +273,21 @@ def main():
     server_name = None
     command = None
 
+    #check required binaries
+    r_need = ('java',)
+    try:
+        subprocess.check_output(['which',] + list(r_need), stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError, e:
+        r_have = { os.path.basename(s) for s in e.output.split('\n') }
+        r_diff = r_need - r_have
+        raise Mark2Error("unfulfilled dependencies: %s" % ', '.join(r_diff))
+
     args = sys.argv[1:]
 
     while len(args) > 0:
         if args[0].startswith('-'):
             a = args.pop(0)
-            if a in ('-h', '--help'):
-                print help_text
-                return
-            elif a in ('-i', '--immediate'):
+            if a in ('-i', '--immediate'):
                 immediate = True
             elif a in ('-b', '--base'):
                 shared_path = args.pop(0)
@@ -276,22 +300,27 @@ def main():
         else:
             break
 
-    if command is None:
-        raise Mark2ParseError('missing command!')
+    if command is None or command == 'help':
+        if len(args) == 0:
+            print help_text
+        else:
+            subcommand = args[0]
+            details = [c for c in help_commands if c[1] == subcommand]
+            if len(details)==0:
+                raise Mark2Error("unknown command: %s" % subcommand)
+            else:
+                details = details[0]
 
-    #check shared dir
-    make_writable(shared_path)
+            print """
+mark2 {subcommand}: {description}
 
-    #check required binaries
-    r_need = ('java',)
-    try:
-        subprocess.check_output(['which',] + list(r_need), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
-        r_have = { os.path.basename(s) for s in e.output.split('\n') }
-        r_diff = r_need - r_have
-        raise Mark2Error("unfulfilled dependencies: %s" % ', '.join(r_diff))
+usage: mark2 {subcommand} {data}
+""".format(subcommand=details[1], data=details[2], description=details[3])
+            if len(details[0]) > 0:
+                print "options:"
+                print columns(help_options[c] for c in details[0]) + "\n"
 
-    if command == 'start':
+    elif command == 'start':
         #get server path
         if len(args) == 0:
             server_path = ""
@@ -322,6 +351,9 @@ def main():
 
         # check we've got config/mark2.properties
         check_config()
+
+        #maked shared path writable
+        make_writable(shared_path)
 
         skel = Skeleton(shared_path, server_name, server_path, jar_file, shared_path)
         if skel.is_running():
