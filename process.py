@@ -81,18 +81,7 @@ class Process(Service):
         self.protocol = ProcessProtocol(self.parent.events.dispatch, self.locale)
         cmd = self.build_command()
 
-        uid = None
-        gid = None
-        user = self.parent.config['java.user']
-        if user != '':
-            try:
-                d = pwd.getpwnam(user)
-                uid = d.pw_uid
-                gid = d.pw_gid
-            except KeyError:
-                pass
-
-        self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd, env=None, uid=uid, gid=gid)
+        self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd, env=None)
         if e:
             e.handled = True
 
