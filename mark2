@@ -1,5 +1,4 @@
 #!/usr/bin/python
-import re
 from twisted.internet import reactor
 
 def columns(data):
@@ -47,13 +46,14 @@ commands:
 
 examples:
   mark2 start /home/you/mcservers/pvp
-  mark2 attach -n pvp
-  mark2 send -n pvp say hello!
-  mark2 stop -i -n pvp
+  mark2 attach
+  mark2 send say hello!
+  mark2 stop
 """.format(usage=usage_text, commands=columns((c[1:] for c in help_commands)))
 
 
 
+import re
 import os
 import sys
 import glob
