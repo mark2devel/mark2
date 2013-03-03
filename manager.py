@@ -158,7 +158,7 @@ class Manager(MultiService):
         reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
 
     def console(self, line, **k):
-        for l in line.split("\n"):
+        for l in str(line).split("\n"):
             k['line'] = str(l)
             self.events.dispatch(events.Console(**k))
     
@@ -197,13 +197,14 @@ class Manager(MultiService):
     def handle_cmd_reload_plugin(self, event):
         if event.args in self.plugins:
             self.plugins.reload(event.args)
+            self.console("%s reloaded." % event.args)
         else:
             self.console("unknown plugin.")
-            self.plugins.reload_all()
 
     def handle_cmd_reload(self, event):
         self.plugins.unload_all()
         self.load_plugins()
+        self.console("config + plugins reloaded.")
 
     def handle_console(self, event):
         for line in event.value().encode('utf8').split("\n"):
