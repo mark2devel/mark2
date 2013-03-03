@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import re
 from twisted.internet import reactor
 
 def columns(data):
@@ -13,8 +14,8 @@ def columns(data):
     return "\n".join(("  "+l for l in o))
 
 #so, guido says using native python data structures is better than objects wherever possible..
-help_commands = (
 #     options  name        data         description
+help_commands = (
     ('',      'help',     '[COMMAND]', 'display help and available options'),
     ('bnwoi', 'start',    '[PATH]',    'start a server'),
     ('b',     'list',     '',          'list running servers'),
@@ -183,7 +184,13 @@ class Skeleton:
         f.close()
         os.kill(pid, sig)
 
-    def wait(self, *tokens):
+    def wait(self, *a):
+        try:
+            self.real_wait(*a)
+        except KeyboardInterrupt:
+            return
+
+    def real_wait(self, only, exp):
         with open(self.shared('log'), 'r') as f:
             f.seek(0,2)
             while True:
@@ -198,11 +205,12 @@ class Skeleton:
 
                 line = line.split(" ", 3)
                 if line[2] == '[mark2]':
-                    print line[3]
-                    line = line[3].split(" ", 2)
-                    for t in tokens:
-                        if line[2].startswith(t):
-                            return
+                    line2 = line[3].split(" ", 2)
+                    if re.search(exp, line2[2]):
+                        print line[3]
+                        return
+                    elif not only:
+                        print line[3]
 
 
     def do_start(self):
@@ -267,7 +275,9 @@ class Skeleton:
         s.close()
 
 def main():
-    immediate   = False
+    immediate   = None
+    only        = False
+    wait        = None
     shared_path = '/tmp/mark2'
     script_path = sys.path[0]
     server_name = None
@@ -289,6 +299,11 @@ def main():
             a = args.pop(0)
             if a in ('-i', '--immediate'):
                 immediate = True
+            elif a in ('-o', '--only'):
+                only = True
+            elif a in ('-w', '--wait'):
+                immediate = False
+                wait = args.pop(0)
             elif a in ('-b', '--base'):
                 shared_path = args.pop(0)
             elif a in ('-n', '--name'):
@@ -360,8 +375,8 @@ usage: mark2 {subcommand} {data}
             raise Mark2Error("server already running: " + server_name)
         skel.do_start()
 
-        if not immediate:
-            skel.wait('# mark2 started.', '# mark2 stopped.')
+        if True if immediate is None else not immediate:
+            skel.wait(only, '# mark2 started|stopped\.' if wait is None else wait)
 
     elif command == 'list':
         if len(args) > 0:
@@ -385,8 +400,8 @@ usage: mark2 {subcommand} {data}
         if not skel.is_running():
             raise Mark2Error("server not running: " + server_name)
         skel.do_stop()
-        if not immediate:
-            skel.wait('# mark2 stopped.')
+        if True if immediate is None else not immediate:
+            skel.wait(only, '# mark2 stopped\.' if wait is None else wait)
     elif command == 'kill':
         if len(args) > 0:
             raise Mark2ParseError("unknown token: " + " ".join(args))
@@ -394,8 +409,8 @@ usage: mark2 {subcommand} {data}
         if not skel.is_running():
             raise Mark2Error("server not running: " + server_name)
         skel.do_kill()
-        if not immediate:
-            skel.wait('# mark2 stopped.')
+        if True if immediate is None else not immediate:
+            skel.wait(only, '# mark2 stopped\.' if wait is None else wait)
     elif command == 'send':
         if len(args) == 0:
             raise Mark2ParseError("nothing to send!")
@@ -403,6 +418,8 @@ usage: mark2 {subcommand} {data}
         if not skel.is_running():
             raise Mark2Error("server not running: " + server_name)
         skel.do_send(" ".join(args))
+        if wait:
+            skel.wait(only, wait)
     elif command == 'jar-list':
         if len(args) > 0:
             raise Mark2ParseError("unknown token: " + " ".join(args))
