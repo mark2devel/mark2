@@ -4,19 +4,17 @@ from events import ACCEPTED, FINISHED
 
 class HangChecker(Plugin):
     crash_enabled = True
-    crash_timeout = 10
+    crash_timeout = 3
 
     oom_enabled   = True
 
     ping_enabled  = True
-    ping_timeout  = 10
+    ping_timeout  = 3
 
     pcount_enabled = False
-    pcount_timeout = 10
-
+    pcount_timeout = 3
 
     def setup(self):
-        self.reset_counts()
         do_step = False
         if self.crash_enabled:
             do_step = True
@@ -35,10 +33,11 @@ class HangChecker(Plugin):
         self.do_step = do_step
 
     def server_started(self, event):
+        self.reset_counts()
         if self.do_step:
             self.repeating_task(self.step, 60)
 
-    def step(self):
+    def step(self, *a):
         if self.crash_enabled:
             if not self.crash_alive:
                 self.crash_time -= 1
@@ -77,9 +76,9 @@ class HangChecker(Plugin):
         self.crash_alive  = True
         self.crash_time   = self.crash_timeout
         self.ping_alive   = True
-        self.ping_fails   = self.ping_timeout
+        self.ping_time    = self.ping_timeout
         self.pcount_alive = True
-        self.pcount_fails = self.pcount_timeout
+        self.pcount_time  = self.pcount_timeout
 
     ### handlers
     
