@@ -56,7 +56,7 @@ class Manager(MultiService):
 
     def startServiceReal(self):
         #start event dispatcher
-        self.events = events.EventDispatcher()
+        self.events = events.EventDispatcher(self.handle_dispatch_error)
         
         #add some handlers
         self.events.register(self.handle_cmd_help,          events.Hook, public=True, name="help", doc="displays this message")
@@ -137,6 +137,15 @@ class Manager(MultiService):
         #start the server
         self.events.dispatch(events.ServerStart())
 
+    def handle_dispatch_error(self, event, callback, exception):
+        o  = "An event handler threw an exception: \n"
+        o += "  Callback: %s\n" % callback
+        o += "  Event: \n"
+        o += "".join(("    %s: %s\n" % (k, v) for k, v in event.serialize().iteritems()))
+        o += "\n".join("  %s" % l for l in traceback.format_exc().split("\n"))
+        log.msg(o)
+        self.console(o)
+
     #helpers
     def load_plugins(self):
         self.config = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties')
@@ -147,8 +156,9 @@ class Manager(MultiService):
         reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
 
     def console(self, line, **k):
-        k['line'] = str(line)
-        self.events.dispatch(events.Console(**k))
+        for l in line.split("\n"):
+            k['line'] = str(l)
+            self.events.dispatch(events.Console(**k))
     
     def fatal_error(self, *a, **k):
         k['reason'] = a[0] if a else None

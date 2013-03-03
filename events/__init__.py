@@ -49,6 +49,9 @@ class EventDispatcher:
     registered = {}
     registered_ids = []
 
+    def __init__(self, error_handler):
+        self.error_handler = error_handler
+
     def register(self, callback, event_type, **predicate_args):
         if not event_type in self.registered:
             self.registered[event_type] = []
@@ -85,7 +88,11 @@ class EventDispatcher:
             #log.msg("handler %s %s returned %d" % (str(r_callback), str(r_args), o))
             if o & ACCEPTED:
                 r = True
-                r_callback(event)
+                try:
+                    r_callback(event)
+                except Exception, ex:
+                    self.error_handler(event=event, callback=r_callback, exception=ex)
+
                 if o & FINISHED:
                     self.registered[event.__class__].remove((r_callback, r_args))
                 if event.handled:
