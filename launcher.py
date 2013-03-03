@@ -362,8 +362,9 @@ usage: mark2 {subcommand} {data}
         d_user = pwd.getpwuid(os.stat(server_path).st_uid).pw_name
         m_user = getpass.getuser()
         if d_user != m_user:
-            raise Mark2Error("user mismatch: server directory is owned by {d_user}, but mark2 is running as {m_user}. \
-                             please start mark2 as `sudo -u {d_user} mark2 start ...`".format(d_user=d_user,m_user=m_user))
+            e = "server directory is owned by '{d_user}', but mark2 is running as '{m_user}'. " + \
+                "please start mark2 as `sudo -u {d_user} mark2 start ...`"
+            raise Mark2Error(e.format(d_user=d_user,m_user=m_user))
 
         #get server name
         if server_name is None:
