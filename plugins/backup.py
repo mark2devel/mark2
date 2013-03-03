@@ -23,6 +23,13 @@ class Backup(Plugin):
     def backup(self, event):
         timestamp = time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime())
         path = self.path.format(timestamp=timestamp, name=self.parent.server_name)
+        if not os.path.exists(os.path.dirname(path)):
+            try:
+                os.makedirs(os.path.dirname(path))
+            except IOError:
+                self.console("Warning: {} does't exist and I can't create it".format(os.path.dirname(path)),
+                             kind='error')
+                return
 
         add = set()
         if self.mode == "include":
@@ -33,20 +40,11 @@ class Backup(Plugin):
             for e in self.spec.split(";"):
                 add -= set(glob.glob(e))
 
-        if not os.path.exists(os.path.dirname(path)):
-            try:
-                os.makedirs(os.path.dirname(path))
-            except IOError:
-                self.console("Warning: {} does't exist and I can't create it".format(os.path.dirname(path)),
-                             kind='error')
-                return
 
         cmd = ['tar']
         cmd.extend(shlex.split(self.tar_flags))
         cmd.append(path)
         cmd.extend(add)
-
-        self.console(cmd)
 
         proto = protocol.ProcessProtocol()
         proto.processEnded = lambda reason: self.console("map backup finished!")
