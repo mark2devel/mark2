@@ -171,13 +171,12 @@ class IRC(Plugin):
 
     def format(self, format, **data):
         if self.game_columns:
-            f = format.split(',', 1)
-            if len(f) == 1:
-                return f[0].format(**data)
-            else:
-                f[0] = f[0].format(**data).rjust(16)
+            f = unicode(format).split(',', 1)
+            f[0] = f[0].format(**data)
+            if len(f) == 2:
+                f[0] = f[0].rjust(16)
                 f[1] = f[1].format(**data)
-                return f[0] + f[1]
+            return ''.join(f)
         else:
             return format.format(**data)
 
