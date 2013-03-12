@@ -46,7 +46,7 @@ class Backup(Plugin):
             self.backup_stage = 2
             self.delayed_task(self.do_backup, self.flush_wait)
         elif self.backup_stage == 2:
-            self.console("stopping in-progress backup!")
+            self.console("warning: autosave changed while backup was in progress!")
 
     def backup(self, event):
         if self.backup_stage > 0:
