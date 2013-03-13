@@ -20,19 +20,13 @@ This should suffice:
 
 ### centos
 
-CentOS and some other distros ship an older version of python. To find out your python version, run:
+CentOS and some other distros ship an older version of python. First check you have python 2.7:
 
-    $ python -V
+    $ python2.7 -V
 
-If you get something lower than 2.7, first check you don't already have python 2.7 installed somewhere else. Type:
-
-    $ python<TAB>
-
-If you see `python2.7` you don't need to install again, but you will need to apply the patch listed below.
-
-If you *don't* see `python2.7`, you need to install it. A decent guide for centos is
+If you get "command not found", you need to install python 2.7. A decent guide for centos is
 [located here](http://toomuchdata.com/2012/06/25/how-to-install-python-2-7-3-on-centos-6-2/). Be sure to follow the
-instructions for installing `distribute also.
+instructions for installing distribute also.
 
 Next, install twisted from the package on [their website](http://twistedmatrix.com/). Don't use easy_install - you
 won't get the binaries that ship with twisted.
@@ -41,8 +35,6 @@ easy_install for python 2.7 is probably in `/usr/local/bin/easy_install-2.7`. Yo
 mark2 dependencies:
 
     $ sudo /usr/local/bin/easy_install-2.7 psutil urwid feedparser
-
-After installing mark2, make sure you apply the patch described later.
 
 ## installation
 
@@ -69,12 +61,6 @@ user to run servers under.
 
 To start a server, either run `mark2 start` as `sudo -u mcservers mark2 start ...`, or assign a value to `java.user` in
 `/config/mark2.properties` and start with `sudo mark2 start ...`
-
-### python patch
-
-If your python 2.7 executable isn't at `/usr/bin/python`, you need to apply a small patch to mark2. Open
-`/usr/mark2/mark2` and edit the path in the first line to point to the right place. On CentOS it probably wants to
-read `#!/usr/local/bin/python2.7`.
 
 ### tips
 
