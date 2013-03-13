@@ -486,7 +486,7 @@ class UserClientFactory(ClientFactory):
         users_l = list(self.system_users)
 
         users = []
-        for u in sorted(set(users_l + users_a)):
+        for u in sorted(set(users_l + users_a), key=str.lower):
             users.append((u, u in users_a))
 
         self.ui.set_users(users)
