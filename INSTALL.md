@@ -3,9 +3,9 @@
 ## requirements
 
 * UNIX-like operating system (Linux, Mac OS X, BSD)
-* python 2.7
+* python 2.7 (+ dev package for psutil installation)
 * psutil
-* urwid
+* urwid 1.x
 * twisted
 * twisted-web
 * twisted-words (for IRC support)
@@ -15,7 +15,7 @@
 
 This should suffice:
 
-    $ sudo apt-get install python-twisted-core python-twisted-web python-twisted-words
+    $ sudo apt-get install python-dev python-twisted-core python-twisted-web python-twisted-words
     $ sudo pip install psutil urwid feedparser
 
 ### centos
