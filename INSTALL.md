@@ -15,7 +15,7 @@
 
 This should suffice:
 
-    $ sudo apt-get install python-twisted python-twisted-web python-twisted-words
+    $ sudo apt-get install python-twisted-core python-twisted-web python-twisted-words
     $ sudo pip install psutil urwid feedparser
 
 ### centos
