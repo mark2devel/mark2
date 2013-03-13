@@ -263,7 +263,7 @@ class CommandHelp(Command):
         if self.value is None:
             print help_text.format(
                 usage=usage_text,
-                commands=self.columns([(c.name, c.value_spec, c.__doc__) for n, c in commands]))
+                commands=self.columns([(c.name, c.value_spec, c.__doc__) for c in commands]))
         elif self.value in commands_d:
             cls = commands_d[self.value]
             print help_sub_text.format(
@@ -414,6 +414,7 @@ class CommandAttach(CommandTySelective):
     """attach to a server"""
     name = 'attach'
     def run(self):
+        os.chdir(self.script_path)
         f = user_client.UserClientFactory(self.server_name, self.shared_path)
         f.main()
 
@@ -492,8 +493,8 @@ class CommandJarGet(Command):
         reactor.run()
 
 
-commands = [(c.name, c) for c in (CommandHelp, CommandStart, CommandList, CommandAttach, CommandStop, CommandKill, CommandSend, CommandJarList, CommandJarGet)]
-commands_d = dict(commands)
+commands = (CommandHelp, CommandStart, CommandList, CommandAttach, CommandStop, CommandKill, CommandSend, CommandJarList, CommandJarGet)
+commands_d = dict([(c.name, c) for c in commands])
 
 
 def main():
