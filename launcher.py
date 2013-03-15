@@ -184,7 +184,10 @@ class CommandTySelective(CommandTyStateful):
         name = self.options.get('name', None)
         if self.name_should_exist:
             if name is None:
-                name = self.servers[0]
+                if len(self.servers) > 0:
+                    name = self.servers[0]
+                else:
+                    raise Mark2Error("no servers running!")
             elif name not in self.servers:
                 raise Mark2Error("server not running: %s" % name)
         else:
