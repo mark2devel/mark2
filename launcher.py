@@ -365,6 +365,9 @@ class CommandStart(CommandTyTerminal):
         # get server name
         if self.server_name is None:
             self.server_name = os.path.basename(self.server_path)
+            if self.server_name in self.servers:
+                raise Mark2Error("server already running: %s" % self.server_name)
+
 
         # move to the directory this script is in
         os.chdir(self.script_path)
