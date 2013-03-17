@@ -1,20 +1,18 @@
 import os
 import traceback
+import signal
 
 from twisted.internet import reactor, defer, error
 from twisted.application.service import MultiService, Service
 from twisted.python import log
 
 #mark2 things
-import signal
 import events
 import properties
 import user_server
 import process
-from services import ping, query
-
-#plugins
 import plugins
+from services import ping, query
 
 
 MARK2_BASE = os.path.dirname(os.path.realpath(__file__))
@@ -80,7 +78,7 @@ class Manager(MultiService):
 
         #change to server directory
         os.chdir(self.server_path)
-        
+
         #load config
         self.config = properties.load(properties.Mark2Properties,
             os.path.join(MARK2_BASE, 'resources', 'mark2.default.properties'),
@@ -89,17 +87,9 @@ class Manager(MultiService):
         if self.config is None:
             return self.fatal_error(reason="couldn't find mark2.properties")
 
-        #register chat handlers
-        for key, e_ty in (
-            ('join', events.PlayerJoin),
-            ('quit', events.PlayerQuit),
-            ('chat', events.PlayerChat)):
-            self.events.register(lambda e, e_ty=e_ty: self.events.dispatch(e_ty(**e.match.groupdict())), events.ServerOutput, pattern=self.config['mark2.regex.'+key])
-
-        #load server.properties
-        self.properties = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
-        if self.properties is None:
-            return self.fatal_error(reason="couldn't find server.properties")
+        #chmod log and pid
+        for ext in ('log', 'pid'):
+            os.chmod(os.path.join(self.shared_path, "%s.%s" % (self.server_name, ext)), self.config.get_umask(ext))
 
         #find jar file
         if self.jar_file is None:
@@ -109,12 +99,26 @@ class Manager(MultiService):
             if self.jar_file is None:
                 return self.fatal_error("Couldn't find server jar!")
 
-        #chmod log and pid
-        for ext in ('log', 'pid'):
-            os.chmod(os.path.join(self.shared_path, "%s.%s" % (self.server_name, ext)), self.config.get_umask(ext))
+        #load lang
+        self.lang = properties.load_jar(self.jar_file, 'lang/en_US.lang')
+        if self.lang is None:
+            return self.fatal_error(reason="couldn't load lang!")
+        for name, pattern in self.lang.get_deaths():
+            self.events.register(lambda e, cause=name: self.events.dispatch(events.PlayerDeath(text=e.data, cause=cause, **e.match.groupdict())), events.ServerOutput, pattern=pattern)
+
+        #load server.properties
+        self.properties = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
+        if self.properties is None:
+            return self.fatal_error(reason="couldn't find server.properties")
+
+        #register chat handlers
+        for key, e_ty in (
+            ('join', events.PlayerJoin),
+            ('quit', events.PlayerQuit),
+            ('chat', events.PlayerChat)):
+            self.events.register(lambda e, e_ty=e_ty: self.events.dispatch(e_ty(**e.match.groupdict())), events.ServerOutput, pattern=self.config['mark2.regex.'+key])
 
         #start services
-
         if self.config['mark2.service.ping.enabled']:
             self.addService(ping.Ping(
                 self,

@@ -1,15 +1,24 @@
 import os
 import re
+import zipfile
+
 
 def load(cls, *files):
     o = None
     for f in files:
         if os.path.isfile(f):
-            o = cls(f, o)
+            with open(f) as f:
+                o = cls(f, o)
+    return o
+
+def load_jar(jar, path):
+    z = zipfile.ZipFile(jar, 'r')
+    o = Lang(z.open(path, 'r'))
+    z.close()
     return o
 
 class Properties(dict):
-    def __init__(self, path, parent=None):
+    def __init__(self, f, parent=None):
         dict.__init__(self)
 
         if parent:
@@ -59,9 +68,7 @@ class Properties(dict):
 
             return out
 
-        f = open(path)
         d = f.read()
-        f.close()
 
         #Deal with Windows / Mac OS linebreaks
         d = d.replace('\r\n','\n')
@@ -181,3 +188,11 @@ class ClientProperties(Properties):
 
     def get_interval(self, name):
         return self['task.%s' % name]
+
+class Lang(Properties):
+    def get_deaths(self):
+        seen = []
+        for k, v in self.get_by_prefix('death.'):
+            if not v in seen:
+                seen.append(v)
+                yield k, reduce(lambda a, r: a.replace(*r), (("\\%%%d\\$s" % (i+1), "(?P<%s>.*)" % x) for i, x in enumerate(("username", "killer", "weapon"))), re.escape(v))

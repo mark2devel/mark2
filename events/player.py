@@ -10,3 +10,9 @@ class PlayerQuit(Event):
 
 class PlayerChat(Event):
     requires = ('username', 'message')
+
+class PlayerDeath(Event):
+    contains = ('text', 'username', 'cause', 'killer', 'weapon')
+    requires = ('text', 'username', 'cause')
+    killer = None
+    weapon = None
