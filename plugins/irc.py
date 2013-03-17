@@ -47,7 +47,7 @@ class IRCBot(irc.IRCClient):
         return nickname+'_'
 
     def irc_relay(self, message):
-        self.say(self.channel, message)
+        self.say(self.channel, message.encode('utf8'))
 
 
 class IRCBotFactory(protocol.ClientFactory):

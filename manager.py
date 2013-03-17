@@ -158,8 +158,8 @@ class Manager(MultiService):
         reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
 
     def console(self, line, **k):
-        for l in str(line).split(u"\n"):
-            k['line'] = unicode(l)
+        for l in unicode(line).split(u"\n"):
+            k['line'] = l
             self.events.dispatch(events.Console(**k))
     
     def fatal_error(self, *a, **k):
