@@ -45,8 +45,8 @@ class Properties(dict):
         #This handles backslash escapes in keys/values
         def parse(input):
             token = list(input)
-            out = ""
-
+            out = u""
+            uni = False
             while len(token) > 0:
                 c = token.pop(0)
                 if c == '\\':
@@ -59,6 +59,7 @@ class Properties(dict):
                             for i in range(4):
                                 b += token.pop(0)
                             out += unichr(int(b, 16))
+                            uni = True
                         else:
                             out += c
                     except IndexError:

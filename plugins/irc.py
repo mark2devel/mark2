@@ -10,12 +10,12 @@ from events import PlayerChat, PlayerJoin, PlayerQuit, ServerOutput, ServerStopp
 class IRCBot(irc.IRCClient):
     def __init__(self, factory, plugin):
         self.factory     = factory
-        self.nickname    = plugin.nickname
-        self.realname    = plugin.realname
-        self.username    = plugin.username
+        self.nickname    = plugin.nickname.encode('ascii')
+        self.realname    = plugin.realname.encode('ascii')
+        self.username    = plugin.username.encode('ascii')
         self.ns_password = plugin.password
-        self.password    = plugin.server_password
-        self.channel     = plugin.channel
+        self.password    = plugin.server_password.encode('ascii')
+        self.channel     = plugin.channel.encode('ascii')
         self.console     = plugin.console
         self.irc_message = plugin.irc_message
 
@@ -97,31 +97,31 @@ class IRC(Plugin):
     game_columns = True
 
     game_status_enabled = True
-    game_status_format  = "!, | server {what}."
+    game_status_format  = u"!, | server {what}."
 
     game_chat_enabled = True
-    game_chat_format  = "{username}, | {message}"
+    game_chat_format  = u"{username}, | {message}"
 
     game_join_enabled = True
-    game_join_format  = "*, | --> {username}"
+    game_join_format  = u"*, | --> {username}"
 
     game_quit_enabled = True
-    game_quit_format  = "*, | <-- {username}"
+    game_quit_format  = u"*, | <-- {username}"
 
     game_server_message_enabled = True
-    game_server_message_format  = "#server, | {message}"
+    game_server_message_format  = u"#server, | {message}"
 
     #bukkit only
     game_me_enabled = True
-    game_me_format  = "*, | {username} {message}"
+    game_me_format  = u"*, | {username} {message}"
 
     irc_players_enabled = True
-    irc_players_trigger = "!players"
-    irc_players_format  = "*, | players currently in game: {players}"
+    irc_players_trigger = u"!players"
+    irc_players_format  = u"*, | players currently in game: {players}"
 
     #irc -> game settings
     irc_chat_enabled = True
-    irc_chat_command = "say [IRC] <{nickname}> {message}"
+    irc_chat_command = u"say [IRC] <{nickname}> {message}"
 
     def setup(self):
         self.players = []

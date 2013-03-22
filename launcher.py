@@ -384,7 +384,7 @@ class CommandStart(CommandTyTerminal):
                 os.remove(self.shared(x))
 
         # create empty log
-        open(self.shared('log'), 'w').close()
+        #open(self.shared('log'), 'w').close()
 
         # build command
         command = [
