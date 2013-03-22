@@ -67,6 +67,8 @@ class Properties(dict):
                 else:
                     out += c
 
+            if not uni:
+                out = out.encode('ascii')
             return out
 
         d = f.read()
