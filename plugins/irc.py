@@ -4,7 +4,7 @@ from twisted.words.protocols import irc
 from twisted.internet import protocol
 from twisted.internet import reactor
 from plugins import Plugin
-from events import PlayerChat, PlayerJoin, PlayerQuit, ServerOutput, ServerStopping, ServerStopped, ServerStarting, ServerStarted, StatPlayers
+from events import PlayerChat, PlayerJoin, PlayerQuit, PlayerDeath, ServerOutput, ServerStopping, ServerStopped, ServerStarting, ServerStarted, StatPlayers
 
 
 class IRCBot(irc.IRCClient):
@@ -108,6 +108,9 @@ class IRC(Plugin):
     game_quit_enabled = True
     game_quit_format  = u"*, | <-- {username}"
 
+    game_death_enabled = True
+    game_death_format = u"*, | {text}"
+
     game_server_message_enabled = True
     game_server_message_format  = u"#server, | {message}"
 
@@ -142,8 +145,8 @@ class IRC(Plugin):
         def register(event_type, format, *a, **k):
             def handler(event, format):
                 d = event.match.groupdict() if hasattr(event, 'match') else event.serialize()
-                if self.cancel_highlight and 'user' in d:
-                    d['user'] = '_' + d['user'][1:]
+                if self.cancel_highlight and 'username' in d:
+                    d['username'] = '_' + d['username'][1:]
                 line = self.format(format, **d)
                 self.factory.irc_relay(line)
             self.register(lambda e: handler(e, format), event_type, *a, **k)
@@ -156,6 +159,9 @@ class IRC(Plugin):
 
         if self.game_quit_enabled:
             register(PlayerQuit, self.game_quit_format)
+
+        if self.game_death_enabled:
+            register(PlayerDeath, self.game_death_format)
 
         if self.game_server_message_enabled and not (self.irc_chat_enabled and self.irc_chat_command.startswith('say ')):
             register(ServerOutput, self.game_server_message_format, pattern=r'\[(?:Server|SERVER)\] (?P<message>.+)')
