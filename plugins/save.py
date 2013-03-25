@@ -10,7 +10,7 @@ class Save(Plugin):
         self.register(self.save, Hook, public=True, name='save', doc='save the map')
     
     def warn(self, delay):
-        self.send("say %s" % self.warn_message.format(delay=delay), parseColors=True)
+        self.send_format("say %s" % self.warn_message, parseColors=True, delay=delay)
     
     def save(self, event):
         action = self.save_real

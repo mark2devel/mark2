@@ -83,4 +83,4 @@ class Mumble(Plugin):
         self.stop_tasks()
 
     def send_response(self, command, **d):
-        self.send(command.format(host=self.host, port=self.port, **d), parseColors=True)
+        self.send_format(command, parseColors=True, host=self.host, port=self.port, **d)

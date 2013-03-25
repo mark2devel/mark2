@@ -102,6 +102,10 @@ class Plugin:
         
     def send(self, l, parseColors=False):
         self.dispatch(ServerInput(line=l, parse_colors=parseColors))
+
+    def send_format(self, l, parseColors=False, **kw):
+        kw = { k: FormatWrapper(v) for k, v in kw.iteritems() }
+        self.send(l.format(**kw), parseColors=parseColors)
     
     def action_chain(self, spec, callbackWarn, callbackAction):
         intervals = [self.parse_time(i) for i in spec.split(';')]
@@ -196,3 +200,10 @@ class PluginManager(dict):
     def reload_all(self):
         self.unload_all()
         self.load_all()
+
+class FormatWrapper(str):
+    def __getattribute__(self, item):
+        a = str.__getattribute__(self, item)
+        if not item.startswith('_') and callable(a):
+            return a()
+        return a

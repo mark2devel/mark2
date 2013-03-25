@@ -23,10 +23,10 @@ class Shutdown(Plugin):
         self.register(self.h_kill_restart,  Hook, public=True, name="kill-restart", doc='kill the server and bring it back up')
     
     def warn_restart(self, delay):
-        self.send("say %s" % self.restart_warn_message.format(delay=delay), parseColors=True)
+        self.send_format("say %s" % self.restart_warn_message, parseColors=True, delay=delay)
     
     def warn_stop(self, delay):
-        self.send("say %s" % self.stop_warn_message.format(delay=delay), parseColors=True)
+        self.send_format("say %s" % self.stop_warn_message, parseColors=True, delay=delay)
 
     def nice_stop(self, respawn, kill):
         if not kill:
@@ -34,9 +34,9 @@ class Shutdown(Plugin):
             message = self.restart_message if respawn else self.stop_message
             if self.kick_mode == 'all':
                 for player in self.players:
-                    self.send(self.kick_command.format(player=player, message=message))
+                    self.send_format(self.kick_command, player=player, message=message)
             else:
-                self.send(self.kick_command.format(message=message))
+                self.send_format(self.kick_command, message=message)
         self.dispatch(ServerStop(reason='console', respawn=respawn, kill=kill))
 
     def handle_players(self, event):
