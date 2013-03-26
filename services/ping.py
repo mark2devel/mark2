@@ -1,3 +1,4 @@
+import re
 import struct
 
 from twisted.application.service import Service
@@ -46,7 +47,8 @@ class Ping(Service):
     name = "ping"
     
     def __init__(self, parent, host, port, interval):
-        parent.events.register(self.whine, ServerOutputConsumer, pattern='\/127\.0\.0\.1\:\d+ lost connection')
+        h = host if host else '127.0.0.1'
+        parent.events.register(self.whine, ServerOutputConsumer, pattern='\/%s\:\d+ lost connection' % re.escape(h))
         
         self.factory = PingFactory(interval, host, port, parent.events.dispatch)
     
