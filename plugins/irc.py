@@ -1,11 +1,47 @@
 import re
+import os.path as path
 
 from twisted.words.protocols import irc
 from twisted.internet import protocol
 from twisted.internet import reactor
 from twisted.python.util import InsensitiveDict
 from plugins import Plugin
-from events import PlayerChat, PlayerJoin, PlayerQuit, PlayerDeath, ServerOutput, ServerStopping, ServerStopped, ServerStarting, ServerStarted, StatPlayers
+from events import PlayerChat, PlayerJoin, PlayerQuit, PlayerDeath, ServerOutput, ServerStopping, ServerStarting, StatPlayers
+
+try:
+    from OpenSSL import SSL
+    from twisted.internet import ssl
+    from twisted.protocols.tls import TLSMemoryBIOProtocol
+
+    have_ssl = True
+    
+    class Mark2ClientContextFactory(ssl.ClientContextFactory):
+        def __init__(self, parent, fingerprint=None, cert=None):
+            self.parent = parent
+            self.fingerprint = fingerprint
+            self.cert = path.expanduser(cert) if cert else None
+        
+        @staticmethod
+        def stripfp(fp):
+            return fp.replace(':', '').lower()
+        
+        def verify(self, conn, cert, errno, errdepth, rc):
+            ok = self.stripfp(cert.digest("sha1")) == self.stripfp(self.fingerprint)
+            if self.parent and self.parent.factory.reconnect and not ok:
+                self.parent.console("irc: server certificate verification failed")
+                self.parent.factory.reconnect = False
+            return ok
+            
+        def getContext(self):
+            ctx = ssl.ClientContextFactory.getContext(self)
+            if self.fingerprint:
+                ctx.set_verify(SSL.VERIFY_PEER, self.verify)
+            if self.cert:
+                ctx.use_certificate_file(self.cert)
+                ctx.use_privatekey_file(self.cert)
+            return ctx
+except:
+    have_ssl = False
 
 
 class IRCUser(object):
@@ -33,7 +69,13 @@ class IRCBot(irc.IRCClient):
         self.users       = InsensitiveDict()
 
     def signedOn(self):
-        self.console("irc: connected")
+        if have_ssl and isinstance(self.transport, TLSMemoryBIOProtocol):
+            cert = self.transport.getPeerCertificate()
+            fp = cert.digest("sha1")
+            verified = "verified" if self.factory.parent.server_fingerprint else "unverified"
+            self.console("irc: connected securely. server fingerprint: {} ({})".format(fp, verified))
+        else:
+            self.console("irc: connected")
         
         if self.ns_password:
             self.msg('NickServ', 'IDENTIFY %s' % self.ns_password)
@@ -189,22 +231,24 @@ class IRCBotFactory(protocol.ClientFactory):
         if self.client:
             self.client.irc_relay(message)
 
+
 class IRC(Plugin):
     #connection
-    host=None
-    port=None
-    ssl=False
-    server_password=""
-    channel=None
+    host = None
+    port = None
+    server_password = ""
+    channel = None
+    certificate = None
+    ssl = False
+    server_fingerprint = None
 
     #user
-    nickname="RelayBot"
-    realname="RelayBot"
-    username="RelayBot"
-    password=""
+    nickname = "RelayBot"
+    realname = "RelayBot"
+    username = "RelayBot"
+    password = ""
 
     #general
-
     cancel_highlight = False
     cancel_highlight_str = u"_"
 
@@ -245,11 +289,14 @@ class IRC(Plugin):
         self.players = []
         self.factory = IRCBotFactory(self)
         if self.ssl:
-            try:
-                from twisted.internet import ssl
-                reactor.connectSSL(self.host, self.port, self.factory, ssl.ClientContextFactory())
-            except ImportError:
-                self.parent.fatal_error("Couldn't load SSL for IRC")
+            if have_ssl:
+                cf = Mark2ClientContextFactory(self,
+                                               cert=self.certificate,
+                                               fingerprint=self.server_fingerprint)
+                reactor.connectSSL(self.host, self.port, self.factory, cf)
+            else:
+                self.parent.console("Couldn't load SSL for IRC!")
+                return
         else:
             reactor.connectTCP(self.host, self.port, self.factory)
 
