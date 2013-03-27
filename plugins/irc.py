@@ -3,8 +3,20 @@ import re
 from twisted.words.protocols import irc
 from twisted.internet import protocol
 from twisted.internet import reactor
+from twisted.python.util import InsensitiveDict
 from plugins import Plugin
 from events import PlayerChat, PlayerJoin, PlayerQuit, PlayerDeath, ServerOutput, ServerStopping, ServerStopped, ServerStarting, ServerStarted, StatPlayers
+
+
+class IRCUser(object):
+    username = ""
+    hostname = ""
+    status = ""
+    oper = False
+    away = False
+    
+    def __init__(self, nick):
+        self.nick = nick
 
 
 class IRCBot(irc.IRCClient):
@@ -18,6 +30,7 @@ class IRCBot(irc.IRCClient):
         self.channel     = plugin.channel.encode('ascii')
         self.console     = plugin.console
         self.irc_message = plugin.irc_message
+        self.users       = InsensitiveDict()
 
     def signedOn(self):
         self.console("irc: connected")
@@ -27,9 +40,110 @@ class IRCBot(irc.IRCClient):
         
         self.join(self.channel)
 
+    def irc_JOIN(self, prefix, params):
+        nick = prefix.split('!')[0]
+        channel = params[-1]
+        if nick == self.nickname:
+            self.joined(channel)
+        else:
+            self.userJoined(prefix, channel)
+
     def joined(self, channel):
         self.console('irc: joined channel')
         self.factory.client = self
+        def who(a):
+            self.sendLine("WHO " + channel)
+        self.factory.parent.repeating_task(who, 30, now=True)
+    
+    def isupport(self, args):
+        self.compute_prefix_names()
+        
+    def compute_prefix_names(self):
+        KNOWN_NAMES = {"o": "op", "h": "halfop", "v": "voice"}
+        prefixdata = self.supported.getFeature("PREFIX", {"o": ("@", 0), "v": ("+", 1)}).items()
+        op_priority = ([priority for mode, (prefix, priority) in prefixdata if mode == "o"] + [None])[0]
+        self.prefixes, self.statuses, self.priority = {}, {}, {}
+
+        for mode, (prefix, priority) in prefixdata:
+            name = "?"
+            if mode in KNOWN_NAMES:
+                name = KNOWN_NAMES[mode]
+            elif priority == 0:
+                if op_priority == 2:
+                    name = "owner"
+                else:
+                    name = "admin"
+            else:
+                name = "+" + mode
+            self.prefixes[mode] = prefix
+            self.statuses[prefix] = name
+            self.priority[mode] = priority
+            self.priority[prefix] = priority
+
+    def parse_prefixes(self, user, nick, prefixes=''):
+        status = []
+        prefixdata = self.supported.getFeature("PREFIX", {"o": ("@", 0), "v": ("+", 1)}).items()
+        for mode, (prefix, priority) in prefixdata:
+            if prefix in prefixes + nick:
+                nick = nick.replace(prefix, '')
+                status.append((prefix, priority))
+        if nick == self.nickname:
+            return
+        user.status = ''.join(t[0] for t in sorted(status, key=lambda t: t[1]))
+    
+    def irc_RPL_WHOREPLY(self, prefix, params):
+        _, channel, username, host, server, nick, status, hg = params
+        if nick == self.nickname:
+            return
+        hops, gecos = hg.split(' ', 1)
+        user = IRCUser(nick)
+        user.username = username
+        user.hostname = host
+        user.oper = '*' in status
+        user.away = status[0] == 'G'
+        self.users[nick] = user
+        self.parse_prefixes(user, nick, status[1:].replace('*', ''))
+    
+    def modeChanged(self, user, channel, _set, modes, args):
+        args = list(args)
+        if channel.lower() != self.channel.lower():
+            return
+        for m, arg in zip(modes, args):
+            if m in self.prefixes and arg != self.nickname:
+                u = self.users.get(arg, None)
+                if u:
+                    u.status = u.status.replace(self.prefixes[m], '')
+                    if _set:
+                        u.status = ''.join(sorted(list(u.status + self.prefixes[m]),
+                                                  key=lambda k: self.priority[k]))
+    
+    def userJoined(self, user, channel):
+        nick = user.split('!')[0]
+        user = IRCUser(nick)
+        self.users[nick] = user
+    
+    def userRenamed(self, oldname, newname):
+        if oldname not in self.users:
+            return
+        u = self.users[oldname]
+        u.nick = newname
+        self.users[newname] = u
+        del self.users[oldname]
+    
+    def userLeft(self, user, channel):
+        if user not in self.users:
+            return
+        del self.users[user]
+    
+    def userKicked(self, kickee, channel, kicker, message):
+        if kickee not in self.users:
+            return
+        del self.users[kickee]
+    
+    def userQuit(self, user, quitMessage):
+        if user not in self.users:
+            return
+        del self.users[user]
 
     def privmsg(self, user, channel, msg):
         if channel != self.channel:
@@ -44,7 +158,7 @@ class IRCBot(irc.IRCClient):
                 p.irc_message(user, msg)
 
     def alterCollidedNick(self, nickname):
-        return nickname+'_'
+        return nickname + '_'
 
     def irc_relay(self, message):
         self.say(self.channel, message.encode('utf8'))
@@ -92,6 +206,7 @@ class IRC(Plugin):
     #general
 
     cancel_highlight = False
+    cancel_highlight_str = u"_"
 
     #game -> irc settings
     game_columns = True
@@ -141,12 +256,16 @@ class IRC(Plugin):
         if self.game_status_enabled:
             self.register(self.handle_stopping, ServerStopping)
             self.register(self.handle_starting,  ServerStarting)
+        
+        self.column_width = 16
+        if self.cancel_highlight == "insert":
+            self.column_width += len(self.cancel_highlight_str)
 
         def register(event_type, format, *a, **k):
             def handler(event, format):
                 d = event.match.groupdict() if hasattr(event, 'match') else event.serialize()
-                if self.cancel_highlight and 'username' in d:
-                    d['username'] = '_' + d['username'][1:]
+                if self.cancel_highlight and 'username' in d and d['username'] in self.factory.client.users:
+                    d['username'] = self.mangle_username(d['username'])
                 line = self.format(format, **d)
                 self.factory.irc_relay(line)
             self.register(lambda e: handler(e, format), event_type, *a, **k)
@@ -176,13 +295,21 @@ class IRC(Plugin):
         self.factory.reconnect = False
         if self.factory.client:
             self.factory.client.quit("Plugin unloading.")
+        
+    def mangle_username(self, username):
+        if self.cancel_highlight == False:
+            return username
+        elif self.cancel_highlight == "insert":
+            return username[:-1] + self.cancel_highlight_str + username[-1:]
+        else:
+            return self.cancel_highlight_str + username[1:]
 
     def format(self, format, **data):
         if self.game_columns:
             f = unicode(format).split(',', 1)
             f[0] = f[0].format(**data)
             if len(f) == 2:
-                f[0] = f[0].rjust(16)
+                f[0] = f[0].rjust(self.column_width)
                 f[1] = f[1].format(**data)
             return ''.join(f)
         else:
