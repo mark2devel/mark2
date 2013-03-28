@@ -260,6 +260,7 @@ class IRC(Plugin):
 
     game_chat_enabled = True
     game_chat_format  = u"{username}, | {message}"
+    game_chat_private = None
 
     game_join_enabled = True
     game_join_format  = u"*, | --> {username}"
@@ -308,9 +309,12 @@ class IRC(Plugin):
         if self.cancel_highlight == "insert":
             self.column_width += len(self.cancel_highlight_str)
 
-        def register(event_type, format, *a, **k):
+        def register(event_type, format, filter_=None, *a, **k):
             def handler(event, format):
                 d = event.match.groupdict() if hasattr(event, 'match') else event.serialize()
+                if filter_ and 'message' in d:
+                    if filter_.match(d['message']):
+                        return
                 if self.cancel_highlight and 'username' in d and d['username'] in self.factory.client.users:
                     d['username'] = self.mangle_username(d['username'])
                 line = self.format(format, **d)
@@ -318,7 +322,15 @@ class IRC(Plugin):
             self.register(lambda e: handler(e, format), event_type, *a, **k)
 
         if self.game_chat_enabled:
-            register(PlayerChat, self.game_chat_format)
+            if self.game_chat_private:
+                try:
+                    filter_ = re.compile(self.game_chat_private)
+                    register(PlayerChat, self.game_chat_format, filter_=filter_)
+                except:
+                    self.console("plugin.irc.game_chat_private must be a valid regex")
+                    register(PlayerChat, self.game_chat_format)
+            else:
+                register(PlayerChat, self.game_chat_format)
 
         if self.game_join_enabled:
             register(PlayerJoin, self.game_join_format)
