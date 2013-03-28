@@ -51,8 +51,17 @@ class IRCUser(object):
     oper = False
     away = False
     
-    def __init__(self, nick):
+    def __init__(self, parent, nick):
+        self.parent = parent
         self.nick = nick
+    
+    @property
+    def priority(self):
+        p = self.parent.priority
+        if self.status:
+            return min([p[s] for s in self.status])
+        else:
+            return None
 
 
 class IRCBot(irc.IRCClient):
@@ -119,6 +128,7 @@ class IRCBot(irc.IRCClient):
                 name = "+" + mode
             self.prefixes[mode] = prefix
             self.statuses[prefix] = name
+            self.priority[name] = priority
             self.priority[mode] = priority
             self.priority[prefix] = priority
 
@@ -138,7 +148,7 @@ class IRCBot(irc.IRCClient):
         if nick == self.nickname:
             return
         hops, gecos = hg.split(' ', 1)
-        user = IRCUser(nick)
+        user = IRCUser(self, nick)
         user.username = username
         user.hostname = host
         user.oper = '*' in status
@@ -161,7 +171,7 @@ class IRCBot(irc.IRCClient):
     
     def userJoined(self, user, channel):
         nick = user.split('!')[0]
-        user = IRCUser(nick)
+        user = IRCUser(self, nick)
         self.users[nick] = user
     
     def userRenamed(self, oldname, newname):
@@ -190,14 +200,20 @@ class IRCBot(irc.IRCClient):
     def privmsg(self, user, channel, msg):
         if channel != self.channel:
             return
-        m = re.match('([^\!]+)\!.*', user)
-        if m:
-            user = m.group(1)
-            p = self.factory.parent
-            if p.irc_players_enabled and msg == p.irc_players_trigger:
-                self.say(self.channel, p.irc_players_format.format(players=', '.join(p.players)))
-            else:
-                p.irc_message(user, msg)
+        if '!' not in user:
+            return
+        nick = user.split('!')[0]
+        p = self.factory.parent
+        
+        if p.irc_chat_status and p.irc_chat_status in self.priority:
+            priority = self.priority[p.irc_chat_status]
+            u = self.users.get(nick, None)
+            if not u or u.priority is None or u.priority > priority:
+                return
+        if p.irc_players_enabled and msg == p.irc_players_trigger:
+            self.say(self.channel, p.irc_players_format.format(players=', '.join(p.players)))
+        else:
+            p.irc_message(nick, msg)
 
     def alterCollidedNick(self, nickname):
         return nickname + '_'
@@ -285,6 +301,7 @@ class IRC(Plugin):
     #irc -> game settings
     irc_chat_enabled = True
     irc_chat_command = u"say [IRC] <{nickname}> {message}"
+    irc_chat_status = None
 
     def setup(self):
         self.players = []
