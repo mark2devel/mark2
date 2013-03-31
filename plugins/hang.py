@@ -1,5 +1,5 @@
 from plugins import Plugin
-from events import ServerOutput, ServerOutputConsumer, StatPlayerCount, ServerStop
+from events import ServerOutput, ServerOutputConsumer, StatPlayerCount, ServerStop, ServerEvent
 from events import ACCEPTED, FINISHED
 
 class HangChecker(Plugin):
@@ -43,19 +43,25 @@ class HangChecker(Plugin):
                 self.crash_time -= 1
                 if self.crash_time == 0:
                     self.console("server has crashed, restarting...")
+                    self.dispatch(ServerEvent(cause='server/error/hang',
+                                              data="server didn't respond for {} minutes".format(self.crash_timeout),
+                                              priority=1))
                     self.dispatch(ServerStop(reason='crashed', respawn=True))
                 else:
                     self.console("server might have crashed! will auto-reboot in %d minutes." % self.crash_time)
 
             self.crash_alive = False
             self.register(self.handle_crash_ok, ServerOutputConsumer, pattern='Unknown command.*', once=True, track=False)
-            self.send('') # Blank command to trigger 'Unknown command'
+            self.send('')  # Blank command to trigger 'Unknown command'
 
         if self.ping_enabled:
             if not self.ping_alive:
                 self.ping_time -= 1
                 if self.ping_time == 0:
                     self.console("server has stopped accepting connections, restarting...")
+                    self.dispatch(ServerEvent(cause='server/error/ping',
+                                              data="server didn't respond for {} minutes".format(self.ping_timeout),
+                                              priority=1))
                     self.dispatch(ServerStop(reason='not accepting connections', respawn=True))
                 else:
                     self.console("server might have stopped accepting connections! will auto-reboot in %d minutes." % self.ping_time)
@@ -67,6 +73,9 @@ class HangChecker(Plugin):
                 self.pcount_time -= 1
                 if self.pcount_time == 0:
                     self.console("server has had 0 players for ages - something is awry. restarting...")
+                    self.dispatch(ServerEvent(cause='server/error/player-count',
+                                              data="server had 0 players for {} minutes".format(self.pcount_timeout),
+                                              priority=1))
                     self.dispatch(ServerStop(reason='zero players', respawn=True))
                 else:
                     self.console("server has 0 players on! might be down? will auto-reboot in %d minutes" % self.pcount_time)
@@ -91,16 +100,21 @@ class HangChecker(Plugin):
     # out of memory
     def handle_oom(self, event):
         self.console('server out of memory, restarting...')
+        self.dispatch(ServerEvent(cause='server/error/oom',
+                                  data="server ran out of memory",
+                                  priority=1))
         self.dispatch(ServerStop(reason='out of memory', respawn=True))
 
     # ping
     def handle_ping(self, event):
-        if event.source=='ping':
+        if event.source == 'ping':
             self.ping_time = self.ping_timeout
             self.ping_alive = True
     
     # pcount
     def handle_pcount(self, event):
-        if event.players_count > 0:
+        if event.players_current > 0:
             self.pcount_time = self.pcount_timeout
             self.pcount_alive = True
+        else:
+            self.pcount_alive = False
