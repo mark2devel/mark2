@@ -37,6 +37,9 @@ class ProcessProtocol(protocol.ProcessProtocol):
     def processEnded(self, reason):
         self.alive = False
         if isinstance(reason.value, error.ProcessTerminated) and reason.value.exitCode:
+            self.dispatch(events.ServerEvent(cause='server/error/exit-failure',
+                                             data="server exited abnormally: {}".format(reason.getErrorMessage()),
+                                             priority=1))
             self.dispatch(events.FatalError(reason=reason.getErrorMessage()))
         else:
             self.dispatch(events.ServerStopped())
