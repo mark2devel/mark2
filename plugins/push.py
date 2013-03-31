@@ -36,7 +36,6 @@ class Endpoint(object):
     def filter(self, event):
         if self.priority != "*":
             if int(self.priority) > event.priority:
-                _plugin.console("aaaa")
                 return False
         if self.causes != "*":
             for cause in self.causes.split(","):
@@ -44,7 +43,6 @@ class Endpoint(object):
                     return True
                 if cause.endswith("/") and event.cause.startswith(cause):
                     return True
-            _plugin.console("rejecting {}: cause".format(self))
             return False
         return True
     
@@ -210,7 +208,6 @@ class Push(Plugin):
                 for k, v in [d.split("=") for d in md]:
                     setattr(inst, k, v)
                 self.endpoints.append(inst)
-                print "push: adding {}".format(inst)
             except Exception as e:
                 self.console("push: ERROR ({}) adding endpoint: {}".format(e, ep))
     
