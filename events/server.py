@@ -110,3 +110,16 @@ class ServerStopping(Event):
 class ServerStopped(Event):
     """When the server process finally dies, this event is raised"""
     pass
+
+class ServerEvent(Event):
+    """Tell plugins about something happening to the server"""
+    
+    contains = ('cause', 'friendly', 'data', 'priority')
+    requires = ('cause', 'data')
+    
+    priority = 0
+    friendly = None
+    
+    def setup(self):
+        if not self.friendly:
+            self.friendly = self.cause
