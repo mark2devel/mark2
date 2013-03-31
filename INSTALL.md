@@ -10,6 +10,7 @@
 * twisted-web
 * twisted-words (for IRC support)
 * feedparser (for RSS support)
+* pyopenssl (for push notifications and IRC over SSL)
 
 ### debian/ubuntu
 
