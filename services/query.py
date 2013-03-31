@@ -76,7 +76,7 @@ class QueryProtocol(DatagramProtocol):
                 o['players'].append(p)
 
             self.dispatch(events.StatPlugins    (source = "query", plugins = o['plugins']))
-            self.dispatch(events.StatPlayerCount(source = "query", players_current = o['numplayers'], players_max = o['maxplayers']))
+            self.dispatch(events.StatPlayerCount(source = "query", players_current = int(o['numplayers']), players_max = int(o['maxplayers'])))
             if o['numplayers'] < 128:
                 self.dispatch(events.StatPlayers(source = "query", players = o['players']))
 

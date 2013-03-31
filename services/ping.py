@@ -20,7 +20,7 @@ class PingProtocol(Protocol):
             
             if len(self.buff) >= 3 + l * 2:
                 data = self.buff[9:].decode('utf-16be').split('\x00')
-                self.dispatch(StatPlayerCount(source="ping", players_current=data[3], players_max=data[4]))
+                self.dispatch(StatPlayerCount(source="ping", players_current=int(data[3]), players_max=int(data[4])))
                 self.transport.loseConnection()
 
 
