@@ -1,5 +1,6 @@
 import os
 import re
+import shlex
 import zipfile
 
 
@@ -160,6 +161,8 @@ class Mark2Properties(Properties):
                         options.append('-XX:%s=%s' % (b, v))
                 else:
                     print "Unknown JVM option type: %s" % a
+        if self.get('java.cli_extra', '') != '':
+            options.extend(shlex.split(self['java.cli_extra']))
         return options
     
     def get_format_options(self):
