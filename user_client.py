@@ -539,10 +539,11 @@ class UserClientProtocol(LineReceiver):
             self.factory.server_scrollback(msg['lines'])
 
         elif ty == "user_status":
+            user = str(msg["user"])
             if msg["online"]:
-                self.users.add(msg["user"])
+                self.users.add(user)
             else:
-                self.users.discard(msg["user"])
+                self.users.discard(user)
             self.factory.server_users(list(self.users))
 
         elif ty == "players":
