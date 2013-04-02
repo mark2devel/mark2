@@ -22,6 +22,7 @@ class Backup(Plugin):
     def setup(self):
         self.register(self.backup, Hook, public=True, name='backup', doc='backup the server to a .tar.gz')
         self.register(self.autosave_changed, ServerOutput, pattern="(?P<username>[A-Za-z0-9_]{1,16}): (?P<action>Enabled|Disabled) level saving\.\.")
+        self.register(self.autosave_changed, ServerOutput, pattern="Turned (?P<action>on|off) world auto-saving")
 
     def server_started(self, event):
         self.autosave_enabled = True
@@ -41,7 +42,7 @@ class Backup(Plugin):
         self.autosave_enabled = state
 
     def autosave_changed(self, event):
-        self.autosave_enabled = (event.match.groupdict()['action'] == 'Enabled')
+        self.autosave_enabled = event.match.groupdict()['action'].lower() in ('on', 'enabled')
         if self.backup_stage == 1 and not self.autosave_enabled:
             self.backup_stage = 2
             self.delayed_task(self.do_backup, self.flush_wait)
