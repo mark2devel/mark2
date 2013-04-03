@@ -2,7 +2,8 @@ from plugins import Plugin
 from events import ServerOutput, ServerOutputConsumer, StatPlayerCount, ServerStop, ServerEvent
 from events import ACCEPTED, FINISHED
 
-class HangChecker(Plugin):
+
+class Monitor(Plugin):
     crash_enabled = True
     crash_timeout = 3
 
