@@ -3,33 +3,109 @@ from events import ServerOutput, ServerOutputConsumer, StatPlayerCount, ServerSt
 from events import ACCEPTED, FINISHED
 
 
+class Check(object):
+    alive = True
+    timeout = 0
+    time = 0
+    warn = 0
+
+    def __init__(self, parent, **kw):
+        self.dispatch = parent.dispatch
+        self.console = parent.console
+        for k, v in kw.items():
+            setattr(self, k, v)
+
+    def check(self):
+        if self.alive:
+            self.alive = False
+            return True
+        return False
+
+    def step(self):
+        if self.check():
+            return
+
+        self.time += 1
+        if self.timeout and self.time == self.timeout:
+            timeout = "{} minutes".format(self.timeout)
+            self.console("{} -- restarting.".format(self.message.format(timeout=timeout)))
+            self.dispatch(ServerEvent(cause=   "server/error/" + self.event[0],
+                                      data=    "REBOOTING SERVER: " + self.event[1].format(timeout=timeout),
+                                      priority=1))
+            self.dispatch(ServerStop(reason=self.stop_reason, respawn=True))
+        elif self.warn and self.time == self.warn:
+            if self.timeout:
+                self.console("{} -- auto restart in {} minutes".format(self.warning, self.timeout - self.time))
+            else:
+                self.console(self.warning)
+            time = "{} minutes".format(self.warn)
+            self.dispatch(ServerEvent(cause=   "server/warning/" + self.event[0],
+                                      data=    "WARNING: " + self.event[1].format(timeout=time),
+                                      priority=1))
+        else:
+            if self.timeout:
+                self.console("{} -- auto restart in {} minutes".format(self.warning, self.timeout - self.time))
+            else:
+                self.console(self.warning)
+
+    def reset(self):
+        self.alive = True
+        self.time = 0
+
+
 class Monitor(Plugin):
-    crash_enabled = True
-    crash_timeout = 3
+    crash_enabled  = True
+    crash_timeout  = 3
+    crash_warn     = 0
 
-    oom_enabled   = True
+    oom_enabled    = True
 
-    ping_enabled  = True
-    ping_timeout  = 3
+    ping_enabled   = True
+    ping_timeout   = 3
+    ping_warn      = 0
 
     pcount_enabled = False
     pcount_timeout = 3
+    pcount_warn    = 0
 
     def setup(self):
         do_step = False
-        if self.crash_enabled:
-            do_step = True
+        self.checks = {}
 
         if self.oom_enabled:
             self.register(self.handle_oom, ServerOutput, level='SEVERE', pattern='java\.lang\.OutOfMemoryError.*')
 
+        if self.crash_enabled:
+            do_step = True
+            self.checks['crash'] =  Check(self, name="crash",
+                                          timeout=self.crash_timeout,
+                                          warn=   self.crash_warn,
+                                          message="server has crashed",
+                                          warning="server might have crashed",
+                                          event=("hang", "server didn't respond for {timeout}"),
+                                          stop_reason="crashed")
+
         if self.ping_enabled:
             self.register(self.handle_ping, StatPlayerCount)
             do_step = True
+            self.checks['ping'] =   Check(self, name="ping",
+                                          timeout=self.ping_timeout,
+                                          warn=   self.ping_warn,
+                                          message="server is not accepting connections",
+                                          warning="server might have stopped accepting connections",
+                                          event=("ping", "server didn't respond for {timeout}"),
+                                          stop_Reason="not accepting connections")
 
         if self.pcount_enabled:
             self.register(self.handle_pcount, StatPlayerCount)
             do_step = True
+            self.checks['pcount'] = Check(self, name="pcount",
+                                          timeout=self.pcount_timeout,
+                                          warn=   self.pcount_warn,
+                                          message="server has had 0 players for {timeout}, something is wrong",
+                                          warning="server has 0 players, might be inaccessible",
+                                          event=("player-count", "server had 0 players for {timeout}"),
+                                          stop_reason="zero players")
 
         self.do_step = do_step
 
@@ -38,64 +114,26 @@ class Monitor(Plugin):
         if self.do_step:
             self.repeating_task(self.step, 60)
 
-    def step(self, *a):
-        if self.crash_enabled:
-            if not self.crash_alive:
-                self.crash_time -= 1
-                if self.crash_time == 0:
-                    self.console("server has crashed, restarting...")
-                    self.dispatch(ServerEvent(cause='server/error/hang',
-                                              data="server didn't respond for {} minutes".format(self.crash_timeout),
-                                              priority=1))
-                    self.dispatch(ServerStop(reason='crashed', respawn=True))
-                else:
-                    self.console("server might have crashed! will auto-reboot in %d minutes." % self.crash_time)
+    def load_state(self, state):
+        self.server_started(None)
 
-            self.crash_alive = False
+    def step(self, *a):
+        for c in self.checks.values():
+            c.step()
+
+        if self.crash_enabled:
             self.register(self.handle_crash_ok, ServerOutputConsumer, pattern='Unknown command.*', once=True, track=False)
             self.send('')  # Blank command to trigger 'Unknown command'
-
-        if self.ping_enabled:
-            if not self.ping_alive:
-                self.ping_time -= 1
-                if self.ping_time == 0:
-                    self.console("server has stopped accepting connections, restarting...")
-                    self.dispatch(ServerEvent(cause='server/error/ping',
-                                              data="server didn't respond for {} minutes".format(self.ping_timeout),
-                                              priority=1))
-                    self.dispatch(ServerStop(reason='not accepting connections', respawn=True))
-                else:
-                    self.console("server might have stopped accepting connections! will auto-reboot in %d minutes." % self.ping_time)
-
-            self.ping_alive = False
-
-        if self.pcount_enabled:
-            if not self.pcount_alive:
-                self.pcount_time -= 1
-                if self.pcount_time == 0:
-                    self.console("server has had 0 players for ages - something is awry. restarting...")
-                    self.dispatch(ServerEvent(cause='server/error/player-count',
-                                              data="server had 0 players for {} minutes".format(self.pcount_timeout),
-                                              priority=1))
-                    self.dispatch(ServerStop(reason='zero players', respawn=True))
-                else:
-                    self.console("server has 0 players on! might be down? will auto-reboot in %d minutes" % self.pcount_time)
-
     
     def reset_counts(self):
-        self.crash_alive  = True
-        self.crash_time   = self.crash_timeout
-        self.ping_alive   = True
-        self.ping_time    = self.ping_timeout
-        self.pcount_alive = True
-        self.pcount_time  = self.pcount_timeout
+        for c in self.checks.values():
+            c.reset()
 
     ### handlers
     
     # crash
     def handle_crash_ok(self, event):
-        self.crash_time = self.crash_timeout
-        self.crash_alive = True
+        self.checks["crash"].reset()
         return ACCEPTED | FINISHED
     
     # out of memory
@@ -109,13 +147,11 @@ class Monitor(Plugin):
     # ping
     def handle_ping(self, event):
         if event.source == 'ping':
-            self.ping_time = self.ping_timeout
-            self.ping_alive = True
+            self.checks["ping"].reset()
     
     # pcount
     def handle_pcount(self, event):
         if event.players_current > 0:
-            self.pcount_time = self.pcount_timeout
-            self.pcount_alive = True
+            self.checks["pcount"].reset()
         else:
-            self.pcount_alive = False
+            self.checks["pcount"].alive = False
