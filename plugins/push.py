@@ -133,6 +133,16 @@ class PushoverEndpoint(HTTPEndpoint):
 @endpoint("smtp")
 class SMTPEndpoint(Endpoint):
     def __init__(self, plugin, url):
+        self.smtp_host, self.smtp_user, self.smtp_password =\
+            plugin.email_smtp_server, plugin.email_smtp_user, plugin.email_smtp_password
+        self.smtp_security = plugin.email_smtp_security
+
+        if ':' in self.smtp_host:
+            host = self.smtp_host.split(':')
+            self.smtp_host, self.smtp_port = host[0], int(host[1])
+        else:
+            self.smtp_port = 25
+
         self.from_addr = plugin.email_address
         self.from_name = "mark2: {}".format(plugin.parent.server_name)
         self.to_addr = url
@@ -144,20 +154,23 @@ class SMTPEndpoint(Endpoint):
         return mxc.getMX(host).addCallback(cbMX)
 
     def sendEmail(self, from_, from_name, to, msg_, subject=""):
-        def _send(host):
+        def send(host, user=None, pw=None, require_security=False):
             msg = MIMEText(msg_)
             msg['From'] = "\"{}\" <{}>".format(from_name, from_)
             msg['To'] = to
             msg['Subject'] = subject
             msgfile = StringIO(msg.as_string())
             d = Deferred()
-            factory = smtp.ESMTPSenderFactory(None, None, from_, to, msgfile, d,
-                                              requireAuthentication=False,
-                                              requireTransportSecurity=False)
-            reactor.connectTCP(host, 25, factory)
+            factory = smtp.ESMTPSenderFactory(user, pw, from_, to, msgfile, d,
+                                              requireAuthentication=(user is not None),
+                                              requireTransportSecurity=require_security)
+            reactor.connectTCP(host, self.smtp_port, factory)
             self.wait(d)
             return d
-        return self.getMailExchange(to.split("@")[1]).addCallback(_send)
+        if self.smtp_host:
+            return send(self.smtp_host, self.smtp_user, self.smtp_password, self.smtp_security)
+        else:
+            return self.getMailExchange(to.split("@")[1]).addCallback(send)
     
     def push(self, event):
         defer = self.sendEmail(self.from_addr, self.from_name, self.to_addr, event.data, event.friendly)
@@ -166,9 +179,15 @@ class SMTPEndpoint(Endpoint):
 
 
 class Push(Plugin):
-    endpoints = ""
-    email_address = "mark2@fantastic.minecraft.server"
-    pushover_token = ""
+    endpoints           = ""
+
+    email_address       = "mark2@fantastic.minecraft.server"
+    email_smtp_server   = ""
+    email_smtp_user     = ""
+    email_smtp_password = ""
+    email_smtp_security = False
+
+    pushover_token      = ""
     
     def setup(self):
         global _plugin
