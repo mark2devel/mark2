@@ -209,7 +209,6 @@ class Push(Plugin):
     
     def configure_endpoints(self):
         eps = self.endpoints.split("\n")
-        print self.endpoints
         self.endpoints = []
         for ep in eps:
             if not ep.strip():
