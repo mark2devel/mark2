@@ -29,6 +29,9 @@ class Shutdown(Plugin):
         self.register(self.h_kill,          Hook, public=True, name="kill",         doc='kill the server')
         self.register(self.h_kill_restart,  Hook, public=True, name="kill-restart", doc='kill the server and bring it back up')
         self.register(self.h_cancel,        Hook, public=True, name="cancel",       doc='cancel an upcoming shutdown or restart')
+
+    def server_started(self, event):
+        self.cancel_preempt = 0
     
     def warn_restart(self, delay):
         self.send_format("say %s" % self.restart_warn_message, parseColors=True, delay=delay)
