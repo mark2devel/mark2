@@ -277,7 +277,8 @@ class UI:
 
         contents = self.g_servers.contents
         del contents[0:len(contents)]
-        contents.append((urwid.AttrMap(urwid.Text(u' mark2 \u21C9 '),'mark2'), self.g_servers.options('pack')))
+        sep = u'\u21C9 ' if urwid.supports_unicode() else u':'
+        contents.append((urwid.AttrMap(urwid.Text(u' mark2 %s' % sep), 'mark2'), self.g_servers.options('pack')))
         contents.extend(new)
         contents.append((urwid.Divider(), self.g_users.options()))
 
