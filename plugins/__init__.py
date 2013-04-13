@@ -107,12 +107,19 @@ class Plugin:
         kw = { k: FormatWrapper(v) for k, v in kw.iteritems() }
         self.send(l.format(**kw), parseColors=parseColors)
     
-    def action_chain(self, spec, callbackWarn, callbackAction):
+    def action_chain_cancellable(self, spec, callbackWarn, callbackAction, callbackCancel=None):
         intervals = [self.parse_time(i) for i in spec.split(';')]
         intervals = sorted(intervals, key=lambda a: a[1])
+
+        delayed_call = [None]
+
+        def cancel(*args):
+            delayed_call[0].cancel()
+            if callbackCancel:
+                callbackCancel(*args)
         
         def action_chain_i(i_name, i_delay, i_action):
-            reactor.callLater(i_delay, i_action) 
+            delayed_call[0] = reactor.callLater(i_delay, i_action) 
             callbackWarn(i_name)
         
         lastAction = callbackAction
@@ -125,7 +132,10 @@ class Plugin:
             lastTime   = time
             totalTime += time
         
-        return totalTime, lastAction
+        return totalTime, lastAction, cancel
+
+    def action_chain(self, spec, callbackWarn, callbackAction):
+        return self.action_chain_cancellable(spec, callbackWarn, callbackAction)[:2]
 
     def parse_time(self, spec):
         symbols = {'s': (1, 'second'), 'm': (60, 'minute'), 'h': (3600, 'hour')}
@@ -200,6 +210,7 @@ class PluginManager(dict):
     def reload_all(self):
         self.unload_all()
         self.load_all()
+
 
 class FormatWrapper(str):
     def __getattribute__(self, item):
