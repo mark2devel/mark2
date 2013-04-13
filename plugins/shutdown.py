@@ -35,7 +35,7 @@ class Shutdown(Plugin):
             if self.kick_mode == 'all':
                 for player in self.players:
                     self.send_format(self.kick_command, player=player, message=message)
-            else:
+            elif self.kick_mode == 'once':
                 self.send_format(self.kick_command, message=message)
         self.dispatch(ServerStop(reason='console', respawn=respawn, kill=kill))
 
