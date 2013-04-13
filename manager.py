@@ -63,6 +63,7 @@ class Manager(MultiService):
         self.events.register(self.handle_cmd_plugins,       events.Hook, public=True, name="plugins", doc="lists running plugins")
         self.events.register(self.handle_cmd_reload_plugin, events.Hook, public=True, name="reload-plugin", doc="reload a plugin")
         self.events.register(self.handle_cmd_reload,        events.Hook, public=True, name="reload", doc="reload config and all plugins")
+        self.events.register(self.handle_cmd_jar,           events.Hook, public=True, name="jar", doc="wrap a different server jar")
 
         self.events.register(self.handle_console,       events.Console)
         self.events.register(self.handle_fatal,         events.FatalError)
@@ -133,7 +134,8 @@ class Manager(MultiService):
                 self.properties['server_ip'], 
                 self.properties['query.port']))
 
-        self.addService(process.Process(self, self.jar_file))
+        self.process = process.Process(self, self.jar_file)
+        self.addService(self.process)
         self.addService(user_server.UserServer(self, os.path.join(self.shared_path, "%s.sock" % self.server_name)))
         
         #load plugins
@@ -209,6 +211,16 @@ class Manager(MultiService):
         self.plugins.unload_all()
         self.load_plugins()
         self.console("config + plugins reloaded.")
+
+    def handle_cmd_jar(self, event):
+        new_jar = process.find_jar(
+            self.config['mark2.jar_path'].split(';'),
+            event.args)
+        if new_jar:
+            self.console("I will switch to {} at the next restart".format(new_jar))
+            self.jar_file = self.process.jarfile = new_jar
+        else:
+            self.console("Can't find a matching jar file.")
 
     def handle_console(self, event):
         for line in event.value().encode('utf8').split("\n"):
