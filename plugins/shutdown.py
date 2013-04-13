@@ -67,6 +67,12 @@ class Shutdown(Plugin):
             return True
         else:
             return False
+
+    def save_state(self):
+        return self.cancel_preempt, self.cancel
+
+    def load_state(self, state):
+        self.cancel_preempt, self.cancel = state
     
     #Hook handlers:
     def h_stop(self, event=None):
