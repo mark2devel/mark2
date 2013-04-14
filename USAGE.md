@@ -11,7 +11,7 @@ The following plugins also require config files in the server directory:
 
 * script: `scripts.txt`: scriptable event handlers and recurring tasks
 * alert: `alerts.txt`: e.g. "Lock your chests with /lock! ..."
-* trigger: `triggers.txt`: e.g. "!teamspeak:Join our teamspeak server at xyz"
+* trigger: `triggers.txt`: e.g. "!teamspeak,Join our teamspeak server at xyz"
 
 There are examples of these in the `samples/` directory
 
