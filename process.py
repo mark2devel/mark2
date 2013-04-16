@@ -23,7 +23,7 @@ class ProcessProtocol(protocol.ProcessProtocol):
             event_3 = events.ServerOutput(line=line)
             self.dispatch(event_3)
 
-    def errReceived(self, data):
+    def childDataReceived(self, fd, data):
         data = data.decode(self.locale)
         data = data.split("\n")
         data[0] = self.obuff + data[0]
