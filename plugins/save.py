@@ -20,6 +20,7 @@ class Save(Plugin):
         event.handled = True
 
     def save_real(self):
-        self.send('say %s' % self.message, parseColors=True)
+        if self.message:
+            self.send('say %s' % self.message, parseColors=True)
         self.send('save-all')
     
