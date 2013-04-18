@@ -4,7 +4,7 @@ import signal
 
 from twisted.internet import reactor, defer, error
 from twisted.application.service import MultiService, Service
-from twisted.python import log
+from twisted.python import log, logfile
 
 #mark2 things
 import events
@@ -56,7 +56,7 @@ class Manager(MultiService):
     def startServiceReal(self):
         #start event dispatcher
         self.events = events.EventDispatcher(self.handle_dispatch_error)
-        
+
         #add some handlers
         self.events.register(self.handle_cmd_help,          events.Hook, public=True, name="help", doc="displays this message")
         self.events.register(self.handle_cmd_events,        events.Hook, public=True, name="events", doc="lists events")
@@ -75,8 +75,6 @@ class Manager(MultiService):
         self.events.register(self.handle_player_quit,   events.PlayerQuit)
         self.events.register(self.handle_server_stopped,events.ServerStopped)
 
-        self.console("mark2 starting...")
-
         #change to server directory
         os.chdir(self.server_path)
 
@@ -88,9 +86,14 @@ class Manager(MultiService):
         if self.config is None:
             return self.fatal_error(reason="couldn't find mark2.properties")
 
+        #start logging
+        self.start_logging()
+
         #chmod log and pid
         for ext in ('log', 'pid'):
             os.chmod(os.path.join(self.shared_path, "%s.%s" % (self.server_name, ext)), self.config.get_umask(ext))
+
+        self.console("mark2 starting...")
 
         #find jar file
         if self.jar_file is None:
@@ -126,18 +129,18 @@ class Manager(MultiService):
                 self.properties['server_ip'],
                 self.properties['server_port'],
                 self.config['mark2.service.query.interval']))
-        
+
         if self.config['mark2.service.query.enabled'] and self.properties['enable_query']:
             self.addService(query.Query(
-                self, 
-                self.config['mark2.service.query.interval'], 
-                self.properties['server_ip'], 
+                self,
+                self.config['mark2.service.query.interval'],
+                self.properties['server_ip'],
                 self.properties['query.port']))
 
         self.process = process.Process(self, self.jar_file)
         self.addService(self.process)
         self.addService(user_server.UserServer(self, os.path.join(self.shared_path, "%s.sock" % self.server_name)))
-        
+
         #load plugins
         self.plugins = plugins.PluginManager(self)
         self.load_plugins()
@@ -155,6 +158,23 @@ class Manager(MultiService):
         self.console(o)
 
     #helpers
+    def start_logging(self):
+        log_rotate = self.config['mark2.log.rotate_mode']
+        log_size   = self.config['mark2.log.rotate_size']
+        log_limit  = self.config['mark2.log.rotate_limit']
+        if log_rotate == 'daily':
+            log_obj = logfile.DailyLogFile("%s.log" % self.server_name, self.shared_path)
+        elif log_rotate in ('off', 'size'):
+            log_obj = logfile.LogFile("%s.log" % self.server_name, self.shared_path,
+                                      rotateLength = log_size if log_rotate == 'size' else None,
+                                      maxRotatedFiles = log_limit if log_limit != "" else None)
+        else:
+            raise ValueError("mark2.log.rotate-mode is invalid.")
+
+        log.startLogging(log_obj)
+        #remove /dev/null logger
+        log.theLogPublisher.observers.pop(0)
+
     def load_plugins(self):
         self.config = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties')
         self.plugins.config = self.config

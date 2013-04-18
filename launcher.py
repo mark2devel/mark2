@@ -219,6 +219,7 @@ class CommandTyTerminal(CommandTySelective):
         ('immediate', ('-i', '--immediate'), '', 'don\'t wait for any output'))
 
     wait = None
+    wait_from_start = False
     only = False
     def do_end(self):
         if 'wait' in self.options:
@@ -236,8 +237,11 @@ class CommandTyTerminal(CommandTySelective):
     def do_wait(self):
         if self.wait is None:
             return
+        while not os.path.exists(self.shared('log')):
+            time.sleep(0.1)
         with open(self.shared('log'), 'r') as f:
-            f.seek(0,2)
+            if not self.wait_from_start:
+                f.seek(0,2)
             while True:
                 line = f.readline().rstrip()
                 if not line:
@@ -383,14 +387,19 @@ class CommandStart(CommandTyTerminal):
             if os.path.exists(self.shared(x)):
                 os.remove(self.shared(x))
 
-        # create empty log
-        #open(self.shared('log'), 'w').close()
+        i = 1
+        while True:
+            p = self.shared("log.%d" % i)
+            if not os.path.exists(p):
+                break
+            os.remove(p)
+            i += 1
 
         # build command
         command = [
             'twistd',
             '--pidfile', self.shared('pid'),
-            '--logfile', self.shared('log'),
+            '--logfile', '/dev/null',
             'mark2',
             '--shared-path', self.shared_path,
             '--server-name', self.server_name,
@@ -407,6 +416,7 @@ class CommandStart(CommandTyTerminal):
             raise Mark2Error("twistd failed to start up!")
 
         self.wait = '# mark2 started|stopped\.'
+        self.wait_from_start = True
 
 class CommandList(CommandTyStateful):
     """list running servers"""
