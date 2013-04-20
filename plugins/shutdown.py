@@ -1,5 +1,5 @@
 from plugins import Plugin
-from events import Hook, ServerStop, StatPlayers
+from events import Hook, ServerStop, StatPlayers, StatPlayerCount
 
 
 class Shutdown(Plugin):
@@ -17,20 +17,25 @@ class Shutdown(Plugin):
     failsafe = None
 
     cancel_preempt = 0
+
+    restart_on_empty = False
     
     def setup(self):
         self.players = []
         self.cancel = []
         
         self.register(self.handle_players, StatPlayers)
+        self.register(self.handle_player_count, StatPlayerCount)
         
         self.register(self.h_stop,          Hook, public=True, name="stop",         doc='cleanly stop the server. specify a delay like `~stop 2m`')
         self.register(self.h_restart,       Hook, public=True, name="restart",      doc='cleanly restart the server. specify a delay like `~restart 30s`')
+        self.register(self.h_restart_empty, Hook, public=True, name="restart-empty",doc='restart the server next time it has 0 players')
         self.register(self.h_kill,          Hook, public=True, name="kill",         doc='kill the server')
         self.register(self.h_kill_restart,  Hook, public=True, name="kill-restart", doc='kill the server and bring it back up')
         self.register(self.h_cancel,        Hook, public=True, name="cancel",       doc='cancel an upcoming shutdown or restart')
 
     def server_started(self, event):
+        self.restart_on_empty = False
         self.cancel_preempt = 0
     
     def warn_restart(self, delay):
@@ -60,6 +65,11 @@ class Shutdown(Plugin):
     def handle_players(self, event):
         self.players = event.players
 
+    def handle_player_count(self, event):
+        if event.players_current == 0 and self.restart_on_empty:
+            self.restart_on_empty = False
+            self.nice_stop(True, False)
+
     def cancel_something(self, reason=None):
         thing, cancel = self.cancel.pop(0)
         cancel(reason, thing)
@@ -72,10 +82,10 @@ class Shutdown(Plugin):
             return False
 
     def save_state(self):
-        return self.cancel_preempt, self.cancel
+        return self.cancel_preempt, self.cancel, self.restart_on_empty
 
     def load_state(self, state):
-        self.cancel_preempt, self.cancel = state
+        self.cancel_preempt, self.cancel, self.restart_on_empty = state
     
     #Hook handlers:
     def h_stop(self, event=None):
@@ -97,6 +107,13 @@ class Shutdown(Plugin):
             warn_length, action, cancel = self.action_chain_cancellable(event.args, self.warn_restart, action, self.warn_cancel)
             self.cancel.append(("restart", cancel))
         action()
+
+    def h_restart_empty(self, event):
+        if self.restart_on_empty:
+            self.console("I was already going to do that")
+        else:
+            self.console("I will restart the next time the server empties")
+        self.restart_on_empty = True
     
     def h_kill(self, event):
         self.nice_stop(False, True)
