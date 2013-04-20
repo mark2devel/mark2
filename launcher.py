@@ -317,6 +317,12 @@ class CommandStart(CommandTyTerminal):
         else:
             raise Mark2Error("path does not exist: " + self.server_path)
 
+    @staticmethod
+    def get_umask():
+        cu = os.umask(0)
+        os.umask(cu)
+        return "{:03o}".format(cu)
+
     def check_ownership(self):
         d_user = pwd.getpwuid(os.stat(self.server_path).st_uid).pw_name
         m_user = getpass.getuser()
@@ -400,6 +406,7 @@ class CommandStart(CommandTyTerminal):
             'twistd',
             '--pidfile', self.shared('pid'),
             '--logfile', '/dev/null',
+            '--umask', self.get_umask(),
             'mark2',
             '--shared-path', self.shared_path,
             '--server-name', self.server_name,
