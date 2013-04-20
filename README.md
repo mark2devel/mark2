@@ -7,8 +7,7 @@ rich feature-set and a powerful plugin interface. It has no requirement on craft
 
 * Your server runs in the background
 * Multiple users can attach at once, with their own local prompt and command buffer
-* Built in monitoring using [top](http://en.wikipedia.org/wiki/top_%28software%29), [query](http://wiki.vg/Query), and
-  [ping](http://wiki.vg/Server_List_Ping)
+* Built in monitoring using cpu, memory, players and connectivity
 * Rich screen/tmux-like client with built-in monitoring, tab-complete, command history, etc
 
 ## plugins
@@ -16,6 +15,7 @@ rich feature-set and a powerful plugin interface. It has no requirement on craft
 * Powerful scheduling plugin, with a cron-like syntax. You can hook onto events like `@serverstopped` to run a
   cartograph, or run `save` on an interval
 * Automatically restart the server when it crashes, runs out of memory, or stops accepting connections
+* Notifications via Prowl, Pushover, NotifyMyAndroid or email if something goes wrong.
 * Relay in-game chat to IRC, and vice-versa
 * MCBouncer ban support, even on a vanilla server.
 * Read an RSS feed (such as a subreddit feed) and announce new entries in-game

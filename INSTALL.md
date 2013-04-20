@@ -16,7 +16,7 @@
 
 This should suffice:
 
-    $ sudo apt-get install python-dev python-twisted-core python-twisted-web python-twisted-words
+    $ sudo apt-get install python-dev python-pip python-twisted-core python-twisted-web python-twisted-words
     $ sudo pip install psutil urwid feedparser
 
 ### centos
@@ -60,8 +60,7 @@ user to run servers under.
 
     $ sudo adduser mcservers
 
-To start a server, either run `mark2 start` as `sudo -u mcservers mark2 start ...`, or assign a value to `java.user` in
-`/config/mark2.properties` and start with `sudo mark2 start ...`
+To start a server, run `mark2 start` as `sudo -u mcservers mark2 start ...`
 
 ### tips
 
