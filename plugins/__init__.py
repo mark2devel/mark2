@@ -11,6 +11,8 @@ from twisted.internet.error import AlreadyCancelled
 from events import Hook, ServerInput, ServerStarted, ServerStopping
 
 class Plugin:
+    restore = tuple()
+
     def __init__(self, parent, name, **kwargs):
         self.parent = parent
         self.name = name
@@ -68,10 +70,10 @@ class Plugin:
             self.unregister(ident)
     
     def save_state(self):
-        pass
+        return [getattr(self, k) for k in self.restore]
 
     def load_state(self, state):
-        pass
+        [setattr(self, k, state.pop(0)) for k in self.restore]
     
     def delayed_task(self, callback, delay, name=None):
         hook = self._task(callback, name)
