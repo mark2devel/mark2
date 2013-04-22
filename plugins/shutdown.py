@@ -19,6 +19,8 @@ class Shutdown(Plugin):
     cancel_preempt = 0
 
     restart_on_empty = False
+
+    restore = ('cancel_preempt', 'cancel', 'restart_on_empty')
     
     def setup(self):
         self.players = []
@@ -80,12 +82,6 @@ class Shutdown(Plugin):
             return True
         else:
             return False
-
-    def save_state(self):
-        return self.cancel_preempt, self.cancel, self.restart_on_empty
-
-    def load_state(self, state):
-        self.cancel_preempt, self.cancel, self.restart_on_empty = state
     
     #Hook handlers:
     def h_stop(self, event=None):
