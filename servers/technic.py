@@ -1,28 +1,28 @@
-from twisted.internet.defer import DeferredList
+import json
 from servers import JarProvider
 
 class Technic(JarProvider):
-    base = 'http://mirror.technicpack.net/Technic/'
+    api_base = 'http://solder.technicpack.net/api/modpack/?include=full'
     packs   = (
-        ('Tekkit Classic', 'tekkit',     'Tekkit_Server_{version}.zip'),
-        ('Tekkit Lite',    'tekkitlite', 'Tekkit_Lite_Server_{version}.zip'),
-        ('Voltz',          'voltz',      'Voltz_Server_v{version}.zip'))
+        ('bigdig',     'BigDigServer-v{0}.zip'),
+        ('tekkit',     'Tekkit_Server_{0}.zip'),
+        ('tekkitlite', 'Tekkit_Lite_Server_{0}.zip'),
+        ('voltz',      'Voltz_Server_v{0}.zip'))
     builds = ('recommended', 'latest')
 
     def work(self):
-        d = []
-        for name, dir, fn in self.packs:
-            d.append(self.get(self.base + dir + '/modpack.yml', lambda d, name=name, dir=dir, fn=fn: self.handle_data(d, name, dir, fn)))
-        d = DeferredList(d)
-        d.addCallback(self.commit)
+        self.get(self.api_base, self.handle_data)
 
-    def handle_data(self, data, name, dir, fn):
-        for line in data.split("\n"):
-            if line == "" or line[0] in (" ", "\t"):
-                break
-
-            line = line.split(": ", 2)
-            if line[0] in self.builds:
-                self.add(('Technic', name, line[0].title()), (None, None, None), self.base+'servers/'+dir+'/'+fn.format(version=line[1]))
+    def handle_data(self, data):
+        data = json.loads(data)
+        base = data['mirror_url']
+        for name, server in self.packs:
+            mod = data['modpacks'][name]
+            title = mod['display_name']
+            title = 'Tekkit Classic' if title == 'Tekkit' else title
+            for build in self.builds:
+                self.add(('Technic', title, build.title()), (None, None, None),
+                          base + 'servers/' + name + '/' + server.format(mod[build]))
+        self.commit()
 
 ref = Technic

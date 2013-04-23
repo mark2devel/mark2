@@ -1,3 +1,5 @@
+import json
+
 from twisted.internet import reactor, defer, ssl
 from twisted.web.client import getPage, HTTPClientFactory
 
@@ -42,12 +44,26 @@ class JarProvider:
     def work(self):
         raise NotImplementedError
 
-import vanilla, bukkit, technic, feed_the_beast, spigot
+class JenkinsJarProvider(JarProvider):
+    base = None
+    project = None
+    name = None
+
+    def work(self):
+        self.get('{0}job/{1}/lastSuccessfulBuild/api/json'.format(self.base, self.project), self.handle_data)
+
+    def handle_data(self, data):
+        data = json.loads(data)
+        url = '{0}job/{1}/lastSuccessfulBuild/artifact/{2}'.format(self.base, self.project, data['artifacts'][0]['relativePath'])
+        self.add((self.name, 'Latest'), (None, None), url)
+        self.commit()
+
+import vanilla, bukkit, technic, feed_the_beast, spigot, nukkit, mcpcplus, libigot
 
 def get_raw():
     d_results = defer.Deferred()
     dd = []
-    for mod in vanilla, bukkit, technic, feed_the_beast, spigot:
+    for mod in vanilla, bukkit, technic, feed_the_beast, spigot, nukkit, mcpcplus, libigot:
         d = defer.Deferred()
         mod.ref(d)
         dd.append(d)
