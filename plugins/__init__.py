@@ -11,6 +11,8 @@ from twisted.internet.error import AlreadyCancelled
 from events import Hook, ServerInput, ServerStarted, ServerStopping
 
 class Plugin:
+    restore = tuple()
+
     def __init__(self, parent, name, **kwargs):
         self.parent = parent
         self.name = name
@@ -68,10 +70,10 @@ class Plugin:
             self.unregister(ident)
     
     def save_state(self):
-        pass
+        return [getattr(self, k) for k in self.restore]
 
     def load_state(self, state):
-        pass
+        [setattr(self, k, state.pop(0)) for k in self.restore]
     
     def delayed_task(self, callback, delay, name=None):
         hook = self._task(callback, name)
@@ -148,17 +150,17 @@ class Plugin:
         return name, time
 
 
-
-
 class PluginManager(dict):
     def __init__(self, parent):
         self.parent = parent
-        self.states  = {}
+        self.states = {}
         dict.__init__(self)
 
     def load(self, name, **kwargs):
-        found = False
         p = path.join(path.dirname(path.realpath(__file__)), name + '.py')
+        if not path.exists(p):
+            self.parent.console("can't find plugin: '%s'" % name, kind='error')
+            return
         try:
             module = imp.load_source(name, p)
             classes = inspect.getmembers(module, inspect.isclass)
@@ -179,7 +181,7 @@ class PluginManager(dict):
                     return plugin
 
             #if we've reached this point, there's no subclass of Plugin in the file!
-            raise Exception("Couldn't find class!")
+            self.parent.console("a file for plugin '%s' exists, but there is no plugin in it" % name, kind='error')
         except Exception:
             self.parent.console("plugin '%s' failed to load. stack trace follows" % name, kind='error')
             for l in traceback.format_exc().split("\n"):

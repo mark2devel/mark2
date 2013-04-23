@@ -14,6 +14,8 @@ class Log(Plugin):
     log = u""
     
     reason = "unknown"
+
+    restore = ('log',)
     
     def setup(self):
         if self.vanilla:
@@ -22,12 +24,6 @@ class Log(Plugin):
             self.register(self.logger, Console)
         self.register(self.shutdown, ServerStopped)
         self.register(self.pre_shutdown, ServerStopping)
-        
-    def save_state(self):
-        return self.log
-
-    def load_state(self, state):
-        self.log = state
 
     def vanilla_logger(self, event):
         self.log += u"%s\n" % event.line
