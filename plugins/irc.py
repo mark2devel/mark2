@@ -356,7 +356,15 @@ class IRC(Plugin):
             register(PlayerQuit, self.game_quit_format)
 
         if self.game_death_enabled:
-            register(PlayerDeath, self.game_death_format)
+            def handler(event):
+                d = event.serialize()
+                for k in 'username', 'killer':
+                    if k in d and d[k] and d[k] in self.factory.client.users:
+                        d[k] = self.mangle_username(d[k])
+                text = event.get_text(**d)
+                line = self.format(self.game_death_format, text=text)
+                self.factory.irc_relay(line)
+            self.register(handler, PlayerDeath)
 
         if self.game_server_message_enabled and not (self.irc_chat_enabled and self.irc_chat_command.startswith('say ')):
             register(ServerOutput, self.game_server_message_format, pattern=r'\[(?:Server|SERVER)\] (?P<message>.+)')
