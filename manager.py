@@ -62,6 +62,7 @@ class Manager(MultiService):
         self.events.register(self.handle_cmd_events,        events.Hook, public=True, name="events", doc="lists events")
         self.events.register(self.handle_cmd_plugins,       events.Hook, public=True, name="plugins", doc="lists running plugins")
         self.events.register(self.handle_cmd_reload_plugin, events.Hook, public=True, name="reload-plugin", doc="reload a plugin")
+        self.events.register(self.handle_cmd_rehash,        events.Hook, public=True, name="rehash", doc="reload config and any plugins that changed")
         self.events.register(self.handle_cmd_reload,        events.Hook, public=True, name="reload", doc="reload config and all plugins")
         self.events.register(self.handle_cmd_jar,           events.Hook, public=True, name="jar", doc="wrap a different server jar")
 
@@ -226,6 +227,24 @@ class Manager(MultiService):
             self.console("%s reloaded." % event.args)
         else:
             self.console("unknown plugin.")
+
+    def handle_cmd_rehash(self, event):
+        # make a dict of old and new plugin list
+        plugins_old = dict(self.config.get_plugins())
+        self.config = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties')
+        self.plugins.config = self.config
+        plugins_new = dict(self.config.get_plugins())
+        # reload the union of old plugins and new plugins
+        requires_reload = set(plugins_old.keys()) | set(plugins_new.keys())
+        # (except plugins whose config is exactly the same)
+        for k in list(requires_reload):
+            if plugins_old.get(k, False) == plugins_new.get(k, False):
+                requires_reload.remove(k)
+        requires_reload = list(requires_reload)
+        # actually reload
+        map(self.plugins.reload, requires_reload)
+        reloaded = filter(None, requires_reload)
+        self.console("%d plugins reloaded: %s" % (len(reloaded), ", ".join(reloaded)))
 
     def handle_cmd_reload(self, event):
         self.plugins.unload_all()
