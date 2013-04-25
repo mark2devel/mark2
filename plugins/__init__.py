@@ -199,7 +199,7 @@ class PluginManager(dict):
         self.unload(name)
         kwargs = dict(self.parent.config.get_plugins()).get(name, None)
         if not kwargs is None:
-            self.load(name, **kwargs)
+            return self.load(name, **kwargs)
 
     def load_all(self):
         for name, kwargs in self.parent.config.get_plugins():
