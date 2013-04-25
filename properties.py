@@ -201,4 +201,14 @@ class Lang(Properties):
         for k, v in self.get_by_prefix('death.'):
             if not v in seen:
                 seen.append(v)
-                yield k, reduce(lambda a, r: a.replace(*r), (("\\%%%d\\$s" % (i+1), "(?P<%s>[A-Za-z0-9]{1,32})" % x) for i, x in enumerate(("username", "killer", "weapon"))), re.escape(v))
+                regex = reduce(lambda a, r: a.replace(*r),
+                               ((r"\%{}\$s".format(i + 1),
+                                 "(?P<{}>[A-Za-z0-9]{{1,32}})".format(x))
+                                for i, x in enumerate(("username", "killer", "weapon"))),
+                               re.escape(v))
+                format = reduce(lambda a, r: a.replace(*r),
+                                (("%{}$s".format(i + 1),
+                                  "{{{}}}".format(x))
+                                 for i, x in enumerate(("username", "killer", "weapon"))),
+                                v)
+                yield k, ("^{}$".format(regex), format)
