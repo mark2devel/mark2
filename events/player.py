@@ -1,25 +1,27 @@
 from events import Event
 
-def setup(s):
-    s.username = s.username.encode('ascii')
+
+class PlayerEvent(Event):
+    def setup(s):
+        s.username = s.username.encode('ascii')
+
 
 #Raised in manager
 
-class PlayerJoin(Event):
+class PlayerJoin(PlayerEvent):
     requires = ('username', 'ip')
-    setup = setup
 
-class PlayerQuit(Event):
+
+class PlayerQuit(PlayerEvent):
     requires = ('username', 'reason')
-    setup = setup
 
-class PlayerChat(Event):
+
+class PlayerChat(PlayerEvent):
     requires = ('username', 'message')
-    setup = setup
 
-class PlayerDeath(Event):
+
+class PlayerDeath(PlayerEvent):
     contains = ('text', 'username', 'cause', 'killer', 'weapon')
     requires = ('text', 'username', 'cause')
-    setup = setup
     killer = None
     weapon = None
