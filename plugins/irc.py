@@ -4,6 +4,7 @@ import os.path as path
 from twisted.words.protocols import irc
 from twisted.internet import protocol
 from twisted.internet import reactor
+from twisted.internet.interfaces import ISSLTransport
 from twisted.python.util import InsensitiveDict
 from plugins import Plugin
 from events import PlayerChat, PlayerJoin, PlayerQuit, PlayerDeath, ServerOutput, ServerStopping, ServerStarting, StatPlayers
@@ -11,7 +12,6 @@ from events import PlayerChat, PlayerJoin, PlayerQuit, PlayerDeath, ServerOutput
 try:
     from OpenSSL import SSL
     from twisted.internet import ssl
-    from twisted.protocols.tls import TLSMemoryBIOProtocol
 
     have_ssl = True
     
@@ -78,7 +78,7 @@ class IRCBot(irc.IRCClient):
         self.users       = InsensitiveDict()
 
     def signedOn(self):
-        if have_ssl and isinstance(self.transport, TLSMemoryBIOProtocol):
+        if ISSLTransport.providedBy(self.transport):
             cert = self.transport.getPeerCertificate()
             fp = cert.digest("sha1")
             verified = "verified" if self.factory.parent.server_fingerprint else "unverified"
