@@ -7,7 +7,7 @@ from twisted.internet import reactor
 from twisted.internet.interfaces import ISSLTransport
 from twisted.python.util import InsensitiveDict
 from plugins import Plugin
-from events import PlayerChat, PlayerJoin, PlayerQuit, PlayerDeath, ServerOutput, ServerStopping, ServerStarting, StatPlayers
+from events import PlayerChat, PlayerJoin, PlayerQuit, PlayerDeath, ServerOutput, ServerStopping, ServerStarting, StatPlayers, Hook, ACCEPTED
 
 try:
     from OpenSSL import SSL
@@ -217,8 +217,22 @@ class IRCBot(irc.IRCClient):
         if not self.has_status(nick, p.irc_chat_status):
             return
 
-        if p.irc_players_enabled and msg == p.irc_players_trigger:
+        if p.irc_players_enabled and msg.lower() == p.irc_command_prefix + "players":
             self.say(self.channel, p.irc_players_format.format(players=', '.join(p.players)))
+
+        elif p.irc_command_prefix and msg.startswith(p.irc_command_prefix) and p.irc_command_status and self.has_status(nick, p.irc_command_status):
+            argv = msg[len(p.irc_command_prefix):].split(' ')
+            command = argv[0]
+            if command.startswith('~'):
+                if p.irc_command_mark2 and (command.lower() in p.irc_command_allow.lower().split(',') or p.irc_command_allow == '*'):
+                    p.console("{}".format(' '.join(argv)))
+                    p.dispatch(Hook(line=' '.join(argv)))
+                else:
+                    p.console("{}".format(','.join(p.irc_command_allow.lower().split(','))))
+            else:
+                if command.lower() in p.irc_command_allow.lower().split(',') or p.irc_command_allow == '*':
+                    p.send(' '.join(argv))
+
         else:
             p.irc_message(nick, msg)
 
@@ -301,14 +315,18 @@ class IRC(Plugin):
     game_me_enabled = True
     game_me_format  = u"*, | {username} {message}"
 
-    irc_players_enabled = True
-    irc_players_trigger = u"!players"
-    irc_players_format  = u"*, | players currently in game: {players}"
-
     #irc -> game settings
     irc_chat_enabled = True
     irc_chat_command = u"say [IRC] <{nickname}> {message}"
     irc_chat_status = None
+
+    irc_command_prefix = "!"
+    irc_command_status = None
+    irc_command_allow = ""
+    irc_command_mark2 = False
+
+    irc_players_enabled = True
+    irc_players_format  = u"*, | players currently in game: {players}"
 
     def setup(self):
         self.players = []
