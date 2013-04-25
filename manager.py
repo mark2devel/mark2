@@ -12,6 +12,7 @@ import properties
 import user_server
 import process
 import plugins
+import re
 from services import ping, query
 
 
@@ -108,8 +109,16 @@ class Manager(MultiService):
         self.lang = properties.load_jar(self.jar_file, 'lang/en_US.lang')
         if self.lang is None:
             return self.fatal_error(reason="couldn't load lang!")
-        for name, pattern in self.lang.get_deaths():
-            self.events.register(lambda e, cause=name: self.events.dispatch(events.PlayerDeath(text=e.data, cause=cause, **e.match.groupdict())), events.ServerOutput, pattern=pattern)
+        deaths = list(self.lang.get_deaths())
+        def handler(e, cause=None):
+            for name, (pattern, format) in deaths:
+                m = re.match(pattern, e.data)
+                if m:
+                    self.events.dispatch(events.PlayerDeath(cause=cause,
+                                                            format=format,
+                                                            **m.groupdict()))
+                    break
+        self.events.register(handler, events.ServerOutput, pattern=".*")
 
         #load server.properties
         self.properties = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
@@ -167,8 +176,8 @@ class Manager(MultiService):
             log_obj = logfile.DailyLogFile("%s.log" % self.server_name, self.shared_path)
         elif log_rotate in ('off', 'size'):
             log_obj = logfile.LogFile("%s.log" % self.server_name, self.shared_path,
-                                      rotateLength = log_size if log_rotate == 'size' else None,
-                                      maxRotatedFiles = log_limit if log_limit != "" else None)
+                                      rotateLength=log_size if log_rotate == 'size' else None,
+                                      maxRotatedFiles=log_limit if log_limit != "" else None)
         else:
             raise ValueError("mark2.log.rotate-mode is invalid.")
 
