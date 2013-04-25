@@ -168,6 +168,15 @@ class IRCBot(irc.IRCClient):
                     if _set:
                         u.status = ''.join(sorted(list(u.status + self.prefixes[m]),
                                                   key=lambda k: self.priority[k]))
+
+    def has_status(self, nick, status):
+        if status != 0 and not status:
+            return True
+        if status not in self.priority:
+            return False
+        priority = self.priority[status]
+        u = self.users.get(nick, None)
+        return u and (u.priority is not None) and u.priority <= priority
     
     def userJoined(self, user, channel):
         nick = user.split('!')[0]
@@ -205,11 +214,9 @@ class IRCBot(irc.IRCClient):
         nick = user.split('!')[0]
         p = self.factory.parent
         
-        if p.irc_chat_status and p.irc_chat_status in self.priority:
-            priority = self.priority[p.irc_chat_status]
-            u = self.users.get(nick, None)
-            if not u or u.priority is None or u.priority > priority:
-                return
+        if not self.has_status(nick, p.irc_chat_status):
+            return
+
         if p.irc_players_enabled and msg == p.irc_players_trigger:
             self.say(self.channel, p.irc_players_format.format(players=', '.join(p.players)))
         else:
