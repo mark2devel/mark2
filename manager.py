@@ -182,8 +182,6 @@ class Manager(MultiService):
             raise ValueError("mark2.log.rotate-mode is invalid.")
 
         log.startLogging(log_obj)
-        #remove /dev/null logger
-        log.theLogPublisher.observers.pop(0)
 
     def load_plugins(self):
         self.config = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties')
