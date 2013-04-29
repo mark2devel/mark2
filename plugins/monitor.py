@@ -94,7 +94,7 @@ class Monitor(Plugin):
                                           message="server is not accepting connections",
                                           warning="server might have stopped accepting connections",
                                           event=("ping", "server didn't respond for {timeout}"),
-                                          stop_Reason="not accepting connections")
+                                          stop_reason="not accepting connections")
 
         if self.pcount_enabled:
             self.register(self.handle_pcount, StatPlayerCount)
