@@ -58,12 +58,12 @@ class JenkinsJarProvider(JarProvider):
         self.add((self.name, 'Latest'), (None, None), url)
         self.commit()
 
-import vanilla, bukkit, technic, feed_the_beast, spigot, nukkit, mcpcplus, libigot
+import bukkit, feed_the_beast, libigot, mcpcplus, nukkit, spigot, technic, vanilla
 
 def get_raw():
     d_results = defer.Deferred()
     dd = []
-    for mod in vanilla, bukkit, technic, feed_the_beast, spigot, nukkit, mcpcplus, libigot:
+    for mod in bukkit, feed_the_beast, libigot, mcpcplus, nukkit, spigot, technic, vanilla:
         d = defer.Deferred()
         mod.ref(d)
         dd.append(d)
