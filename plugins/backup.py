@@ -75,12 +75,12 @@ class Backup(Plugin):
                              kind='error')
                 return
 
-        add = set()
         if self.mode == "include":
+            add = set()
             for e in self.spec.split(";"):
                 add |= set(glob.glob(e))
         elif self.mode == "exclude":
-            add += set(glob.glob('*'))
+            add = set(glob.glob('*'))
             for e in self.spec.split(";"):
                 add -= set(glob.glob(e))
 
