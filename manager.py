@@ -13,7 +13,7 @@ import user_server
 import process
 import plugins
 import re
-from services import ping, query
+from services import ping
 
 
 MARK2_BASE = os.path.dirname(os.path.realpath(__file__))
@@ -134,13 +134,6 @@ class Manager(MultiService):
                 self.properties['server_ip'],
                 self.properties['server_port'],
                 self.config['mark2.service.ping.interval']))
-
-        if self.config['mark2.service.query.enabled'] and self.properties['enable_query']:
-            self.addService(query.Query(
-                self,
-                self.config['mark2.service.query.interval'],
-                self.properties['server_ip'],
-                self.properties['query.port']))
 
         self.process = process.Process(self, self.jar_file)
         self.addService(self.process)
