@@ -10,6 +10,7 @@ import errno
 import subprocess
 import getpass
 import pwd
+import tempfile
 
 #attach:
 import user_client
@@ -331,33 +332,84 @@ class CommandStart(CommandTyTerminal):
                 "please start mark2 as `sudo -u {d_user} mark2 start ...`"
             raise Mark2Error(e.format(d_user=d_user,m_user=m_user))
 
+    def check_executable(self, cmd):
+        return subprocess.call(
+            ["type", cmd],
+            shell = True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        ) == 0
+
+    def copy_config(self, src, dest, header=''):
+        f0 = open(src,  'r')
+        f1 = open(dest, 'w')
+        l0 = ''
+
+        while l0.strip() == '' or l0.startswith('### ###'):
+            l0 = f0.readline()
+
+        f1.write(header)
+
+        while l0 != '':
+            f1.write(l0)
+            l0 = f0.readline()
+
+        f0.close()
+        f1.close()
+
+    def diff_config(self, src, dest):
+        diff = ""
+
+        with open(src, 'r') as f0:
+            d0 = f0.readlines()
+        with open(dest,'r') as f1:
+            d1 = f1.readlines()
+
+        import difflib
+        ignore = " \t\f\r\n"
+        s = difflib.SequenceMatcher(lambda x: x in ignore, d0, d1)
+        for tag, i0, i1, j0, j1 in s.get_opcodes():
+            if tag in ('replace', 'insert'):
+                for l1 in d1[j0:j1]:
+                    if l1.strip(ignore) != '':
+                        diff += l1
+
+        return diff
+
     def check_config(self):
         path_old = 'resources/mark2.default.properties'
         path_new = 'config/mark2.properties'
 
-        if not os.path.exists(path_new):
-            self.make_writable('config')
-            file_old = open(path_old, 'r')
-            file_new = open(path_new, 'w')
+        def write_config(data=''):
+            data = "# see resources/mark2.default.properties for details\n" + data
+            with open(path_new, 'w') as file_new:
+                file_new.write(data)
 
-            l = ''
-            while l.strip() == '' or l.startswith('### ###'):
-                l = file_old.readline()
+        #exit 1: already configured
+        if os.path.exists(path_new):
+            return
 
-            while l != '':
-                file_new.write(l)
-                l = file_old.readline()
+        self.make_writable('config')
 
-            file_old.close()
-            file_new.close()
+        #exit 2: no editor
+        if not self.check_executable("editor"):
+            return write_config()
 
-            print 'I\'ve created a default configuration file at {}'.format(path_new)
-            response = raw_input('Would you like to edit it now? [yes]') or 'yes'
-            if response == 'yes':
-                try:
-                    subprocess.call(['sensible-editor', path_new])
-                except Exception:
-                    raise Mark2Error('couldn\'t start editor')
+        #exit 3: user intervention
+        print "mark2 is unconfigured!"
+        response = raw_input('would you like to configure it now [yes]? ') or 'yes'
+        if response != 'yes':
+            return write_config()
+
+        #launch our editor
+        fd_tmp, path_tmp = tempfile.mkstemp(prefix='mark2.properties.', text=True)
+        self.copy_config(path_old, path_tmp)
+        subprocess.call(['editor', path_tmp])
+
+        #diff the files
+        write_config(self.diff_config(path_old, path_tmp))
+        os.remove(path_tmp)
+
 
     def get_env(self):
         env = dict(os.environ)
@@ -372,9 +424,6 @@ class CommandStart(CommandTyTerminal):
         # parse the server path
         self.get_server_path()
 
-        # check we own it
-        self.check_ownership()
-
         # get server name
         if self.server_name is None:
             self.server_name = os.path.basename(self.server_path)
@@ -387,6 +436,9 @@ class CommandStart(CommandTyTerminal):
 
         # check we've got config/mark2.properties
         self.check_config()
+
+        # check we own the server dir
+        self.check_ownership()
 
         # clear old stuff
         for x in ('log', 'sock', 'pid'):

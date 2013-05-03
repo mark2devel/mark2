@@ -81,12 +81,7 @@ class Manager(MultiService):
         os.chdir(self.server_path)
 
         #load config
-        self.config = properties.load(properties.Mark2Properties,
-            os.path.join(MARK2_BASE, 'resources', 'mark2.default.properties'),
-            os.path.join(MARK2_BASE, 'config', 'mark2.properties'),
-            'mark2.properties')
-        if self.config is None:
-            return self.fatal_error(reason="couldn't find mark2.properties")
+        self.load_config()
 
         #start logging
         self.start_logging()
@@ -138,7 +133,7 @@ class Manager(MultiService):
                 self,
                 self.properties['server_ip'],
                 self.properties['server_port'],
-                self.config['mark2.service.query.interval']))
+                self.config['mark2.service.ping.interval']))
 
         if self.config['mark2.service.query.enabled'] and self.properties['enable_query']:
             self.addService(query.Query(
@@ -183,8 +178,15 @@ class Manager(MultiService):
 
         log.startLogging(log_obj)
 
+    def load_config(self):
+        self.config = properties.load(properties.Mark2Properties,
+            os.path.join(MARK2_BASE, 'resources', 'mark2.default.properties'),
+            os.path.join(MARK2_BASE, 'config', 'mark2.properties'),
+            'mark2.properties')
+        if self.config is None:
+            return self.fatal_error(reason="couldn't find mark2.properties")
+
     def load_plugins(self):
-        self.config = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties')
         self.plugins.config = self.config
         self.plugins.load_all()
     
@@ -255,6 +257,7 @@ class Manager(MultiService):
 
     def handle_cmd_reload(self, event):
         self.plugins.unload_all()
+        self.load_config()
         self.load_plugins()
         self.console("config + plugins reloaded.")
 
