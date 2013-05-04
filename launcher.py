@@ -322,7 +322,7 @@ class CommandStart(CommandTyTerminal):
     def get_umask():
         cu = os.umask(0)
         os.umask(cu)
-        return "{:03o}".format(cu)
+        return "{0:03o}".format(cu)
 
     def check_ownership(self):
         d_user = pwd.getpwuid(os.stat(self.server_path).st_uid).pw_name
