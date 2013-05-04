@@ -54,9 +54,9 @@ class Endpoint(object):
         defer.addBoth(done_waiting)
     
     def __str__(self):
-        return "<{} {} causes={} priority={}>".format(self.__class__.__name__,
-                                                      self.url,
-                                                      self.causes, self.priority)
+        return "<{0} {1} causes={2} priority={3}>".format(self.__class__.__name__,
+                                                          self.url,
+                                                          self.causes, self.priority)
     
     
 class HTTPEndpoint(Endpoint):
@@ -82,7 +82,7 @@ class NMAEndpoint(HTTPEndpoint):
     def __init__(self, plugin, url):
         self.postdata = {
             "apikey":      url,
-            "application": "mark2: {}".format(plugin.parent.server_name),
+            "application": "mark2: {0}".format(plugin.parent.server_name),
         }
     
     def setup(self, event):
@@ -99,7 +99,7 @@ class ProwlEndpoint(HTTPEndpoint):
     def __init__(self, plugin, url):
         self.postdata = {
             "apikey":      url,
-            "application": "mark2: {}".format(plugin.parent.server_name),
+            "application": "mark2: {0}".format(plugin.parent.server_name),
         }
     
     def setup(self, event):
@@ -144,7 +144,7 @@ class SMTPEndpoint(Endpoint):
             self.smtp_port = 25
 
         self.from_addr = plugin.email_address
-        self.from_name = "mark2: {}".format(plugin.parent.server_name)
+        self.from_name = "mark2: {0}".format(plugin.parent.server_name)
         self.to_addr = url
         
     def getMailExchange(self, host):
@@ -156,7 +156,7 @@ class SMTPEndpoint(Endpoint):
     def sendEmail(self, from_, from_name, to, msg_, subject=""):
         def send(host, user=None, pw=None, require_security=False):
             msg = MIMEText(msg_)
-            msg['From'] = "\"{}\" <{}>".format(from_name, from_)
+            msg['From'] = "\"{0}\" <{1}>".format(from_name, from_)
             msg['To'] = to
             msg['Subject'] = subject
             msgfile = StringIO(msg.as_string())
@@ -218,7 +218,7 @@ class Push(Plugin):
                 url, md = bits[0], bits[1:]
                 scheme, ee = re.split(":(?://)?", url)
                 if scheme not in _endpoint:
-                    self.console("undefined endpoint requested: {}".format(url))
+                    self.console("undefined endpoint requested: {0}".format(url))
                     continue
                 cls = _endpoint[scheme]
                 inst = cls(self, ee)
@@ -227,7 +227,7 @@ class Push(Plugin):
                     setattr(inst, k, v)
                 self.endpoints.append(inst)
             except Exception as e:
-                self.console("push: ERROR ({}) adding endpoint: {}".format(e, ep))
+                self.console("push: ERROR ({0}) adding endpoint: {1}".format(e, ep))
     
     def send_alert(self, event):
         for ep in self.endpoints:

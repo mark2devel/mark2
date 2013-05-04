@@ -259,7 +259,7 @@ class Manager(MultiService):
             self.config['mark2.jar_path'].split(';'),
             event.args)
         if new_jar:
-            self.console("I will switch to {} at the next restart".format(new_jar))
+            self.console("I will switch to {0} at the next restart".format(new_jar))
             self.jar_file = self.process.jarfile = new_jar
         else:
             self.console("Can't find a matching jar file.")

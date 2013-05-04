@@ -82,7 +82,7 @@ class IRCBot(irc.IRCClient):
             cert = self.transport.getPeerCertificate()
             fp = cert.digest("sha1")
             verified = "verified" if self.factory.parent.server_fingerprint else "unverified"
-            self.console("irc: connected securely. server fingerprint: {} ({})".format(fp, verified))
+            self.console("irc: connected securely. server fingerprint: {0} ({1})".format(fp, verified))
         else:
             self.console("irc: connected")
         
@@ -225,10 +225,7 @@ class IRCBot(irc.IRCClient):
             command = argv[0]
             if command.startswith('~'):
                 if p.irc_command_mark2 and (command.lower() in p.irc_command_allow.lower().split(',') or p.irc_command_allow == '*'):
-                    p.console("{}".format(' '.join(argv)))
                     p.dispatch(Hook(line=' '.join(argv)))
-                else:
-                    p.console("{}".format(','.join(p.irc_command_allow.lower().split(','))))
             else:
                 if command.lower() in p.irc_command_allow.lower().split(',') or p.irc_command_allow == '*':
                     p.send(' '.join(argv))

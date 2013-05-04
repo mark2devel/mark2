@@ -47,7 +47,7 @@ class Log(Plugin):
             try:
                 os.makedirs(os.path.dirname(path))
             except IOError:
-                self.console("Warning: {} does't exist and I can't create it".format(os.path.dirname(path)),
+                self.console("Warning: {0} does't exist and I can't create it".format(os.path.dirname(path)),
                              kind='error')
                 return
         

@@ -202,13 +202,13 @@ class Lang(Properties):
             if not v in seen:
                 seen.append(v)
                 regex = reduce(lambda a, r: a.replace(*r),
-                               ((r"\%{}\$s".format(i + 1),
-                                 "(?P<{}>[A-Za-z0-9]{{1,32}})".format(x))
+                               ((r"\%{0}\$s".format(i + 1),
+                                 "(?P<{0}>[A-Za-z0-9]{{1,32}})".format(x))
                                 for i, x in enumerate(("username", "killer", "weapon"))),
                                re.escape(v))
                 format = reduce(lambda a, r: a.replace(*r),
-                                (("%{}$s".format(i + 1),
-                                  "{{{}}}".format(x))
+                                (("%{0}$s".format(i + 1),
+                                  "{{{0}}}".format(x))
                                  for i, x in enumerate(("username", "killer", "weapon"))),
                                 v)
-                yield k, ("^{}$".format(regex), format)
+                yield k, ("^{0}$".format(regex), format)
