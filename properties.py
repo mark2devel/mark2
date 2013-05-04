@@ -78,9 +78,9 @@ class Properties(dict):
         d = d.replace('\r\n','\n')
         d = d.replace('\r', '\n')
         #Strip leading whitespace
-        d = re.sub('\n\s*', '\n', d, flags=re.MULTILINE)
+        d = re.sub('(?m)\n\s*', '\n', d)
         #Split logical lines
-        d = re.split(r_unescaped+'\n', d, flags=re.MULTILINE)
+        d = re.split('(?m)' + r_unescaped + '\n', d)
 
         for line in d:
             #Strip comments and empty lines
@@ -88,7 +88,7 @@ class Properties(dict):
                 continue
 
             #Strip escaped newlines
-            line = re.sub(r_unescaped+'(\\\\\n)', '', line, flags=re.MULTILINE)
+            line = re.sub('(?m)' + r_unescaped + '(\\\\\n)', '', line)
             assert not '\n' in line
 
             #Split into k,v
