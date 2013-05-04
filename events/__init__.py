@@ -34,7 +34,7 @@ class Event:
         return ACCEPTED
 
     def serialize(self):
-        data = {k: getattr(self, k) for k in self.contains}
+        data = dict((k, getattr(self, k)) for k in self.contains)
         data['class_name'] = self.__class__.__name__
         return data
 

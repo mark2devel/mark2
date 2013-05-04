@@ -106,7 +106,7 @@ class Plugin:
         self.dispatch(ServerInput(line=l, parse_colors=parseColors))
 
     def send_format(self, l, parseColors=False, **kw):
-        kw = { k: FormatWrapper(v) for k, v in kw.iteritems() }
+        kw = dict((k, FormatWrapper(v)) for k, v in kw.iteritems())
         self.send(l.format(**kw), parseColors=parseColors)
     
     def action_chain_cancellable(self, spec, callbackWarn, callbackAction, callbackCancel=None):
