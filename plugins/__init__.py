@@ -196,7 +196,8 @@ class PluginManager(dict):
         del self[name]
 
     def reload(self, name):
-        self.unload(name)
+        if name in self:
+            self.unload(name)
         kwargs = dict(self.parent.config.get_plugins()).get(name, None)
         if not kwargs is None:
             return self.load(name, **kwargs)
