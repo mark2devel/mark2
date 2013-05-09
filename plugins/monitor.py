@@ -1,6 +1,5 @@
 from plugins import Plugin
-from events import ServerOutput, ServerOutputConsumer, StatPlayerCount, ServerStop, ServerEvent
-from events import ACCEPTED, FINISHED
+from events import ServerOutput, StatPlayerCount, ServerStop, ServerEvent, Event
 
 
 class Check(object):
@@ -122,7 +121,9 @@ class Monitor(Plugin):
             c.step()
 
         if self.crash_enabled:
-            self.register(self.handle_crash_ok, ServerOutputConsumer, pattern='Unknown command.*', once=True, track=False)
+            self.register(self.handle_crash_ok, ServerOutput,
+                          pattern='Unknown command.*',
+                          track=False)
             self.send('')  # Blank command to trigger 'Unknown command'
     
     def reset_counts(self):
@@ -134,7 +135,7 @@ class Monitor(Plugin):
     # crash
     def handle_crash_ok(self, event):
         self.checks["crash"].reset()
-        return ACCEPTED | FINISHED
+        return Event.EAT | Event.UNREGISTER
     
     # out of memory
     def handle_oom(self, event):
