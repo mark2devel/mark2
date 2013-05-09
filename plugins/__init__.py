@@ -2,13 +2,12 @@
 from os import path
 import imp
 import inspect
-import re
 import traceback
 
-from twisted.internet import task, reactor
-from twisted.internet.error import AlreadyCancelled
+from twisted.internet import reactor
 
 from events import Hook, ServerInput, ServerStarted, ServerStopping
+
 
 class Plugin:
     restore = tuple()
@@ -51,11 +50,12 @@ class Plugin:
         self.stop_tasks()
     
     def register(self, *a, **k):
-        ident = self.parent.events.register(*a, **k)
         track = True
         if 'track' in k:
             track = k['track']
             del k['track']
+
+        ident = self.parent.events.register(*a, **k)
 
         if track:
             self._events.append(ident)
