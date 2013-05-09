@@ -4,12 +4,13 @@ import pwd
 from time import localtime
 from collections import namedtuple
 
-from twisted.internet import protocol, reactor
+from twisted.internet import protocol, reactor, defer
 
 from plugins import Plugin
 import events
 
 time_bounds = [(0, 59), (0, 23), (1, 31), (1, 12), (1, 7)]
+
 
 class ScriptEntry(object):
     event = None
@@ -47,24 +48,29 @@ class ScriptEntry(object):
  
     def execute(self, cmd):
         if cmd.startswith('$'):
+            d = defer.Deferred()
             p = protocol.ProcessProtocol()
             p.outReceived = lambda d: [self.execute_reduced(l) for l in d.split("\n")]
+            p.processEnded = lambda r: d.callback(None)
             reactor.spawnProcess(p, self.plugin.shell, [self.plugin.shell, '-c', cmd[1:]], uid=self.plugin.uid)
+            return d
         else:
-            self.execute_reduced(cmd)
+            return self.execute_reduced(cmd)
     
+    @defer.inlineCallbacks
     def execute_reduced(self, cmd):
         if cmd.startswith('~'):
-            r = self.plugin.dispatch(events.Hook(line=cmd))
-            if not r & events.ACCEPTED:
-                self.plugin.console("unknown command: %s" % cmd)
+            handled = yield self.plugin.dispatch(events.Hook(line=cmd))
+            if not handled:
+                self.plugin.console("unknown command in script: %s" % cmd)
         elif cmd.startswith('/'):
             self.plugin.send(cmd[1:])
         else:
             self.plugin.console("couldn't understand script input: %s" % cmd)
 
     def step(self):
-        if self.type != 'time': return
+        if self.type != 'time':
+            return
         time = localtime()
         time = [time.tm_min, time.tm_hour, time.tm_mday, time.tm_mon, time.tm_wday + 1]
         
@@ -114,4 +120,4 @@ class Script(Plugin):
             script.step()
 
     def server_stopping(self, event):
-        pass #don't cancel tasks
+        pass  # don't cancel tasks
