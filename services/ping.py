@@ -5,7 +5,7 @@ from twisted.application.service import Service
 from twisted.internet import task, reactor
 from twisted.internet.protocol import Protocol, ClientFactory
 
-from events import StatPlayerCount, ServerOutputConsumer, ACCEPTED
+from events import StatPlayerCount, ServerOutput
 
 
 class PingProtocol(Protocol):
@@ -20,7 +20,7 @@ class PingProtocol(Protocol):
             
             if len(self.buff) >= 3 + l * 2:
                 data = self.buff[9:].decode('utf-16be').split('\x00')
-                self.dispatch(StatPlayerCount(source="ping", players_current=int(data[3]), players_max=int(data[4])))
+                self.dispatch(StatPlayerCount(source='ping', players_current=int(data[3]), players_max=int(data[4])))
                 self.transport.loseConnection()
 
 
@@ -48,12 +48,9 @@ class Ping(Service):
     
     def __init__(self, parent, host, port, interval):
         h = host if host else '127.0.0.1'
-        parent.events.register(self.whine, ServerOutputConsumer, pattern='\/%s\:\d+ lost connection' % re.escape(h))
+        parent.events.registerConsumer(ServerOutput, pattern='\/%s\:\d+ lost connection' % re.escape(h))
         
         self.factory = PingFactory(interval, host, port, parent.events.dispatch)
-    
-    def whine(self, event):
-        return ACCEPTED
 
     def stopService(self):
         self.factory.stopFactory()
