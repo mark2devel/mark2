@@ -1,31 +1,31 @@
 import re
 
-from events import Event, get_timestamp, ACCEPTED, FINISHED
+from events import Event, get_timestamp
 
 # input/output
+
 
 class ServerInput(Event):
     """Send data to the server's stdin. In plugins, a shortcut
     is available: self.send("say hello")"""
     
-    requires = ('line',)
-    parse_colors = False
+    line         = Event.Arg(required=True)
+    parse_colors = Event.Arg(default=False)
+
     def setup(self):
         if self.parse_colors:
             self.line = re.sub("(?i)\&([0-9a-fklmnor])", u"\u00a7\\1", self.line)
+
 
 class ServerOutput(Event):
     """Issued when the server gives us a line on stdout. Note
     that to handle this, you must specify both the 'level'
     (e.g. INFO or SEVERE) and a regex pattern to match"""
     
-    contains = ('line', 'time', 'level', 'data')
-    requires = ('line',)
-    requires_predicate = ('pattern',)
-    
-    data = None
-    time = None
-    
+    line  = Event.Arg(required=True)
+    time  = Event.Arg()
+    level = Event.Arg()
+    data  = Event.Arg()
     
     def setup(self):
         m = re.match(r'(\d{4}-\d{2}-\d{2} |)(\d{2}:\d{2}:\d{2}) \[([A-Z]+)\] (?:\[Minecraft\] )?(.*)', self.line)
@@ -40,41 +40,33 @@ class ServerOutput(Event):
         
         self.time = get_timestamp(self.time)
     
-    def consider(self, d):
-        if 'level' in d and d['level'] != self.level:
-            return 0
+    def prefilter(self, pattern, level=None):
+        if level and level != self.level:
+            return False
         
-        m = re.match(d['pattern'], self.data)
+        m = re.match(pattern, self.data)
         if not m:
-            return 0
+            return False
         
         self.match = m
         
-        r = ACCEPTED
-        if d.get('once', False):
-            r |= FINISHED
-        
-        return r
-
-class ServerOutputConsumer(ServerOutput):
-    """Issued prior to the ServerOutput handlers seeing it. Takes
-    the same handler parameters as ServerOutput. In most cases
-    you shouldn't specify a callback"""
-    
-    pass
+        return True
     
 # start
+
 
 class ServerStart(Event):
     """Issue this event to start the server"""
     
     pass
 
+
 class ServerStarting(Event):
     """Issued by the ServerStart handler to alert listening plugins
     that the server process has started"""
     
-    pass
+    pid = Event.Arg()
+
 
 class ServerStarted(Event):
     """Issued when we see the "Done! (1.23s)" line from the server
@@ -82,19 +74,22 @@ class ServerStarted(Event):
     This event has a helper method in plugins - just overwrite
     the server_started method.
     """
-    
-    pass
+
+    time = Event.Arg()
 
 #stop
+
 
 class ServerStop(Event):
     """Issue this event to stop the server."""
     
+    reason   = Event.Arg(required=True)
+    respawn  = Event.Arg(required=True)
+    kill     = Event.Arg(default=False)
+    announce = Event.Arg(default=True)
+
     dispatch_once = True
-    contains=('reason', 'respawn', 'kill', 'announce')
-    requires=('reason', 'respawn')
-    kill=False
-    announce=True #generate a ServerStopping event
+
 
 class ServerStopping(Event):
     """Issued by the ServerStop handler to alert listening plugins
@@ -102,23 +97,24 @@ class ServerStopping(Event):
     
     This event has a helper method in plugins - just overwrite
     the server_started method."""
-    
-    contains=('reason', 'respawn', 'kill')
-    requires=('reason', 'respawn')
-    kill=False
+
+    reason  = Event.Arg(required=True)
+    respawn = Event.Arg(required=True)
+    kill    = Event.Arg(default=False)
+
 
 class ServerStopped(Event):
     """When the server process finally dies, this event is raised"""
     pass
 
+
 class ServerEvent(Event):
     """Tell plugins about something happening to the server"""
-    
-    contains = ('cause', 'friendly', 'data', 'priority')
-    requires = ('cause', 'data')
-    
-    priority = 0
-    friendly = None
+
+    cause    = Event.Arg(required=True)
+    friendly = Event.Arg()
+    data     = Event.Arg(required=True)
+    priority = Event.Arg(default=0)
     
     def setup(self):
         if not self.friendly:

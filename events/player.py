@@ -9,22 +9,27 @@ class PlayerEvent(Event):
 #Raised in manager
 
 class PlayerJoin(PlayerEvent):
-    requires = ('username', 'ip')
-
+    username = Event.Arg(required=True)
+    ip       = Event.Arg(required=True)
 
 class PlayerQuit(PlayerEvent):
-    requires = ('username', 'reason')
+    username = Event.Arg(required=True)
+    reason   = Event.Arg(required=True)
 
 
 class PlayerChat(PlayerEvent):
-    requires = ('username', 'message')
+    username = Event.Arg(required=True)
+    message  = Event.Arg(required=True)
 
 
 class PlayerDeath(PlayerEvent):
-    contains = ('text', 'username', 'cause', 'killer', 'weapon', 'format')
-    requires = ('username', 'cause')
-    killer = None
-    weapon = None
+    text     = Event.Arg()
+    username = Event.Arg(required=True)
+    cause    = Event.Arg(required=True)
+    killer   = Event.Arg()
+    weapon   = Event.Arg()
+    format   = Event.Arg(default="{username} died")
+
     format = "{username} died"
 
     def get_text(self, **kw):
@@ -32,6 +37,5 @@ class PlayerDeath(PlayerEvent):
         d.update(kw)
         return self.format.format(**d)
 
-    @property
-    def text(self):
-        return self.get_text()
+    def setup(self):
+        self.text = self.get_text()

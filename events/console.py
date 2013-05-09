@@ -5,13 +5,14 @@ from shared import console_repr
 class Console(Event):
     contains = ('line', 'time', 'user', 'source', 'kind', 'data', 'level')
     requires = ('line',)
-    
-    kind = None
-    time = None
-    user = ''
-    source = 'mark2'
-    data = None
-    level = None
+
+    line  = Event.Arg(required=True)
+    kind  = Event.Arg()
+    time  = Event.Arg()
+    user  = Event.Arg(default='')
+    source = Event.Arg(default='mark2')
+    data  = Event.Arg()
+    level = Event.Arg()
     
     def setup(self):
         if not self.time:

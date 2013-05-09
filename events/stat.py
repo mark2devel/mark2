@@ -1,13 +1,22 @@
 from events import Event
 
+
+class StatEvent(Event):
+    source = Event.Arg()
+
+
 #provider: ping
-class StatPlayerCount(Event):
-    requires = ('players_current', 'players_max') #int
+class StatPlayerCount(StatEvent):
+    players_current = Event.Arg(required=True)
+    players_max     = Event.Arg(required=True)
+
 
 #provider: console tracking
-class StatPlayers(Event):
-    requires = ('players',) #list of strings
+class StatPlayers(StatEvent):
+    players = Event.Arg(required=True)
+
 
 #provider: psutil
-class StatProcess(Event):
-    requires = ('cpu', 'memory') #float, float
+class StatProcess(StatEvent):
+    cpu    = Event.Arg(required=True)
+    memory = Event.Arg(required=True)

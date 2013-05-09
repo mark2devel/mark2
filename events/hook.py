@@ -1,13 +1,11 @@
-from events import Event, ACCEPTED
+from events import Event
+
 
 class Hook(Event):
-    contains = ('name', 'is_command', 'args')
-    requires = tuple()
-    requires_predicate = ('name',)
-    name = None
-    is_command = False
-    args = ""
-    line = None
+    name       = Event.Arg()
+    is_command = Event.Arg()
+    args       = Event.Arg()
+    line       = Event.Arg()
     
     def setup(self):
         if not self.name:
@@ -19,18 +17,12 @@ class Hook(Event):
                 if len(t) == 2:
                     self.args = t[1]
     
-    def consider(self, r_args):
-        d = {
-            'public': False,
-            'doc':    None}
+    def prefilter(self, name, public=False, doc=None):
+        if name != self.name:
+            return False
         
-        d.update(r_args)
+        if self.is_command and not public:
+            return False
         
-        if r_args['name'] != self.name:
-            return 0
-        
-        if self.is_command and not r_args['public']:
-            return 0
-        
-        return ACCEPTED
+        return True
     

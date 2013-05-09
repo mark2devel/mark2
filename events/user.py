@@ -3,10 +3,11 @@ from events import Event
 #All these are raised in user_server
 
 class UserInput(Event):
-    requires = ('user', 'line')
+    user = Event.Arg(required=True)
+    line = Event.Arg(required=True)
 
 class UserAttach(Event):
-    requires = ('user',)
+    user = Event.Arg(required=True)
 
 class UserDetach(Event):
-    requires = ('user',)
+    user = Event.Arg(required=True)
