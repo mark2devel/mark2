@@ -2,9 +2,10 @@ import locale
 from twisted.internet import protocol, reactor, error, defer, task
 from twisted.application.service import Service
 import glob
-import pwd
 import events
+from events import EventPriority
 import psutil
+
 
 class ProcessProtocol(protocol.ProcessProtocol):
     obuff = u""
@@ -15,13 +16,7 @@ class ProcessProtocol(protocol.ProcessProtocol):
         self.locale = locale
 
     def output(self, line):
-        event_1 = events.ServerOutputConsumer(line=line)
-        consumed = self.dispatch(event_1)
-        if not consumed:
-            event_2 = events.Console(source='server', line=event_1.line, time=event_1.time, level=event_1.level, data=event_1.data)
-            self.dispatch(event_2)
-            event_3 = events.ServerOutput(line=line)
-            self.dispatch(event_3)
+        self.dispatch(events.ServerOutput(line=line))
 
     def childDataReceived(self, fd, data):
         data = data.decode(self.locale)
@@ -60,13 +55,13 @@ class Process(Service):
 
         reg = self.parent.events.register
 
-        reg(self.server_input,    events.ServerInput)
-        reg(self.server_start,    events.ServerStart)
+        reg(self.server_input,    events.ServerInput,    priority=EventPriority.MONITOR)
+        reg(self.server_start,    events.ServerStart,    priority=EventPriority.MONITOR)
         reg(self.server_starting, events.ServerStarting)
         reg(self.server_started,  events.ServerOutput, pattern='Done \\(([0-9\\.]+)s\\)\\!.*')
-        reg(self.server_stop,     events.ServerStop)
-        reg(self.server_stopping, events.ServerStopping)
-        reg(self.server_stopped,  events.ServerStopped)
+        reg(self.server_stop,     events.ServerStop,     priority=EventPriority.MONITOR)
+        reg(self.server_stopping, events.ServerStopping, priority=EventPriority.MONITOR)
+        reg(self.server_stopped,  events.ServerStopped,  priority=EventPriority.MONITOR)
 
     def build_command(self):
         cmd = []
@@ -103,12 +98,13 @@ class Process(Service):
     def server_started(self, e):
         self.parent.events.dispatch(events.ServerStarted(time=e.match.group(1)))
 
+    @defer.inlineCallbacks
     def server_stop(self, e):
         e.handled = True
         if self.protocol is None or not self.protocol.alive:
             return
         if e.announce:
-            self.parent.events.dispatch(events.ServerStopping(respawn=e.respawn, reason=e.reason, kill=e.kill))
+            yield self.parent.events.dispatch(events.ServerStopping(respawn=e.respawn, reason=e.reason, kill=e.kill))
         if e.kill:
             self.failsafe = None
             self.parent.console("killing minecraft server")
@@ -128,7 +124,7 @@ class Process(Service):
             self.failsafe.cancel()
             self.failsafe = None
         if self.respawn:
-            self.server_start()
+            self.parent.events.dispatch(events.ServerStart())
             self.respawn = False
         elif self.service_stopping:
             self.service_stopping.callback(0)
@@ -143,6 +139,7 @@ class Process(Service):
             self.parent.events.dispatch(events.ServerStop(reason="SIGINT", respawn=False))
             self.service_stopping = defer.Deferred()
             return self.service_stopping
+
 
 def find_jar(search_patterns, hint=None):
     if hint:
