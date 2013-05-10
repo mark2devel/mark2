@@ -2,12 +2,14 @@ import os
 import traceback
 import signal
 
-from twisted.internet import reactor, defer, error
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
 from twisted.application.service import MultiService, Service
 from twisted.python import log, logfile
 
 #mark2 things
 import events
+from events import EventPriority
 import properties
 import user_server
 import process
@@ -67,15 +69,16 @@ class Manager(MultiService):
         self.events.register(self.handle_cmd_reload,        events.Hook, public=True, name="reload", doc="reload config and all plugins")
         self.events.register(self.handle_cmd_jar,           events.Hook, public=True, name="jar", doc="wrap a different server jar")
 
-        self.events.register(self.handle_console,       events.Console)
-        self.events.register(self.handle_fatal,         events.FatalError)
-        self.events.register(self.handle_server_started,events.ServerStarted)
-        self.events.register(self.handle_user_attach,   events.UserAttach)
-        self.events.register(self.handle_user_detach,   events.UserDetach)
-        self.events.register(self.handle_user_input,    events.UserInput)
-        self.events.register(self.handle_player_join,   events.PlayerJoin)
-        self.events.register(self.handle_player_quit,   events.PlayerQuit)
-        self.events.register(self.handle_server_stopped,events.ServerStopped)
+        self.events.register(self.handle_server_output, events.ServerOutput,  priority=EventPriority.MONITOR, pattern="")
+        self.events.register(self.handle_console,       events.Console,       priority=EventPriority.MONITOR)
+        self.events.register(self.handle_fatal,         events.FatalError,    priority=EventPriority._HIGH)
+        self.events.register(self.handle_server_started,events.ServerStarted, priority=EventPriority.MONITOR)
+        self.events.register(self.handle_user_attach,   events.UserAttach,    priority=EventPriority.MONITOR)
+        self.events.register(self.handle_user_detach,   events.UserDetach,    priority=EventPriority.MONITOR)
+        self.events.register(self.handle_user_input,    events.UserInput,     priority=EventPriority.MONITOR)
+        self.events.register(self.handle_player_join,   events.PlayerJoin,    priority=EventPriority.MONITOR)
+        self.events.register(self.handle_player_quit,   events.PlayerQuit,    priority=EventPriority.MONITOR)
+        self.events.register(self.handle_server_stopped,events.ServerStopped, priority=EventPriority.MONITOR)
 
         #change to server directory
         os.chdir(self.server_path)
@@ -146,13 +149,18 @@ class Manager(MultiService):
         #start the server
         self.events.dispatch(events.ServerStart())
 
-    def handle_dispatch_error(self, event, callback, exception):
+    def handle_dispatch_error(self, event, callback, failure):
         o  = "An event handler threw an exception: \n"
         o += "  Callback: %s\n" % callback
         o += "  Event: \n"
         o += "".join(("    %s: %s\n" % (k, v) for k, v in event.serialize().iteritems()))
-        o += "\n".join("  %s" % l for l in traceback.format_exc().split("\n"))
+
+        # log the message and a very verbose exception log to the log file
         log.msg(o)
+        failure.printDetailedTraceback()
+
+        # log a less verbose exception to the console
+        o += "\n".join("  %s" % l for l in failure.getTraceback().split("\n"))
         self.console(o)
 
     #helpers
@@ -209,7 +217,7 @@ class Manager(MultiService):
     #handlers
     def handle_cmd_help(self, event):
         o = []
-        for callback, args in self.events.get(events.Hook):
+        for _, callback, args in self.events.get(events.Hook):
             if args.get('public', False):
                 o.append((args['name'], args.get('doc', '')))
         
@@ -264,6 +272,13 @@ class Manager(MultiService):
         else:
             self.console("Can't find a matching jar file.")
 
+    def handle_server_output(self, event):
+        self.events.dispatch(events.Console(source='server',
+                                            line=event.line,
+                                            time=event.time,
+                                            level=event.level,
+                                            data=event.data))
+
     def handle_console(self, event):
         for line in event.value().encode('utf8').split("\n"):
             log.msg(line, system="mark2")
@@ -284,11 +299,12 @@ class Manager(MultiService):
     def handle_user_detach(self, event):
         self.console("%s detached" % event.user, kind="joinpart")
     
+    @inlineCallbacks
     def handle_user_input(self, event):
         self.console(event.line, user=event.user, source="user")
         if event.line.startswith("~"):
-            r = self.events.dispatch(events.Hook(line = event.line))
-            if not r & events.ACCEPTED:
+            handled = yield self.events.dispatch(events.Hook(line=event.line))
+            if not handled:
                 self.console("unknown command.")
         elif event.line.startswith('#'):
             pass
