@@ -1,10 +1,10 @@
 import time
 import glob
 import os
-from twisted.internet import protocol, reactor
+from twisted.internet import protocol, reactor, defer
 
 from plugins import Plugin
-from events import Hook, ServerOutput
+from events import Hook, ServerOutput, ServerStopping, EventPriority
 import shlex
 
 
@@ -18,11 +18,14 @@ class Backup(Plugin):
     backup_stage = 0
     autosave_enabled = True
     proto = None
+    done_backup = None
     
     def setup(self):
         self.register(self.backup, Hook, public=True, name='backup', doc='backup the server to a .tar.gz')
         self.register(self.autosave_changed, ServerOutput, pattern="(?P<username>[A-Za-z0-9_]{1,16}): (?P<action>Enabled|Disabled) level saving\.\.")
         self.register(self.autosave_changed, ServerOutput, pattern="Turned (?P<action>on|off) world auto-saving")
+
+        self.register(self.server_stopping_hp, ServerStopping, priority=EventPriority.HIGH)
 
     def server_started(self, event):
         self.autosave_enabled = True
@@ -30,6 +33,12 @@ class Backup(Plugin):
     def server_stopping(self, event):
         self.autosave_enabled = False
         self.stop_tasks()
+
+    def server_stopping_hp(self, event):
+        if self.backup_stage > 0:
+            print self.done_backup
+            self.console("backup: delaying server stop until backup operation completes.")
+            return self.done_backup
 
     def save_state(self):
         if self.proto:
@@ -63,6 +72,8 @@ class Backup(Plugin):
             self.backup_stage = 2
             self.do_backup()
 
+        self.done_backup = defer.Deferred()
+        return self.done_backup
 
     def do_backup(self, *a):
         timestamp = time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime())
@@ -84,12 +95,10 @@ class Backup(Plugin):
             for e in self.spec.split(";"):
                 add -= set(glob.glob(e))
 
-
         cmd = ['tar']
         cmd.extend(shlex.split(self.tar_flags))
         cmd.append(path)
         cmd.extend(add)
-
 
         def p_ended(path):
             self.console("map backup saved to %s" % path)
@@ -97,6 +106,9 @@ class Backup(Plugin):
                 self.send('save-on')
             self.backup_stage = 0
             self.proto = None
+            if self.done_backup:
+                self.done_backup.callback(None)
+                self.done_backup = None
 
         self.proto = protocol.ProcessProtocol()
         self.proto.processEnded = lambda reason: p_ended(path)
