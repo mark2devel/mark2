@@ -1,5 +1,5 @@
 from plugins import Plugin
-from events import ServerEvent
+from events import ServerEvent, EventPriority
 
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, DeferredList
@@ -197,7 +197,7 @@ class Push(Plugin):
         
         self.configure_endpoints()
         
-        self.register(self.send_alert, ServerEvent)
+        self.register(self.send_alert, ServerEvent, priority=EventPriority.MONITOR)
         
         self.eventid = reactor.addSystemEventTrigger('before', 'shutdown', self.finish)
     
