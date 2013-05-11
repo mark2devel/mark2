@@ -113,8 +113,7 @@ EventPriority._HIGH   = EventPriority(70)
 
 
 class EventList:
-    def __init__(self, name="?"):
-        self._name = name
+    def __init__(self):
         self._cache = None
         self._i = 0
         self._istack = []
@@ -176,7 +175,7 @@ class EventDispatcher:
 
     def register(self, callback, event_type, priority=EventPriority.MEDIUM, **prefilter_args):
         if not event_type in self.registered:
-            self.registered[event_type] = EventList(event_type.__name__)
+            self.registered[event_type] = EventList()
         d = self.registered[event_type]
 
         ok, errmsg = event_type._prefilter_argcheck(prefilter_args)
