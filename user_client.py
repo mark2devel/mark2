@@ -11,13 +11,13 @@ import psutil
 import urwid
 import properties
 from shared import console_repr
-from twisted.python import log
 
 
 class TabEvent:
     fail = None
+
     def __init__(self, line, players):
-        pos = line.rfind(' ')+1
+        pos = line.rfind(' ') + 1
         if pos == 0:
             self.left, right = "", line
         else:
@@ -34,7 +34,6 @@ class TabEvent:
         i = self.index % len(self.players)
         self.index += 1
         return self.left + self.players[i]
-
 
 
 class Prompt(urwid.Edit):
@@ -71,7 +70,7 @@ class Prompt(urwid.Edit):
                 self.history_pos -= 1
                 self.load_prompt()
         elif key == 'down':
-            if self.history_pos < len(self.history)-1:
+            if self.history_pos < len(self.history) - 1:
                 self.save_prompt()
                 self.history_pos += 1
                 self.load_prompt()
@@ -79,7 +78,7 @@ class Prompt(urwid.Edit):
             text = self.get_prompt()
             self.run_command(text)
             self.history_pos = len(self.history) - 1
-            if self.history[self.history_pos-1] == text:
+            if self.history[self.history_pos - 1] == text:
                 self.set_prompt('')
                 self.cursor = 0
                 self.save_prompt()
@@ -105,8 +104,10 @@ class PMenuButton(urwid.Button):
         super(PMenuButton, self).__init__(caption, *a)
         self._w = urwid.SelectableIcon(caption, 0)
 
+
 class PMenuWrap(urwid.WidgetPlaceholder):
     names = ('players', 'actions', 'reasons')
+
     def __init__(self, actions, reasons, dispatch, escape):
         self.dispatch = dispatch
         self.escape = escape
@@ -131,7 +132,6 @@ class PMenuWrap(urwid.WidgetPlaceholder):
         self._pmenu_acc = []
         self._pmenu_stage = 0
         self.original_widget = self._pmenu_widgets[0][1]
-
 
     def next(self, widget, result):
         acc = self._pmenu_acc
@@ -167,7 +167,7 @@ class PMenuWrap(urwid.WidgetPlaceholder):
 
     def set_players(self, players):
         content = self._pmenu_lists[0][1]
-        diff = lambda a, b: [[e for e in d if not e in c] for c, d in ((a, b),(b, a))]
+        diff = lambda a, b: [[e for e in d if not e in c] for c, d in ((a, b), (b, a))]
 
         add, remove = diff([b.original_widget.label for b in list(content)], players)
 
@@ -177,17 +177,18 @@ class PMenuWrap(urwid.WidgetPlaceholder):
                 content.remove(b)
 
         #now add new players
-        i=0
-        while len(add)>0:
+        i = 0
+        while len(add) > 0:
             a = add.pop(0)
-            while i < len(content)-1 and content[i].original_widget.label.lower() < a.lower():
-                i+=1
+            while i < len(content) - 1 and content[i].original_widget.label.lower() < a.lower():
+                i += 1
             content.insert(i, urwid.AttrMap(PMenuButton(a, self.next, a), 'menu_item', 'menu_item_focus'))
             i += 1
 
 
 class UI:
     loop = None
+
     def __init__(self, palette, get_players, run_command, switch_server, pmenu_actions, pmenu_reasons):
         self.palette = palette
         self.get_players = get_players
@@ -197,7 +198,7 @@ class UI:
         self.pmenu_actions = pmenu_actions
         self.pmenu_reasons = pmenu_reasons
 
-        self.g_output_list   = urwid.SimpleListWalker([])
+        self.g_output_list = urwid.SimpleListWalker([])
 
         self.build()
 
@@ -272,7 +273,7 @@ class UI:
         new = []
         for s in sorted(servers):
             e = urwid.Text(" %s " % s)
-            e = urwid.AttrMap(e, 'server_current' if s==current else 'server')
+            e = urwid.AttrMap(e, 'server_current' if s == current else 'server')
             new.append((e, self.g_servers.options('pack')))
 
         contents = self.g_servers.contents
@@ -294,17 +295,15 @@ class UI:
         contents.append((urwid.Divider(), self.g_users.options()))
         contents.extend(new)
 
-
-
     def append_output(self, line):
         scroll = False
         try:
             p = self.g_output.focus_position
             try:
                 self.g_output.body.next_position(p)
-            except IndexError: #scrolled to end
+            except IndexError:  # scrolled to end
                 scroll = True
-        except IndexError: #nothing in listbox
+        except IndexError:  # nothing in listbox
             pass
 
         self.g_output_list.append(urwid.Text(line))
@@ -319,7 +318,7 @@ class UI:
         for line in lines:
             contents.append(urwid.Text(line))
 
-        self.g_output.focus_position = len(lines)-1
+        self.g_output.focus_position = len(lines) - 1
         self.redraw()
 
     def set_players(self, players):
@@ -340,6 +339,7 @@ class SystemUsers(set):
         self.clear()
         for u in psutil.get_users():
             self.add(u.name)
+
 
 class App(object):
     def __init__(self, name, interval, update, shell, command):
@@ -367,6 +367,7 @@ class App(object):
         if not self.stopping:
             reactor.callLater(self.interval, self.start)
 
+
 class UserClientFactory(ClientFactory):
     def __init__(self, initial_name, shared_path='/tmp/mark2'):
         self.socket_to   = lambda n: os.path.join(shared_path, n + ".sock")
@@ -375,7 +376,6 @@ class UserClientFactory(ClientFactory):
         self.client = None
         self.stats = {}
         self.system_users = SystemUsers()
-
 
         #read the config
         self.config = properties.load(properties.ClientProperties, 'resources/mark2rc.default.properties', os.path.expanduser('~/.mark2rc.properties'))
@@ -419,14 +419,13 @@ class UserClientFactory(ClientFactory):
 
     def switch_server(self, delta=1):
         self.update_servers()
-        if len(self.servers) == 0: #no running servers
+        if len(self.servers) == 0:  # no running servers
             return self.ui.stop()
-        if len(self.servers) == 1: #don't switch with only one server
+        if len(self.servers) == 1:  # don't switch with only one server
             return
 
-
         index = self.servers.index(self.client.name)
-        name = self.servers[(index+delta)%len(self.servers)]
+        name = self.servers[(index + delta) % len(self.servers)]
         self.connect_to_server(name)
 
     def connect_to_server(self, name):
@@ -497,15 +496,16 @@ class UserClientFactory(ClientFactory):
         self.ui.set_stats(self.stats_template.safe_substitute(self.stats))
 
 
-
 class NullFactory(object):
     def __getattr__(self, name):
         return lambda *a, **k: None
+
 
 class UserClientProtocol(LineReceiver):
     MAX_LENGTH = 999999
     delimiter = '\n'
     enabled = False
+
     def __init__(self, name, user, factory):
         self.name = name
         self.user = user
@@ -526,7 +526,6 @@ class UserClientProtocol(LineReceiver):
     def connectionLost(self, reason):
         self.alive = 0
         self.factory.server_disconnected(self)
-
 
     def lineReceived(self, line):
         #log.msg(line)
