@@ -47,13 +47,23 @@ class ScriptEntry(object):
         return ranges
  
     def execute(self, cmd):
+        execute = defer.succeed(None)
+
+        def execute_next(fn, *a, **kw):
+            execute.addCallback(lambda r: fn(*a, **kw))
+            execute.addErrback(lambda f: True)
+
         if cmd.startswith('$'):
             cmd = cmd[1:]
             d = defer.Deferred()
+
             p = protocol.ProcessProtocol()
-            p.outReceived = lambda d: [self.execute_reduced(l, cmd) for l in d.split("\n")]
+            p.outReceived = lambda d: [execute_next(self.execute_reduced, l, cmd) for l in d.split("\n")]
             p.processEnded = lambda r: d.callback(None)
+
             reactor.spawnProcess(p, self.plugin.shell, [self.plugin.shell, '-c', cmd], uid=self.plugin.uid)
+
+            d.addCallback(lambda r: execute)
             return d
         else:
             return self.execute_reduced(cmd)
