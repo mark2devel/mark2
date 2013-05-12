@@ -48,24 +48,27 @@ class ScriptEntry(object):
  
     def execute(self, cmd):
         if cmd.startswith('$'):
+            cmd = cmd[1:]
             d = defer.Deferred()
             p = protocol.ProcessProtocol()
-            p.outReceived = lambda d: [self.execute_reduced(l) for l in d.split("\n")]
+            p.outReceived = lambda d: [self.execute_reduced(l, cmd) for l in d.split("\n")]
             p.processEnded = lambda r: d.callback(None)
-            reactor.spawnProcess(p, self.plugin.shell, [self.plugin.shell, '-c', cmd[1:]], uid=self.plugin.uid)
+            reactor.spawnProcess(p, self.plugin.shell, [self.plugin.shell, '-c', cmd], uid=self.plugin.uid)
             return d
         else:
             return self.execute_reduced(cmd)
     
     @defer.inlineCallbacks
-    def execute_reduced(self, cmd):
+    def execute_reduced(self, cmd, source='script'):
         if cmd.startswith('~'):
             handled = yield self.plugin.dispatch(events.Hook(line=cmd))
             if not handled:
                 self.plugin.console("unknown command in script: %s" % cmd)
         elif cmd.startswith('/'):
             self.plugin.send(cmd[1:])
-        else:
+        elif cmd.startswith('#'):
+            self.plugin.console("#{0}".format(cmd[1:]), user=source, source="user")
+        elif cmd:
             self.plugin.console("couldn't understand script input: %s" % cmd)
 
     def step(self):
@@ -111,7 +114,7 @@ class Script(Plugin):
         
         for script in self.scripts:
             if script.type == 'time':
-                self.delayed_task(lambda a:self.repeating_task(self.step, 60, now=True),
+                self.delayed_task(lambda a: self.repeating_task(self.step, 60, now=True),
                                   max(0, 60 - localtime().tm_sec) % 60 + 1)
                 break
 
