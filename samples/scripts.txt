@@ -15,11 +15,13 @@
 # to use, replace the time spec with '@eventname', e.g. '@serverstopped'
 
 # COMMAND FORMAT
+#    #       print the # and everything following it to the mark2 console
 #    /       run a minecraft command
 #    ~       run a mark2 command
-#    $       execute a script, interpretting each line of its stdout as one
-#            of the above. you can define the subshell and user to run under
-#            in your mark2.properties
+#    $       execute a shell command, you can define the shell to use in your
+#            mark2.properties. each line of the command's stdout will be
+#            interpreted as one of the above.
+#
 
 #    #----------------------------- Minute (0 - 59)
 #    |    #------------------------ Hour   (0 - 23)
