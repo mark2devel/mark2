@@ -241,7 +241,10 @@ class Manager(MultiService):
     def handle_cmd_rehash(self, event):
         # make a dict of old and new plugin list
         plugins_old = dict(self.config.get_plugins())
-        self.config = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'config', 'mark2.properties'), 'mark2.properties')
+        self.config = properties.load(properties.Mark2Properties,
+                                      os.path.join(MARK2_BASE, 'resources', 'mark2.default.properties'),
+                                      os.path.join(MARK2_BASE, 'config', 'mark2.properties'),
+                                      'mark2.properties')
         self.plugins.config = self.config
         plugins_new = dict(self.config.get_plugins())
         # reload the union of old plugins and new plugins
