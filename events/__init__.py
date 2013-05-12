@@ -102,6 +102,10 @@ class EventPriority:
     def __repr__(self):
         return str(self)
 
+    def __call__(self, f):
+        f._mark2_priority = self
+        return f
+
 EventPriority.MONITOR = EventPriority( 0)
 EventPriority._LOW    = EventPriority(10)
 EventPriority.LOWEST  = EventPriority(20)
@@ -173,10 +177,16 @@ class EventDispatcher:
     def get(self, event_type):
         return self.registered.get(event_type, [])
 
-    def register(self, callback, event_type, priority=EventPriority.MEDIUM, **prefilter_args):
+    def register(self, callback, event_type, priority=None, **prefilter_args):
         if not event_type in self.registered:
             self.registered[event_type] = EventList()
         d = self.registered[event_type]
+
+        if priority is None:
+            if hasattr(callback, '_mark2_priority'):
+                priority = callback._mark2_priority
+            else:
+                priority = EventPriority.MEDIUM
 
         ok, errmsg = event_type._prefilter_argcheck(prefilter_args)
         if not ok:
