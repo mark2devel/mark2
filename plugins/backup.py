@@ -41,6 +41,8 @@ class Backup(Plugin):
         if self.proto:
             self.console("stopping in-progress backup!")
             self.proto.transport.signalProcess('KILL')
+        if self.done_backup:
+            self.done_backup.callback(None)
 
         return self.autosave_enabled
 
