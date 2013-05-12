@@ -25,20 +25,17 @@ class Backup(Plugin):
         self.register(self.autosave_changed, ServerOutput, pattern="(?P<username>[A-Za-z0-9_]{1,16}): (?P<action>Enabled|Disabled) level saving\.\.")
         self.register(self.autosave_changed, ServerOutput, pattern="Turned (?P<action>on|off) world auto-saving")
 
-        self.register(self.server_stopping_hp, ServerStopping, priority=EventPriority.HIGH)
-
     def server_started(self, event):
         self.autosave_enabled = True
 
+    @EventPriority.HIGH
+    @defer.inlineCallbacks
     def server_stopping(self, event):
-        self.autosave_enabled = False
-        self.stop_tasks()
-
-    def server_stopping_hp(self, event):
         if self.backup_stage > 0:
-            print self.done_backup
             self.console("backup: delaying server stop until backup operation completes.")
-            return self.done_backup
+            yield self.done_backup
+            self.autosave_enabled = False
+            self.stop_tasks()
 
     def save_state(self):
         if self.proto:
@@ -63,6 +60,8 @@ class Backup(Plugin):
             self.console("backup already in progress!")
             return
 
+        self.done_backup = defer.Deferred()
+
         self.console("map backup starting...")
         self.autosave_enabled_prev = self.autosave_enabled
         if self.autosave_enabled:
@@ -72,7 +71,6 @@ class Backup(Plugin):
             self.backup_stage = 2
             self.do_backup()
 
-        self.done_backup = defer.Deferred()
         return self.done_backup
 
     def do_backup(self, *a):
@@ -107,8 +105,9 @@ class Backup(Plugin):
             self.backup_stage = 0
             self.proto = None
             if self.done_backup:
-                self.done_backup.callback(None)
+                d = self.done_backup
                 self.done_backup = None
+                d.callback(None)
 
         self.proto = protocol.ProcessProtocol()
         self.proto.processEnded = lambda reason: p_ended(path)
