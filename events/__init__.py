@@ -169,9 +169,8 @@ class EventList:
 
 
 class EventDispatcher:
-    registered = {}
-
     def __init__(self, error_handler):
+        self.registered = {}
         self.error_handler = error_handler
 
     def get(self, event_type):
