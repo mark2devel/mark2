@@ -34,8 +34,8 @@ class Backup(Plugin):
         if self.backup_stage > 0:
             self.console("backup: delaying server stop until backup operation completes.")
             yield self.done_backup
-            self.autosave_enabled = False
             self.stop_tasks()
+        self.autosave_enabled = False
 
     def save_state(self):
         if self.proto:
