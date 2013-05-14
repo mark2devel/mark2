@@ -4,7 +4,7 @@ import os
 from twisted.internet import protocol, reactor, defer
 
 from plugins import Plugin
-from events import Hook, ServerOutput, ServerStopping, EventPriority
+from events import Hook, ServerOutput, ServerStopped, EventPriority
 import shlex
 
 
@@ -24,6 +24,7 @@ class Backup(Plugin):
         self.register(self.backup, Hook, public=True, name='backup', doc='backup the server to a .tar.gz')
         self.register(self.autosave_changed, ServerOutput, pattern="(?P<username>[A-Za-z0-9_]{1,16}): (?P<action>Enabled|Disabled) level saving\.\.")
         self.register(self.autosave_changed, ServerOutput, pattern="Turned (?P<action>on|off) world auto-saving")
+        self.register(self.server_stopped, ServerStopped, priority=EventPriority.HIGHEST)
 
     def server_started(self, event):
         self.autosave_enabled = True
@@ -35,6 +36,9 @@ class Backup(Plugin):
             self.console("backup: delaying server stop until backup operation completes.")
             yield self.done_backup
             self.stop_tasks()
+        self.autosave_enabled = False
+
+    def server_stopped(self, event):
         self.autosave_enabled = False
 
     def save_state(self):
