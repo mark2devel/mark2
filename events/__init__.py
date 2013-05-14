@@ -225,7 +225,7 @@ class EventDispatcher:
         self.error_handler(event, callback, failure)
 
     def _done_event(self, r, event, id_, iter_):
-        if isinstance(r, int):
+        if type(r) is int:
             if r & Event.UNREGISTER:
                 self.registered[event.__class__].remove_handler(id_)
             if r & Event.EAT:
