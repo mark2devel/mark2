@@ -7,7 +7,7 @@ from twisted.internet import reactor
 from twisted.internet.interfaces import ISSLTransport
 from twisted.python.util import InsensitiveDict
 from plugins import Plugin
-from events import PlayerChat, PlayerJoin, PlayerQuit, PlayerDeath, ServerOutput, ServerStopping, ServerStarting, StatPlayers, Hook, ACCEPTED
+from events import PlayerChat, PlayerJoin, PlayerQuit, PlayerDeath, ServerOutput, ServerStopping, ServerStarting, StatPlayers, Hook
 
 try:
     from OpenSSL import SSL
