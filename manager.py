@@ -292,6 +292,9 @@ class Manager(MultiService):
         self.shutdown()
 
     def handle_server_started(self, event):
+        properties_ = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
+        if properties_:
+            self.properties = properties_
         if not self.started:
             self.console("mark2 started.")
             self.started = True
