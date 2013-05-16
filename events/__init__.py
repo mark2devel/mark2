@@ -37,6 +37,8 @@ class Event(object):
     EAT = 1
     UNREGISTER = 2
 
+    doc = ''
+
     def __init__(self, d={}, **args):
         args.update(d)
         self._args = {}
