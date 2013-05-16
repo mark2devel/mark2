@@ -134,8 +134,6 @@ class Manager(MultiService):
         if self.config['mark2.service.ping.enabled']:
             self.addService(ping.Ping(
                 self,
-                self.properties['server_ip'],
-                self.properties['server_port'],
                 self.config['mark2.service.ping.interval']))
 
         self.process = process.Process(self, self.jar_file)

@@ -1,11 +1,10 @@
-import re
 import struct
 
 from twisted.application.service import Service
 from twisted.internet import task, reactor
 from twisted.internet.protocol import Protocol, ClientFactory
 
-from events import Event, StatPlayerCount, ServerOutput
+from events import Event, StatPlayerCount, ServerOutput, ServerStarted
 
 
 class PingProtocol(Protocol):
@@ -27,15 +26,8 @@ class PingProtocol(Protocol):
 class PingFactory(ClientFactory):
     noisy = False
     
-    def __init__(self, interval, host, port, dispatch):
-        self.host = host
-        self.port = port
+    def __init__(self, dispatch):
         self.dispatch = dispatch
-        t = task.LoopingCall(self.loop)
-        t.start(interval, now=False)
-    
-    def loop(self):
-        reactor.connectTCP(self.host, self.port, self, bindAddress=(self.host, 0))
     
     def buildProtocol(self, addr):
         pr = PingProtocol()
@@ -45,12 +37,32 @@ class PingFactory(ClientFactory):
 
 class Ping(Service):
     name = "ping"
+    alive = False
+    event_id = None
     
-    def __init__(self, parent, host, port, interval):
-        h = host if host else '127.0.0.1'
-        parent.events.register(lambda ev: Event.EAT, ServerOutput, pattern=r"\s*/%s:\d+ lost connection" % re.escape(h))
-        self.factory = PingFactory(interval, host, port, parent.events.dispatch)
+    def __init__(self, parent, interval):
+        self.parent = parent
+
+        self.host = self.parent.properties['server_ip'] or '127.0.0.1'
+
+        self.parent.events.register(self.server_started, ServerStarted)
+
+        self.task = task.LoopingCall(self.loop)
+        self.task.start(interval, now=False)
+
+    def server_started(self, event):
+        if self.event_id:
+            self.parent.events.unregister(self.event_id)
+        self.event_id = self.parent.events.register(lambda ev: Event.EAT, ServerOutput,
+                                                    pattern=r"\s*/%s:\d+ lost connection" % self.host)
+
+    def loop(self):
+        host = self.parent.properties['server_ip'] or '127.0.0.1'
+        port = self.parent.properties['server_port']
+
+        factory = PingFactory(self.parent.events.dispatch)
+
+        reactor.connectTCP(host, port, factory, bindAddress=(self.host, 0))
 
     def stopService(self):
-        self.factory.stopFactory()
         Service.stopService(self)
