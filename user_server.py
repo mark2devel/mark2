@@ -60,6 +60,7 @@ class UserServerProtocol(LineReceiver):
             self.dispatch(events.UserInput(user=msg['user'], line=msg['line']))
         
         elif ty == "get_scrollback":
+            self.send_helper("regex", patterns=dict(self.factory.parent.config.get_by_prefix('mark2.regex.')))
             self.send_helper("scrollback", lines=[e.serialize() for e in self.factory.scrollback.get()])
 
         elif ty == "get_users":

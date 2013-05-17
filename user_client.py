@@ -7,9 +7,11 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory, ProcessProtocol
 from twisted.internet.task import LoopingCall
 from twisted.protocols.basic import LineReceiver
-import psutil
-import urwid
 import properties
+import psutil
+import re
+import sys
+import urwid
 from shared import console_repr
 
 
@@ -198,6 +200,10 @@ class UI:
         self.pmenu_actions = pmenu_actions
         self.pmenu_reasons = pmenu_reasons
 
+        self.lines = []
+        self.filters = {}
+        self.filter = lambda *a: True
+
         self.g_output_list = urwid.SimpleListWalker([])
 
         self.build()
@@ -297,6 +303,12 @@ class UI:
 
     def append_output(self, line):
         scroll = False
+        del self.lines[:-999]
+        self.lines.append(line)
+
+        if not self.filter(line):
+            return
+
         try:
             p = self.g_output.focus_position
             try:
@@ -306,20 +318,33 @@ class UI:
         except IndexError:  # nothing in listbox
             pass
 
-        self.g_output_list.append(urwid.Text(line))
+        self.g_output_list.append(urwid.Text(console_repr(line)))
         if scroll:
             self.g_output.focus_position += 1
 
         self.redraw()
 
-    def set_output(self, lines):
+    def set_output(self, lines=None):
         contents = self.g_output_list
         del contents[0:len(contents)]
-        for line in lines:
-            contents.append(urwid.Text(line))
 
-        self.g_output.focus_position = len(lines) - 1
+        lines = lines or self.lines
+        lines = [l for l in lines if self.filter(l)]
+
+        for line in lines:
+            contents.append(urwid.Text(console_repr(line)))
+
+        try:
+            self.g_output.focus_position = len(lines) - 1
+        except IndexError:  # nothing in list
+            pass
         self.redraw()
+
+    def set_filter(self, filter_):
+        if isinstance(filter_, basestring):
+            return self.set_filter(self.filters[filter_])
+        self.filter = filter_.apply
+        self.set_output()
 
     def set_players(self, players):
         self.g_pmenu.set_players(players)
@@ -366,6 +391,33 @@ class App(object):
         self.update(self.name, self.buff.strip())
         if not self.stopping:
             reactor.callLater(self.interval, self.start)
+
+
+class LineFilter:
+    HIDE = 1
+    SHOW = 2
+
+    def __init__(self):
+        self._actions = []
+        self._default = self.SHOW
+
+    def append(self, action, *predicates):
+        self.setdefault(action)
+        def action_(msg):
+            if all(p(msg) for p in predicates):
+                return action
+            return None
+        self._actions.append(action_)
+
+    def setdefault(self, action):
+        if len(self._actions) == 0:
+            self._default = list({self.HIDE, self.SHOW} - {action})[0]
+
+    def apply(self, msg):
+        current = self._default
+        for action in self._actions:
+            current = action(msg) or current
+        return current == LineFilter.SHOW
 
 
 class UserClientFactory(ClientFactory):
@@ -474,10 +526,10 @@ class UserClientFactory(ClientFactory):
         self.switch_server()
 
     def server_output(self, line):
-        self.ui.append_output(console_repr(line))
+        self.ui.append_output(line)
 
     def server_scrollback(self, lines):
-        self.ui.set_output([console_repr(line) for line in lines])
+        self.ui.set_output(lines)
 
     def server_players(self, players):
         self.ui.set_players(players)
@@ -494,6 +546,43 @@ class UserClientFactory(ClientFactory):
     def server_stats(self, stats):
         self.stats.update(stats)
         self.ui.set_stats(self.stats_template.safe_substitute(self.stats))
+
+    def server_regex(self, patterns):
+        self.make_filters(patterns)
+
+    def make_filters(self, server_patterns={}):
+        cfg = {}
+        cfg.update(server_patterns)
+        cfg.update(self.config.get_by_prefix('pattern.'))
+
+        # read patterns from config to get a dict of name: filter function
+        def makefilter(p):
+            ppp = p
+            p = re.compile(p)
+            def _filter(msg):
+                m = p.match(msg['data'])
+                return m and m.end() == len(msg['data'])
+            return _filter
+        patterns = dict((k, makefilter(p)) for k, p in cfg.iteritems())
+
+        patterns['all'] = lambda a: True
+
+        # read filters
+        self.ui.filters = {}
+        for name, spec in self.config.get_by_prefix('filter.'):
+            filter_ = LineFilter()
+            action = LineFilter.SHOW
+            for pattern in spec.split(','):
+                pattern = pattern.strip().replace('-', '_')
+                if ':' in pattern:
+                    a, pattern = pattern.split(':', 1)
+                    action = {'show': LineFilter.SHOW, 'hide': LineFilter.HIDE}.get(a)
+                    filter_.setdefault(action)
+                if not pattern:
+                    continue
+                filter_.append(action, patterns[pattern])
+            self.ui.filters[name] = filter_
+        self.ui.set_filter(self.config['use_filter'])
 
 
 class NullFactory(object):
@@ -553,6 +642,9 @@ class UserClientProtocol(LineReceiver):
         elif ty == "stats":
             self.factory.server_stats(msg['stats'])
 
+        elif ty == "regex":
+            self.factory.server_regex(msg['patterns'])
+
         else:
             self.factory.log("wat")
 
@@ -572,8 +664,8 @@ class UserClientProtocol(LineReceiver):
 
     def get_users(self):
         self.send("get_users")
+
+
 if __name__ == '__main__':
     thing = UserClientFactory('testserver')
     thing.main()
-
-
