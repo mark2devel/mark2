@@ -1,4 +1,4 @@
-# mark2
+# mark2 [![Build Status](https://travis-ci.org/mcdevs/mark2.png?branch=master)](https://travis-ci.org/mcdevs/mark2)
 
 mark2 is a minecraft server wrapper, written in python and twisted. It aims to be *the* definitive wrapper, providing a
 rich feature-set and a powerful plugin interface. It has no requirement on craftbukkit.
