@@ -2,6 +2,7 @@ import re
 import os.path as path
 
 from twisted.words.protocols import irc
+from twisted.internet import defer
 from twisted.internet import protocol
 from twisted.internet import reactor
 from twisted.internet.interfaces import ISSLTransport
@@ -64,18 +65,112 @@ class IRCUser(object):
             return None
 
 
+class SASLExternal(object):
+    name = "EXTERNAL"
+
+    def __init__(self, username, password):
+        pass
+
+    def is_valid(self):
+        return True
+
+    def respond(self, data):
+        return ""
+
+
+class SASLPlain(object):
+    name = "PLAIN"
+
+    def __init__(self, username, password):
+        self.response = "{0}\0{0}\0{1}".format(username, password)
+
+    def is_valid(self):
+        return self.response != "\0\0"
+
+    def respond(self, data):
+        if data:
+            return False
+        return self.response
+
+
+SASL_MECHANISMS = (SASLExternal, SASLPlain)
+
+
 class IRCBot(irc.IRCClient):
+    sasl_buffer = ""
+    sasl_result = None
+    sasl_login = None
+
     def __init__(self, factory, plugin):
         self.factory     = factory
         self.nickname    = plugin.nickname.encode('ascii')
         self.realname    = plugin.realname.encode('ascii')
-        self.username    = plugin.username.encode('ascii')
+        self.username    = plugin.ident.encode('ascii')
+        self.ns_username = plugin.username
         self.ns_password = plugin.password
         self.password    = plugin.server_password.encode('ascii')
         self.channel     = plugin.channel.encode('ascii')
         self.console     = plugin.console
         self.irc_message = plugin.irc_message
+
         self.users       = InsensitiveDict()
+        self.cap_requests = set()
+
+    def register(self, nickname, hostname="foo", servername="bar"):
+        self.sendLine("CAP LS")
+        return irc.IRCClient.register(self, nickname, hostname, servername)
+
+    def _parse_cap(self, cap):
+        mod = ''
+        while cap[0] in "-~=":
+            mod, cap = mod + cap[0], cap[1:]
+        if '/' in cap:
+            vendor, cap = cap.split('/', 1)
+        else:
+            vendor = None
+        return (cap, mod, vendor)
+
+    def request_cap(self, *caps):
+        self.cap_requests |= set(caps)
+        self.sendLine("CAP REQ :{0}".format(' '.join(caps)))
+
+    @defer.inlineCallbacks
+    def end_cap(self):
+        if self.sasl_result:
+            yield self.sasl_result
+        self.sendLine("CAP END")
+
+    def irc_CAP(self, prefix, params):
+        self.supports_cap = True
+        identifier, subcommand, args = params
+        args = args.split(' ')
+        if subcommand == "LS":
+            self.sasl_start(args)
+            if not self.cap_requests:
+                self.sendLine("CAP END")
+        elif subcommand == "ACK":
+            ack = []
+            for cap in args:
+                if not cap:
+                    continue
+                cap, mod, vendor = self._parse_cap(cap)
+                if '-' in mod:
+                    if cap in self.capabilities:
+                        del self.capabilities[cap]
+                    continue
+                self.cap_requests.remove(cap)
+                if cap == 'sasl':
+                    self.sasl_next()
+            if ack:
+                self.sendLine("CAP ACK :{0}".format(' '.join(ack)))
+            if not self.cap_requests:
+                self.end_cap()
+        elif subcommand == "NAK":
+            # this implementation is probably not compliant but it will have to do for now
+            for cap in args:
+                self.cap_requests.remove(cap)
+            if not self.cap_requests:
+                self.end_cap()
 
     def signedOn(self):
         if ISSLTransport.providedBy(self.transport):
@@ -86,8 +181,8 @@ class IRCBot(irc.IRCClient):
         else:
             self.console("irc: connected")
         
-        if self.ns_password:
-            self.msg('NickServ', 'IDENTIFY %s' % self.ns_password)
+        if self.ns_username and self.ns_password and not self.sasl_login:
+            self.msg('NickServ', 'IDENTIFY {0} {1}'.format(self.ns_username, self.ns_password))
         
         self.join(self.channel)
 
@@ -233,6 +328,87 @@ class IRCBot(irc.IRCClient):
         else:
             p.irc_message(nick, msg)
 
+    def irc_AUTHENTICATE(self, prefix, params):
+        self.sasl_continue(params[0])
+
+    def sasl_send(self, data):
+        while data and len(data) >= 400:
+            en, data = data[:400].encode('base64').replace('\n', ''), data[400:]
+            self.sendLine("AUTHENTICATE " + en)
+        if data:
+            self.sendLine("AUTHENTICATE " + data.encode('base64').replace('\n', ''))
+        else:
+            self.sendLine("AUTHENTICATE +")
+
+    def sasl_start(self, cap_list):
+        if 'sasl' not in cap_list:
+            print cap_list
+            return
+        self.request_cap('sasl')
+        self.sasl_result = defer.Deferred()
+        self.sasl_mechanisms = list(SASL_MECHANISMS)
+
+    def sasl_next(self):
+        mech = None
+        while not mech or not mech.is_valid():
+            if not self.sasl_mechanisms:
+                return False
+            self.sasl_auth = mech = self.sasl_mechanisms.pop(0)(self.ns_username, self.ns_password)
+        self.sendLine("AUTHENTICATE " + self.sasl_auth.name)
+        return True
+
+    def sasl_continue(self, data):
+        if data == '+':
+            data = ''
+        else:
+            data = data.decode('base64')
+        if len(data) == 400:
+            self.sasl_buffer += data
+        else:
+            response = self.sasl_auth.respond(self.sasl_buffer + data)
+            if response is False:  # abort
+                self.sendLine("AUTHENTICATE *")
+            else:
+                self.sasl_send(response)
+            self.sasl_buffer = ""
+
+    def sasl_finish(self):
+        if self.sasl_result:
+            self.sasl_result.callback(True)
+            self.sasl_result = None
+
+    def sasl_failed(self, whine=True):
+        if self.sasl_login is False:
+            return
+        if self.sasl_next():
+            return
+        self.sasl_login = False
+        self.sendLine("AUTHENTICATE *")
+        self.sasl_finish()
+        if whine:
+            self.console("failed to log in.")
+
+    def irc_904(self, prefix, params):
+        print params
+        self.sasl_failed()
+
+    def irc_905(self, prefix, params):
+        print params
+        self.sasl_failed()
+
+    def irc_906(self, prefix, params):
+        self.sasl_failed(False)
+
+    def irc_907(self, prefix, params):
+        self.sasl_failed(False)
+
+    def irc_900(self, prefix, params):
+        self.sasl_login = params[2]
+        self.console("irc: logged in as '{0}' (using {1})".format(self.sasl_login, self.sasl_auth.name))
+
+    def irc_903(self, prefix, params):
+        self.sasl_finish()
+
     def alterCollidedNick(self, nickname):
         return nickname + '_'
 
@@ -278,8 +454,9 @@ class IRC(Plugin):
 
     #user
     nickname = "RelayBot"
-    realname = "RelayBot"
-    username = "RelayBot"
+    realname = "mark2 IRC relay"
+    ident    = "RelayBot"
+    username = ""
     password = ""
 
     #general
