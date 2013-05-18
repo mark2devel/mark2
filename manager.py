@@ -253,7 +253,8 @@ class Manager(MultiService):
                 requires_reload.remove(k)
         requires_reload = list(requires_reload)
         # actually reload
-        map(self.plugins.reload, requires_reload)
+        for p in requires_reload:
+            self.plugins.reload(p)
         reloaded = filter(None, requires_reload)
         self.console("%d plugins reloaded: %s" % (len(reloaded), ", ".join(reloaded)))
 
