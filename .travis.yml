@@ -5,5 +5,10 @@ python:
 install: "pip install -r requirements.txt --use-mirrors"
 script: trial test
 notifications:
-  webhooks: "http://n.tkte.ch/h/48/-YmtMxA1cPlNkYyVB7rN0z4V"
+  webhooks:
+    urls:
+      - "http://n.tkte.ch/h/48/-YmtMxA1cPlNkYyVB7rN0z4V"
+    on_success: change
+    on_failure: always
+    on_start: false
   email: false
