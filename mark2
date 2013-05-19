@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-from launcher import main, Mark2Error
+from mk2.launcher import main, Mark2Error
 
 if __name__ == '__main__':
     try:

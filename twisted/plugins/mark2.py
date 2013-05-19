@@ -4,7 +4,7 @@ from twisted.python import usage
 from twisted.plugin import IPlugin
 from twisted.application.service import IServiceMaker
 
-from manager import Manager
+from mk2.manager import Manager
 
 import sys
 
