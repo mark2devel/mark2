@@ -571,8 +571,8 @@ commands = (CommandHelp, CommandStart, CommandList, CommandAttach, CommandStop, 
 commands_d = dict([(c.name, c) for c in commands])
 
 
-def main():
-    c_args = sys.argv[1:]
+def main(argv):
+    c_args = argv[1:]
     if len(c_args) == 0:
         command_name = 'help'
     else:
