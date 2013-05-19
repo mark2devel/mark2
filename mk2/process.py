@@ -132,7 +132,10 @@ class Process(Service):
             reactor.stop()
 
     def update_stat(self, process):
-        self.parent.events.dispatch(events.StatProcess(cpu=process.get_cpu_percent(interval=0), memory=process.get_memory_percent()))
+        try:
+            self.parent.events.dispatch(events.StatProcess(cpu=process.get_cpu_percent(interval=0), memory=process.get_memory_percent()))
+        except psutil.error.NoSuchprocess:
+            pass
 
     def stopService(self):
         if self.protocol and self.protocol.alive:
