@@ -1,3 +1,4 @@
+import importlib
 import json
 
 from twisted.internet import reactor, defer, ssl
@@ -18,6 +19,7 @@ class Jar:
 
     def __repr__(self):
         return '-'.join(self.name_short)
+
 
 class JarProvider:
     major = None
@@ -44,6 +46,7 @@ class JarProvider:
     def work(self):
         raise NotImplementedError
 
+
 class JenkinsJarProvider(JarProvider):
     base = None
     project = None
@@ -58,12 +61,19 @@ class JenkinsJarProvider(JarProvider):
         self.add((self.name, 'Latest'), (None, None), url)
         self.commit()
 
-import bukkit, feed_the_beast, forge, libigot, mcpcplus, nukkit, spigot, technic, vanilla
+
+modules = []
+for m in ['bukkit', 'feed_the_beast', 'forge', 'libigot', 'mcpcplus', 'nukkit', 'spigot', 'technic', 'vanilla']:
+    try:
+        modules.append(importlib.import_module('.' + m, "mk2.servers"))
+    except ImportError:
+        pass
+
 
 def get_raw():
     d_results = defer.Deferred()
-    dd = []
-    for mod in bukkit, feed_the_beast, forge, libigot, mcpcplus, nukkit, spigot, technic, vanilla:
+    dd = [defer.succeed([])]
+    for mod in modules:
         d = defer.Deferred()
         mod.ref(d)
         dd.append(d)
@@ -76,11 +86,11 @@ def get_raw():
                 results.extend(data)
             else:
                 print "error: %s" % data.value
-
         d_results.callback(results)
 
     dd.addCallback(callback2)
     return d_results
+
 
 def jar_list():
     d_result = defer.Deferred()

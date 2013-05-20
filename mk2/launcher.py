@@ -522,34 +522,40 @@ class CommandSend(CommandTyTerminal):
 class CommandJarList(Command):
     """list server jars"""
     name = 'jar-list'
+
     def run(self):
         def err(what):
-            reactor.stop()
+            if reactor.running: reactor.stop()
             print "error: %s" % what.value
 
         def handle(listing):
-            reactor.stop()
+            if reactor.running: reactor.stop()
             if len(listing) == 0:
                 print "error: no server jars found!"
             else:
                 print "The following server jars/zips are available:"
             print listing
 
-        d = servers.jar_list()
-        d.addCallbacks(handle, err)
+        def start():
+            d = servers.jar_list()
+            d.addCallbacks(handle, err)
+
+        reactor.callWhenRunning(start)
+
         reactor.run()
 
 
 class CommandJarGet(Command):
     """download a server jar"""
     name = 'jar-get'
-    value_spec='NAME'
+    value_spec = 'NAME'
+
     def run(self):
         if self.value is None:
             raise Mark2ParseError("missing jar type!")
 
         def err(what):
-            reactor.stop()
+            #reactor.stop()
             print "error: %s" % what.value
 
         def handle((filename, data)):
@@ -562,8 +568,12 @@ class CommandJarGet(Command):
                 f.close()
                 print "success! saved as %s" % filename
 
-        d = servers.jar_get(self.value)
-        d.addCallbacks(handle, err)
+        def start():
+            d = servers.jar_get(self.value)
+            d.addCallbacks(handle, err)
+
+        reactor.callWhenRunning(start)
+
         reactor.run()
 
 
