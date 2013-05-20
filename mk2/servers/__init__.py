@@ -1,8 +1,14 @@
 import importlib
 import json
 
-from twisted.internet import reactor, defer, ssl
+from twisted.internet import reactor, defer
 from twisted.web.client import getPage, HTTPClientFactory
+
+try:
+    from twisted.internet import ssl
+except ImportError:
+    ssl = None
+
 
 class Jar:
     def __init__(self, name_long, name_short, url):
@@ -23,6 +29,7 @@ class Jar:
 
 class JarProvider:
     major = None
+
     def __init__(self, deferred):
         self.deferred = deferred
         self.response = []
@@ -138,7 +145,10 @@ def jar_get(name):
                 factory = HTTPClientFactory(r.url)
 
                 if factory.scheme == 'https':
-                    reactor.connectSSL(factory.host, factory.port, factory, ssl.ClientContextFactory())
+                    if ssl:
+                        reactor.connectSSL(factory.host, factory.port, factory, ssl.ClientContextFactory())
+                    else:
+                        d_result.errback(Exception("{0} is not available because this installation does not have SSL support!".format(name)))
                 else:
                     reactor.connectTCP(factory.host, factory.port, factory)
 
@@ -146,7 +156,7 @@ def jar_get(name):
                 factory.deferred.addErrback(d_result.errback)
                 return
 
-        d_result.errback("%s is not available!" % name)
+        d_result.errback(Exception("{0} is not available!".format(name)))
 
     d = get_raw()
     d.addCallbacks(got_results, d_result.errback)
