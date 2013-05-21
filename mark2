@@ -1,10 +1,6 @@
 #!/usr/bin/env python2.7
 import sys
-
-from mk2.launcher import main, Mark2Error
+from mk2.launcher import main
 
 if __name__ == '__main__':
-    try:
-        main(sys.argv)
-    except Mark2Error, e:
-        print e
+    sys.exit(main())

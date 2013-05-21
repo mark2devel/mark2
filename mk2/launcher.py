@@ -46,6 +46,7 @@ mark2 {subcommand}: {doc}
 usage: mark2 {subcommand} {value_spec}
 """
 
+
 class Mark2Error(Exception):
     def __init__(self, error):
         self.error = error
@@ -67,7 +68,7 @@ class Command(object):
         pass
 
     def do_start(self):
-        self.script_path = sys.path[0]
+        self.script_path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
     def do_end(self):
         pass
@@ -94,7 +95,6 @@ class Command(object):
             for flag in opt[1]:
                 options_tys[flag] = opt
 
-
         while len(c_args) > 0:
             head = c_args[0]
 
@@ -111,7 +111,6 @@ class Command(object):
                     raise Mark2ParseError("option `%s` missing argument" % opt[0])
             else:
                 raise Mark2Error("%s: unknown option %s" % (self.name, head))
-
 
         self.options = options
         self.value = ' '.join(c_args) if len(c_args) else None
@@ -341,7 +340,7 @@ class CommandStart(CommandTyTerminal):
         ) == 0
 
     def copy_config(self, src, dest, header=''):
-        f0 = open(src,  'r')
+        f0 = open(src, 'r')
         f1 = open(dest, 'w')
         l0 = ''
 
@@ -476,6 +475,7 @@ class CommandStart(CommandTyTerminal):
         self.wait = '# mark2 started|stopped\.'
         self.wait_from_start = True
 
+
 class CommandList(CommandTyStateful):
     """list running servers"""
     name = 'list'
@@ -581,16 +581,23 @@ commands = (CommandHelp, CommandStart, CommandList, CommandAttach, CommandStop, 
 commands_d = dict([(c.name, c) for c in commands])
 
 
-def main(argv):
-    c_args = argv[1:]
-    if len(c_args) == 0:
-        command_name = 'help'
-    else:
-        command_name = c_args.pop(0)
-    command_cls = commands_d.get(command_name, None)
-    if command_cls is None:
-        raise Mark2ParseError("unknown command: %s" % command_name)
-    command = command_cls()
+def main():
+    try:
+        c_args = sys.argv[1:]
+        if len(c_args) == 0:
+            command_name = 'help'
+        else:
+            command_name = c_args.pop(0)
+        command_cls = commands_d.get(command_name, None)
+        if command_cls is None:
+            raise Mark2ParseError("unknown command: %s" % command_name)
+        command = command_cls()
 
-    command.parse_options(c_args)
-    command.start()
+        command.parse_options(c_args)
+        command.start()
+
+        return 0
+    except Mark2Error as e:
+        print e
+
+        return 1
