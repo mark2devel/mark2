@@ -7,4 +7,7 @@ twisted/plugins/dropin.cache
 .idea
 resources/mark2.properties
 config
+build
+dist
+mark2.egg-info
 _*/
