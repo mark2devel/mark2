@@ -63,6 +63,3 @@ class Ping(Service):
         factory = PingFactory(self.parent.events.dispatch)
 
         reactor.connectTCP(host, port, factory, bindAddress=(self.host, 0))
-
-    def stopService(self):
-        Service.stopService(self)
