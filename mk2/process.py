@@ -63,6 +63,8 @@ class Process(Service):
         reg(self.server_stopping, events.ServerStopping, priority=EventPriority.MONITOR)
         reg(self.server_stopped,  events.ServerStopped,  priority=EventPriority.MONITOR)
 
+        reactor.addSystemEventTrigger('before', 'shutdown', self.before_reactor_stop)
+
     def build_command(self):
         cmd = []
         cmd.append('java')
@@ -137,7 +139,7 @@ class Process(Service):
         except psutil.error.NoSuchprocess:
             pass
 
-    def stopService(self):
+    def before_reactor_stop(self):
         if self.protocol and self.protocol.alive:
             self.parent.events.dispatch(events.ServerStop(reason="SIGINT", respawn=False))
             self.service_stopping = defer.Deferred()
