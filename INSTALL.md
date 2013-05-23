@@ -3,7 +3,7 @@
 ## requirements
 
 * UNIX-like operating system (Linux, Mac OS X, BSD)
-* python 2.7 (+ dev package for psutil installation)
+* python 2.6/2.7 (+ dev package for psutil installation)
 * psutil
 * urwid 1.x
 * twisted
@@ -16,16 +16,23 @@
 
 This should suffice:
 
-    $ sudo apt-get install python-dev python-pip python-twisted-core python-twisted-web python-twisted-words
-    $ sudo pip install psutil urwid feedparser
+    $ sudo apt-get install python-dev python-pip
+    $ sudo pip install -r requirements.txt
 
 ### centos
 
-CentOS and some other distros ship an older version of python. First check you have python 2.7:
+CentOS and some other distros ship an older version of python. First check you have python 2.6 or 2.7:
 
+    $ python2.6 -V
     $ python2.7 -V
 
-If you get "command not found", you need to install python 2.7. A decent guide for centos is
+If at least one of them works, you should be able to do:
+
+    $ sudo yum install python-devel
+    $ sudo easy_install pip
+    $ sudo pip install -r requirements.txt
+
+Otherwise, you need to install python 2.7. A decent guide for centos is
 [located here](http://toomuchdata.com/2012/06/25/how-to-install-python-2-7-3-on-centos-6-2/). Be sure to follow the
 instructions for installing distribute also.
 
@@ -81,6 +88,3 @@ And run it like
 
 Likewise if `mark2 attach -n blah` becomes a little too much, you could always
 `alias at='mark2 attach -n'`
-
-
-
