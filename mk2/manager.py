@@ -3,18 +3,16 @@ import traceback
 import signal
 import re
 
-from twisted.internet import reactor
+from twisted.internet import defer, reactor
 from twisted.internet.defer import inlineCallbacks
-from twisted.application.service import MultiService, Service
 from twisted.python import log, logfile
 
 #mark2 things
 from . import events, properties, user_server, process, plugins
 from .events import EventPriority
-from .services import ping
 
 
-MARK2_BASE = os.getcwd()
+MARK2_BASE = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
 """
 
@@ -23,36 +21,32 @@ This is the 'main' class that handles most of the logic
 """
 
 
-class Manager(MultiService):
+class Manager(object):
     name = "manager"
     started = False
     
     def __init__(self, shared_path, server_name, server_path, jar_file=None):
-        MultiService.__init__(self)
         self.shared_path = shared_path
         self.server_name = server_name
         self.server_path = server_path
         self.jar_file = jar_file
         self.players = set()
 
-    def startService(self):
-        Service.startService(self)
+    def startup(self):
+        reactor.addSystemEventTrigger('before', 'shutdown', self.before_reactor_stop)
+
         try:
-            self.startServiceReal()
+            self.really_start()
         except Exception:
             for l in traceback.format_exc().split("\n"):
+                print l
                 self.console(l, kind='error')
             self.shutdown()
 
-    def stopService(self):
-        def finish_up(d):
-            self.console("mark2 stopped.")
+    def before_reactor_stop(self):
+        self.console("mark2 stopped.")
 
-        d = MultiService.stopService(self)
-        d.addCallback(finish_up)
-        return d
-
-    def startServiceReal(self):
+    def really_start(self):
         #start event dispatcher
         self.events = events.EventDispatcher(self.handle_dispatch_error)
 
@@ -79,8 +73,12 @@ class Manager(MultiService):
         #change to server directory
         os.chdir(self.server_path)
 
+        print os.getcwd()
+
         #load config
         self.load_config()
+
+        print self.config
 
         #start logging
         self.start_logging()
@@ -126,15 +124,18 @@ class Manager(MultiService):
             ('chat', events.PlayerChat)):
             self.events.register(lambda e, e_ty=e_ty: self.events.dispatch(e_ty(**e.match.groupdict())), events.ServerOutput, pattern=self.config['mark2.regex.'+key])
 
-        #start services
-        if self.config['mark2.service.ping.enabled']:
-            self.addService(ping.Ping(
-                self,
-                self.config['mark2.service.ping.interval']))
+        self.socket = os.path.join(self.shared_path, "%s.sock" % self.server_name)
 
-        self.process = process.Process(self, self.jar_file)
-        self.addService(self.process)
-        self.addService(user_server.UserServer(self, os.path.join(self.shared_path, "%s.sock" % self.server_name)))
+        self.services = plugins.PluginManager(self, search_path='services')
+        for name in self.services.find():
+            result = self.services.load(name, **dict(self.config.get_service(name)))
+            if not result:
+                return self.fatal_error(reason="couldn't load service: '{0}'".format(name))
+
+        # self.process = process.Process(self, self.jar_file)
+        # self.process.startService()
+        # self.user_server = user_server.UserServer(self, )
+        # self.user_server.startService()
 
         #load plugins
         self.plugins = plugins.PluginManager(self)
