@@ -467,7 +467,7 @@ class CommandConfig(Command):
         if not self.check_executable("editor"):
             return write_config() if not os.path.exists(path_new) else None
 
-        if self.options.get('ask', False):
+        if "MARK2_TEST" not in self.options.get('ask', False):
             response = raw_input('would you like to configure mark2 now? [yes] ') or 'yes'
             if response != 'yes':
                 return write_config() if not os.path.exists(path_new) else None
@@ -477,13 +477,15 @@ class CommandConfig(Command):
         else:
             #launch our editor
             fd_tmp, path_tmp = tempfile.mkstemp(prefix='mark2.properties.', text=True)
-            with open_resource(path_old) as src, open(path_tmp, 'w') as dst:
-                self.copy_config(src, dst)
+            with open_resource(path_old) as src:
+                with open(path_tmp, 'w') as dst:
+                    self.copy_config(src, dst)
             subprocess.call(['editor', path_tmp])
 
             #diff the files
-            with open_resource(path_old) as src, open(path_tmp, 'r') as dst:
-                write_config(self.diff_config(src, dst))
+            with open_resource(path_old) as src:
+                with open(path_tmp, 'r') as dst:
+                    write_config(self.diff_config(src, dst))
             os.remove(path_tmp)
 
 
