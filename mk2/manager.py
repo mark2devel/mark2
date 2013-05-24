@@ -2,6 +2,7 @@ import os
 import traceback
 import signal
 import re
+import sys
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
@@ -11,6 +12,7 @@ from twisted.python import log, logfile
 from . import events, properties, plugins
 from .events import EventPriority
 from .services import process
+from .shared import find_config, open_resource
 
 
 MARK2_BASE = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
@@ -40,6 +42,7 @@ class Manager(object):
             self.really_start()
         except Exception:
             for l in traceback.format_exc().split("\n"):
+                print l
                 self.console(l, kind='error')
             self.shutdown()
 
@@ -101,7 +104,7 @@ class Manager(object):
         self.events.register(handler, events.ServerOutput, pattern=".*")
 
         #load server.properties
-        self.properties = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
+        self.properties = properties.load(properties.Mark2Properties, open_resource('resources/server.default.properties'), 'server.properties')
         if self.properties is None:
             return self.fatal_error(reason="couldn't find server.properties")
 
@@ -160,9 +163,9 @@ class Manager(object):
 
     def load_config(self):
         self.config = properties.load(properties.Mark2Properties,
-            os.path.join(MARK2_BASE, 'resources', 'mark2.default.properties'),
-            os.path.join(MARK2_BASE, 'config', 'mark2.properties'),
-            'mark2.properties')
+                                      open_resource('resources/mark2.default.properties'),
+                                      find_config('mark2.properties'),
+                                      'mark2.properties')
         if self.config is None:
             return self.fatal_error(reason="couldn't find mark2.properties")
 
@@ -203,7 +206,7 @@ class Manager(object):
         self.shutdown()
 
     def handle_server_started(self, event):
-        properties_ = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
+        properties_ = properties.load(properties.Mark2Properties, open_resource('resources/server.default.properties'), 'server.properties')
         if properties_:
             self.properties = properties_
         if not self.started:
