@@ -1,4 +1,5 @@
-from mk2 import events, process
+from mk2 import events
+from mk2.services import process
 
 import random
 
