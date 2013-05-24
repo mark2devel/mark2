@@ -354,12 +354,12 @@ class CommandStart(CommandTyTerminal):
         if os.fork() != 0:
             sys.exit(0)
 
-        # null = os.open('/dev/null', os.O_RDWR)
-        # for fileno in (1, 2, 3):
-        #     try:
-        #         os.dup2(null, fileno)
-        #     except:
-        #         pass
+        null = os.open('/dev/null', os.O_RDWR)
+        for fileno in (1, 2, 3):
+            try:
+                os.dup2(null, fileno)
+            except:
+                pass
 
         return 0
 
