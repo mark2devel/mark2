@@ -3,12 +3,12 @@ import traceback
 import signal
 import re
 
-from twisted.internet import defer, reactor
+from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.python import log, logfile
 
 #mark2 things
-from . import events, properties, user_server, process, plugins
+from . import events, properties, process, plugins
 from .events import EventPriority
 
 
