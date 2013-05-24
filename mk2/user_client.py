@@ -191,11 +191,12 @@ class PMenuWrap(urwid.WidgetPlaceholder):
 class UI:
     loop = None
 
-    def __init__(self, palette, get_players, run_command, switch_server, pmenu_actions, pmenu_reasons):
+    def __init__(self, palette, get_players, run_command, switch_server, connect_to_server, pmenu_actions, pmenu_reasons):
         self.palette = palette
         self.get_players = get_players
         self.run_command = run_command
         self.switch_server = switch_server
+        self.connect_to_server = connect_to_server
 
         self.pmenu_actions = pmenu_actions
         self.pmenu_reasons = pmenu_reasons
@@ -278,7 +279,7 @@ class UI:
     def set_servers(self, servers, current=None):
         new = []
         for s in sorted(servers):
-            e = urwid.Text(" %s " % s)
+            e = PMenuButton(" %s " % s, lambda button, _s=s: self.connect_to_server(_s))
             e = urwid.AttrMap(e, 'server_current' if s == current else 'server')
             new.append((e, self.g_servers.options('pack')))
 
@@ -438,7 +439,7 @@ class UserClientFactory(ClientFactory):
         self.apps = []
 
         #start ui
-        self.ui = UI(self.config.get_palette(), self.get_players, self.run_command, self.switch_server, self.config.get_player_actions(), self.config.get_player_reasons())
+        self.ui = UI(self.config.get_palette(), self.get_players, self.run_command, self.switch_server, self.connect_to_server, self.config.get_player_actions(), self.config.get_player_reasons())
         for name, command in self.config.get_apps():
             app = App(name, self.config.get_interval('apps'), self.app_update, self.config['stats.app_shell'], command)
             self.apps.append(app)
