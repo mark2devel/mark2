@@ -123,6 +123,7 @@ class Properties(dict):
             if k.startswith(prefix):
                 yield k[len(prefix):], v
 
+
 class Mark2Properties(Properties):
     def get_plugins(self):
         plugins = {}
@@ -143,6 +144,8 @@ class Mark2Properties(Properties):
 
         return [(n, plugins[n]) for n in sorted(enabled)]
 
+    def get_service(self, service):
+        return self.get_by_prefix('mark2.service.{0}'.format(service))
 
     def get_jvm_options(self):
         options = []
