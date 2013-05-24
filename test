@@ -1,4 +1,3 @@
 #!/bin/sh
-export PYTHONPATH=$(pwd)
 cd $(mktemp -d)
 trial mk2
