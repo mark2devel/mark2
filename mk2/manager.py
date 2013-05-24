@@ -8,8 +8,9 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.python import log, logfile
 
 #mark2 things
-from . import events, properties, process, plugins
+from . import events, properties, plugins
 from .events import EventPriority
+from .services import process
 
 
 MARK2_BASE = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
