@@ -397,7 +397,7 @@ class CommandStart(CommandTyTerminal):
 
         if self.daemonize() == 0:
             with open(self.shared('pid'), 'w') as f:
-                f.write("{}\n".format(os.getpid()))
+                f.write("{0}\n".format(os.getpid()))
 
             mgr = manager.Manager(self.shared_path, self.server_name, self.server_path, self.jar_file)
             reactor.callWhenRunning(mgr.startup)
