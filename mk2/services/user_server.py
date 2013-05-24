@@ -1,11 +1,13 @@
+from twisted.internet import reactor
 from twisted.internet.protocol import Factory
 from twisted.protocols.basic import LineReceiver
-from twisted.application.internet import UNIXServer
 
 import os
 import json
 
-import events
+from mk2 import events
+from mk2.plugins import Plugin
+
 
 class Scrollback:
     def __init__(self, length):
@@ -17,11 +19,12 @@ class Scrollback:
         if len(self.data) > self.length:
             self.data.pop(0)
 
-    def get(self, max_items = None):
+    def get(self, max_items=None):
         if max_items is None:
             return self.data[:]
         else:
             return self.data[-max_items:]
+
 
 class UserServerProtocol(LineReceiver):
     MAX_LENGTH = 999999
@@ -138,10 +141,10 @@ class UserServerFactory(Factory):
             self.stats[n] = '{0:.2f}'.format(event[n])
 
 
-class UserServer(UNIXServer):
-    def __init__(self, parent, socket):
-        self.parent = parent
+class UserServer(Plugin):
+    def setup(self):
+        socket = self.parent.socket
         if os.path.exists(socket):
             os.remove(socket)
-        factory = UserServerFactory(parent)
-        UNIXServer.__init__(self, socket, factory, mode=parent.config.get_umask('sock'))
+        factory = UserServerFactory(self.parent)
+        reactor.listenUNIX(socket, factory, mode=self.parent.config.get_umask('sock'))
