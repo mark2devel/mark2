@@ -1,5 +1,6 @@
 from mk2 import events, properties
 from mk2.services import process
+from mk2.shared import find_config, open_resource
 from mk2.plugins import Plugin
 
 import os
@@ -50,8 +51,8 @@ class Builtin(Plugin):
         # make a dict of old and new plugin list
         plugins_old = dict(self.parent.config.get_plugins())
         self.parent.config = properties.load(properties.Mark2Properties,
-                                             os.path.join(MARK2_BASE, 'resources', 'mark2.default.properties'),
-                                             os.path.join(MARK2_BASE, 'config', 'mark2.properties'),
+                                             open_resource('resources/mark2.default.properties'),
+                                             find_config('mark2.properties'),
                                              'mark2.properties')
         self.parent.plugins.config = self.config
         plugins_new = dict(self.parent.config.get_plugins())
