@@ -51,14 +51,6 @@ class Manager(object):
         self.events = events.EventDispatcher(self.handle_dispatch_error)
 
         #add some handlers
-        self.events.register(self.handle_cmd_help,          events.Hook, public=True, name="help", doc="displays this message")
-        self.events.register(self.handle_cmd_events,        events.Hook, public=True, name="events", doc="lists events")
-        self.events.register(self.handle_cmd_plugins,       events.Hook, public=True, name="plugins", doc="lists running plugins")
-        self.events.register(self.handle_cmd_reload_plugin, events.Hook, public=True, name="reload-plugin", doc="reload a plugin")
-        self.events.register(self.handle_cmd_rehash,        events.Hook, public=True, name="rehash", doc="reload config and any plugins that changed")
-        self.events.register(self.handle_cmd_reload,        events.Hook, public=True, name="reload", doc="reload config and all plugins")
-        self.events.register(self.handle_cmd_jar,           events.Hook, public=True, name="jar", doc="wrap a different server jar")
-
         self.events.register(self.handle_server_output, events.ServerOutput,  priority=EventPriority.MONITOR, pattern="")
         self.events.register(self.handle_console,       events.Console,       priority=EventPriority.MONITOR)
         self.events.register(self.handle_fatal,         events.FatalError,    priority=EventPriority._HIGH)
@@ -200,77 +192,8 @@ class Manager(object):
     
     def send(self, line):
         self.events.dispatch(events.ServerInput(line=line))
-    
-    def table(self, v):
-        m = 0
-        for name, doc in v:
-            m = max(m, len(name))
-        
-        for name, doc in sorted(v, key=lambda x: x[0]):
-            self.console(" ~%s | %s" % (name.ljust(m), doc))
             
     #handlers
-    def handle_cmd_help(self, event):
-        o = []
-        for _, callback, args in self.events.get(events.Hook):
-            if args.get('public', False):
-                o.append((args['name'], args.get('doc', '')))
-        
-        self.console("The following commands are available:")
-        self.table(o)
-    
-    def handle_cmd_events(self, event):
-        self.console("The following events are available:")
-        self.table([(n, c.doc) for n, c in events.get_all()])
-
-    def handle_cmd_plugins(self, events):
-        self.console("These plugins are running: " + ", ".join(sorted(self.plugins.keys())))
-
-    def handle_cmd_reload_plugin(self, event):
-        if event.args in self.plugins:
-            self.plugins.reload(event.args)
-            self.console("%s reloaded." % event.args)
-        else:
-            self.console("unknown plugin.")
-
-    def handle_cmd_rehash(self, event):
-        # make a dict of old and new plugin list
-        plugins_old = dict(self.config.get_plugins())
-        self.config = properties.load(properties.Mark2Properties,
-                                      os.path.join(MARK2_BASE, 'resources', 'mark2.default.properties'),
-                                      os.path.join(MARK2_BASE, 'config', 'mark2.properties'),
-                                      'mark2.properties')
-        self.plugins.config = self.config
-        plugins_new = dict(self.config.get_plugins())
-        # reload the union of old plugins and new plugins
-        requires_reload = set(plugins_old.keys()) | set(plugins_new.keys())
-        # (except plugins whose config is exactly the same)
-        for k in list(requires_reload):
-            if plugins_old.get(k, False) == plugins_new.get(k, False):
-                requires_reload.remove(k)
-        requires_reload = list(requires_reload)
-        # actually reload
-        for p in requires_reload:
-            self.plugins.reload(p)
-        reloaded = filter(None, requires_reload)
-        self.console("%d plugins reloaded: %s" % (len(reloaded), ", ".join(reloaded)))
-
-    def handle_cmd_reload(self, event):
-        self.plugins.unload_all()
-        self.load_config()
-        self.load_plugins()
-        self.console("config + plugins reloaded.")
-
-    def handle_cmd_jar(self, event):
-        new_jar = process.find_jar(
-            self.config['mark2.jar_path'].split(';'),
-            event.args)
-        if new_jar:
-            self.console("I will switch to {0} at the next restart".format(new_jar))
-            self.jar_file = self.process.jarfile = new_jar
-        else:
-            self.console("Can't find a matching jar file.")
-
     def handle_server_output(self, event):
         self.events.dispatch(events.Console(source='server',
                                             line=event.line,
