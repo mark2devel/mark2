@@ -40,7 +40,6 @@ class Manager(object):
             self.really_start()
         except Exception:
             for l in traceback.format_exc().split("\n"):
-                print l
                 self.console(l, kind='error')
             self.shutdown()
 
@@ -66,12 +65,8 @@ class Manager(object):
         #change to server directory
         os.chdir(self.server_path)
 
-        print os.getcwd()
-
         #load config
         self.load_config()
-
-        print self.config
 
         #start logging
         self.start_logging()
