@@ -2,6 +2,7 @@
 from os import path
 import imp
 import inspect
+import glob
 import traceback
 
 from twisted.internet import reactor
@@ -151,13 +152,25 @@ class Plugin:
 
 
 class PluginManager(dict):
-    def __init__(self, parent):
+    def __init__(self, parent, search_path='plugins'):
         self.parent = parent
         self.states = {}
+        base_path = path.realpath(path.join(path.dirname(__file__), '..'))
+        self.search_path = path.join(base_path, search_path)
         dict.__init__(self)
 
+    def find(self):
+        for fn in glob.glob(path.join(self.search_path, '*.py')):
+            fn = path.basename(fn)
+            if not fn.endswith('.py'):
+                continue
+            module = fn[:-3]
+            if module == '__init__':
+                continue
+            yield module
+
     def load(self, name, **kwargs):
-        p = path.join(path.dirname(path.realpath(__file__)), name + '.py')
+        p = path.join(self.search_path, name + '.py')
         if not path.exists(p):
             self.parent.console("can't find plugin: '%s'" % name, kind='error')
             return
