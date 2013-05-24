@@ -89,7 +89,7 @@ setup(
         'install': mark2install
     },
 
-    install_requires=requirements + ['distribute'],
+    install_requires=requirements,
 
     zip_safe=False,
 
