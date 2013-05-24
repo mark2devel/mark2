@@ -53,7 +53,7 @@ class Builtin(Plugin):
                                              os.path.join(MARK2_BASE, 'resources', 'mark2.default.properties'),
                                              os.path.join(MARK2_BASE, 'config', 'mark2.properties'),
                                              'mark2.properties')
-        self.parent.plugins.config = self.config
+        self.parent.plugins.config = self.parent.config
         plugins_new = dict(self.parent.config.get_plugins())
         # reload the union of old plugins and new plugins
         requires_reload = set(plugins_old.keys()) | set(plugins_new.keys())
