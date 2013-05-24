@@ -12,7 +12,7 @@ import psutil
 import re
 import sys
 import urwid
-from shared import console_repr
+from shared import console_repr, open_resource
 
 
 class TabEvent:
@@ -430,7 +430,7 @@ class UserClientFactory(ClientFactory):
         self.system_users = SystemUsers()
 
         #read the config
-        self.config = properties.load(properties.ClientProperties, 'resources/mark2rc.default.properties', os.path.expanduser('~/.mark2rc.properties'))
+        self.config = properties.load(properties.ClientProperties, open_resource('resources/mark2rc.default.properties'), os.path.expanduser('~/.mark2rc.properties'))
         assert not self.config is None
         self.stats_template = Template(self.config['stats'])
 
