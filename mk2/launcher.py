@@ -11,6 +11,7 @@ import subprocess
 import getpass
 import pwd
 import tempfile
+from . import manager
 
 #attach:
 from . import user_client
@@ -317,12 +318,6 @@ class CommandStart(CommandTyTerminal):
         else:
             raise Mark2Error("path does not exist: " + self.server_path)
 
-    @staticmethod
-    def get_umask():
-        cu = os.umask(0)
-        os.umask(cu)
-        return "{0:03o}".format(cu)
-
     def check_ownership(self):
         d_user = pwd.getpwuid(os.stat(self.server_path).st_uid).pw_name
         m_user = getpass.getuser()
@@ -409,7 +404,6 @@ class CommandStart(CommandTyTerminal):
         write_config(self.diff_config(path_old, path_tmp))
         os.remove(path_tmp)
 
-
     def get_env(self):
         env = dict(os.environ)
         pp = env.get('PYTHONPATH', '')
@@ -418,6 +412,21 @@ class CommandStart(CommandTyTerminal):
         else:
             env['PYTHONPATH'] = self.script_path
         return env
+
+    def daemonize(self):
+        if os.fork():
+            return 1
+        if os.fork() != 0:
+            sys.exit(0)
+
+        null = os.open('/dev/null', os.O_RDWR)
+        for fileno in (1, 2, 3):
+            try:
+                os.dup2(null, fileno)
+            except:
+                pass
+
+        return 0
 
     def run(self):
         # parse the server path
@@ -451,26 +460,15 @@ class CommandStart(CommandTyTerminal):
             os.remove(p)
             i += 1
 
-        # build command
-        command = [
-            'twistd',
-            '--pidfile', self.shared('pid'),
-            '--logfile', '/dev/null',
-            '--umask', self.get_umask(),
-            'mark2',
-            '--shared-path', self.shared_path,
-            '--server-name', self.server_name,
-            '--server-path', self.server_path]
+        if self.daemonize() == 0:
+            with open(self.shared('pid'), 'w') as f:
+                f.write("{}\n".format(os.getpid()))
 
-        if self.jar_file:
-            command += ['--jar-file', self.jar_file]
+            mgr = manager.Manager(self.shared_path, self.server_name, self.server_path, self.jar_file)
+            reactor.callWhenRunning(mgr.startup)
+            reactor.run()
 
-        # start twistd
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self.get_env())
-        stderr = process.communicate()[1].strip()
-        if stderr != '':
-            print stderr
-            raise Mark2Error("twistd failed to start up!")
+            sys.exit(0)
 
         self.wait = '# mark2 started|stopped\.'
         self.wait_from_start = True
