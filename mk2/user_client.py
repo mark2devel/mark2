@@ -412,7 +412,7 @@ class LineFilter:
 
     def setdefault(self, action):
         if len(self._actions) == 0:
-            self._default = list({self.HIDE, self.SHOW} - {action})[0]
+            self._default = list(set(self.HIDE, self.SHOW) - set(action))[0]
 
     def apply(self, msg):
         current = self._default
