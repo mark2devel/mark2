@@ -1,10 +1,12 @@
 import locale
 from twisted.internet import protocol, reactor, error, defer, task
-from twisted.application.service import Service
 import glob
-import events
-from events import EventPriority
 import psutil
+
+
+from mk2 import events
+from mk2.events import EventPriority
+from mk2.plugins import Plugin
 
 
 class ProcessProtocol(protocol.ProcessProtocol):
@@ -40,7 +42,7 @@ class ProcessProtocol(protocol.ProcessProtocol):
             self.dispatch(events.ServerStopped())
 
 
-class Process(Service):
+class Process(Plugin):
     name = "process"
     protocol = None
     respawn = False
@@ -49,19 +51,14 @@ class Process(Service):
     failsafe = None
     stat_process = None
 
-    def __init__(self, parent, jarfile=None):
-        self.parent = parent
-        self.jarfile = jarfile
-
-        reg = self.parent.events.register
-
-        reg(self.server_input,    events.ServerInput,    priority=EventPriority.MONITOR)
-        reg(self.server_start,    events.ServerStart,    priority=EventPriority.MONITOR)
-        reg(self.server_starting, events.ServerStarting)
-        reg(self.server_started,  events.ServerOutput, pattern='Done \\(([0-9\\.]+)s\\)\\!.*')
-        reg(self.server_stop,     events.ServerStop,     priority=EventPriority.MONITOR)
-        reg(self.server_stopping, events.ServerStopping, priority=EventPriority.MONITOR)
-        reg(self.server_stopped,  events.ServerStopped,  priority=EventPriority.MONITOR)
+    def setup(self):
+        self.register(self.server_input,    events.ServerInput,    priority=EventPriority.MONITOR)
+        self.register(self.server_start,    events.ServerStart,    priority=EventPriority.MONITOR)
+        self.register(self.server_starting, events.ServerStarting)
+        self.register(self._server_started, events.ServerOutput, pattern='Done \\(([0-9\\.]+)s\\)\\!.*')
+        self.register(self.server_stop,     events.ServerStop,     priority=EventPriority.MONITOR)
+        self.register(self.server_stopping, events.ServerStopping, priority=EventPriority.MONITOR)
+        self.register(self.server_stopped,  events.ServerStopped,  priority=EventPriority.MONITOR)
 
         reactor.addSystemEventTrigger('before', 'shutdown', self.before_reactor_stop)
 
@@ -71,7 +68,7 @@ class Process(Service):
         #cmd.append('-server')
         cmd.extend(self.parent.config.get_jvm_options())
         cmd.append('-jar')
-        cmd.append(self.jarfile)
+        cmd.append(self.parent.jar_file)
         cmd.append('nogui')
         return cmd
 
@@ -97,7 +94,7 @@ class Process(Service):
         self.stat_process = task.LoopingCall(self.update_stat, psutil.Process(e.pid))
         self.stat_process.start(self.parent.config['java.ps.interval'])
 
-    def server_started(self, e):
+    def _server_started(self, e):
         self.parent.events.dispatch(events.ServerStarted(time=e.match.group(1)))
 
     @defer.inlineCallbacks
@@ -131,6 +128,7 @@ class Process(Service):
         elif self.service_stopping:
             self.service_stopping.callback(0)
         else:
+            print "I'm stopping the reactor now"
             reactor.stop()
 
     def update_stat(self, process):
