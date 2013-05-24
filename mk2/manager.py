@@ -106,24 +106,20 @@ class Manager(object):
             return self.fatal_error(reason="couldn't find server.properties")
 
         #register chat handlers
-        for key, e_ty in (
-            ('join', events.PlayerJoin),
-            ('quit', events.PlayerQuit),
-            ('chat', events.PlayerChat)):
-            self.events.register(lambda e, e_ty=e_ty: self.events.dispatch(e_ty(**e.match.groupdict())), events.ServerOutput, pattern=self.config['mark2.regex.'+key])
+        for key, e_ty in (('join', events.PlayerJoin),
+                          ('quit', events.PlayerQuit),
+                          ('chat', events.PlayerChat)):
+            self.events.register(lambda e, e_ty=e_ty: self.events.dispatch(e_ty(**e.match.groupdict())),
+                                 events.ServerOutput,
+                                 pattern=self.config['mark2.regex.' + key])
 
         self.socket = os.path.join(self.shared_path, "%s.sock" % self.server_name)
-
+        
         self.services = plugins.PluginManager(self, search_path='services')
         for name in self.services.find():
             result = self.services.load(name, **dict(self.config.get_service(name)))
             if not result:
                 return self.fatal_error(reason="couldn't load service: '{0}'".format(name))
-
-        # self.process = process.Process(self, self.jar_file)
-        # self.process.startService()
-        # self.user_server = user_server.UserServer(self, )
-        # self.user_server.startService()
 
         #load plugins
         self.plugins = plugins.PluginManager(self)
