@@ -385,6 +385,7 @@ class CommandStart(CommandTyTerminal):
 
 
 class CommandConfig(Command):
+    """configure mark2"""
     options_spec = (('ask', ('-a', '--ask'), '', 'Ask before starting an editor'),)
     name = 'config'
 
