@@ -2,11 +2,8 @@ import os
 import pkg_resources
 
 
-_requirement = pkg_resources.Requirement.parse("mark2")
-
-
 def open_resource(name):
-    return pkg_resources.resource_stream(_requirement, name)
+    return pkg_resources.resource_stream('mk2', name)
 
 
 _config_base = None
