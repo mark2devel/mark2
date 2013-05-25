@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 from os import path
 import imp
-import importlib
 import inspect
-import glob
 import traceback
-from pkg_resources import resource_listdir, resource_isdir, resource_exists
+from pkg_resources import resource_listdir, resource_isdir, resource_exists, resource_filename
 
 from twisted.internet import reactor
 
@@ -175,7 +173,7 @@ class PluginManager(dict):
             self.parent.console("can't find plugin: '%s'" % name, kind='error')
             return
         try:
-            module = importlib.import_module('.'.join(['mk2', self.search_path, name]))  # imp.load_source(name, p)
+            module = imp.load_source(name, resource_filename('mk2', p))
             classes = inspect.getmembers(module, inspect.isclass)
             for n, cls in classes:
                 if issubclass(cls, Plugin) and not cls is Plugin:
