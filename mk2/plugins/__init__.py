@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from os import path
 import imp
+import importlib
 import inspect
 import glob
 import traceback
+from pkg_resources import resource_listdir, resource_isdir, resource_exists
 
 from twisted.internet import reactor
 
@@ -155,27 +157,25 @@ class PluginManager(dict):
     def __init__(self, parent, search_path='plugins'):
         self.parent = parent
         self.states = {}
-        base_path = path.realpath(path.join(path.dirname(__file__), '..'))
-        self.search_path = path.join(base_path, search_path)
+        self.search_path = search_path
+        self.plugins_list = []
+        for f in resource_listdir('mk2', search_path):
+            if resource_isdir('mk2', path.join(search_path, f)):
+                continue
+            if f.endswith('.py') and f != '__init__.py':
+                self.plugins_list.append(f[:-3])
         dict.__init__(self)
 
     def find(self):
-        for fn in glob.glob(path.join(self.search_path, '*.py')):
-            fn = path.basename(fn)
-            if not fn.endswith('.py'):
-                continue
-            module = fn[:-3]
-            if module == '__init__':
-                continue
-            yield module
+        return (f for f in self.plugins_list)
 
     def load(self, name, **kwargs):
         p = path.join(self.search_path, name + '.py')
-        if not path.exists(p):
+        if not resource_exists('mk2', p):
             self.parent.console("can't find plugin: '%s'" % name, kind='error')
             return
         try:
-            module = imp.load_source(name, p)
+            module = importlib.import_module('.'.join(['mk2', self.search_path, name]))  # imp.load_source(name, p)
             classes = inspect.getmembers(module, inspect.isclass)
             for n, cls in classes:
                 if issubclass(cls, Plugin) and not cls is Plugin:
