@@ -90,7 +90,7 @@ setup(
 
     install_requires=requirements,
 
-    zip_safe=False,
+    zip_safe=True,
 
     author="Barnaby Gale & Ed Kellett",
     author_email="not.real.email@mark2.io",
