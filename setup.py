@@ -43,8 +43,6 @@ class mark2install(install):
         
         self.check_config()
 
-        subprocess.call(['mark2', 'config', '--ask'])
-
 
 # setuptools uses an insane hack involving sys._getframe to make sure
 # install.run() is called by the right thing.
@@ -76,9 +74,10 @@ setup(
         'mk2.test'
     ],
 
-    data_files=[
-        ('resources', everything('resources'))
-    ],
+    package_data={
+        'mk2': ['resources/*.properties'],
+    },
+
     entry_points={
         'console_scripts': [
             'mark2 = mk2.launcher:main'
