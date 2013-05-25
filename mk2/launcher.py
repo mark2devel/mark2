@@ -467,7 +467,7 @@ class CommandConfig(Command):
         if not self.check_executable("editor"):
             return write_config() if not os.path.exists(path_new) else None
 
-        if "MARK2_TEST" not in self.options.get('ask', False):
+        if "MARK2_TEST" not in os.environ and self.options.get('ask', False):
             response = raw_input('would you like to configure mark2 now? [yes] ') or 'yes'
             if response != 'yes':
                 return write_config() if not os.path.exists(path_new) else None
