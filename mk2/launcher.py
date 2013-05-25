@@ -72,7 +72,7 @@ class Command(object):
         pass
 
     def do_start(self):
-        self.script_path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+        pass
 
     def do_end(self):
         pass
@@ -329,25 +329,6 @@ class CommandStart(CommandTyTerminal):
                 "please start mark2 as `sudo -u {d_user} mark2 start ...`"
             raise Mark2Error(e.format(d_user=d_user,m_user=m_user))
 
-    def check_config(self):
-        path_new = find_config('mark2.properties')
-
-        if os.path.exists(path_new):
-            return
-
-        data = "# see resources/mark2.default.properties for details\n"
-        with open(path_new, 'w') as file_new:
-            file_new.write(data)
-
-    def get_env(self):
-        env = dict(os.environ)
-        pp = env.get('PYTHONPATH', '')
-        if len(pp) > 0:
-            env['PYTHONPATH'] = self.script_path + os.pathsep + pp
-        else:
-            env['PYTHONPATH'] = self.script_path
-        return env
-
     def daemonize(self):
         if os.fork():
             return 1
@@ -372,12 +353,6 @@ class CommandStart(CommandTyTerminal):
             self.server_name = os.path.basename(self.server_path)
             if self.server_name in self.servers:
                 raise Mark2Error("server already running: %s" % self.server_name)
-
-        # move to the directory this script is in
-        os.chdir(os.path.realpath(self.script_path))
-
-        # check we've got config/mark2.properties
-        self.check_config()
 
         # check we own the server dir
         self.check_ownership()
@@ -501,7 +476,6 @@ class CommandAttach(CommandTySelective):
     """attach to a server"""
     name = 'attach'
     def run(self):
-        os.chdir(self.script_path)
         f = user_client.UserClientFactory(self.server_name, self.shared_path)
         f.main()
 
