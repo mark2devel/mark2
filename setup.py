@@ -63,7 +63,7 @@ sys._getframe = getframe
 
 setup(
     name="mark2",
-    version="0.9",
+    version="0.1",
 
     packages=[
         'mk2',
