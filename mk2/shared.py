@@ -20,7 +20,6 @@ def find_config(name):
         for path in _config_try:
             if os.path.exists(path):
                 _config_base = path
-                print "use {0}".format(path)
                 break
 
     if not _config_base:
@@ -28,7 +27,6 @@ def find_config(name):
             try:
                 os.makedirs(path)
                 _config_base = path
-                print "use {0}".format(path)
                 break
             except OSError:
                 pass
