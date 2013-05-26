@@ -321,6 +321,16 @@ class CommandStart(CommandTyTerminal):
         else:
             raise Mark2Error("path does not exist: " + self.server_path)
 
+    def check_config(self):
+        new_cfg = find_config('mark2.properties')
+        if os.path.exists(new_cfg):
+            return
+        if os.path.exists(os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'config'))):
+            new_dir = os.path.dirname(new_cfg)
+            raise Mark2Error("mark2's configuration location has changed! move your config files to {0}".format(new_dir))
+        else:
+            raise Mark2Error("mark2 is unconfigured! run `mark2 config`")
+
     def check_ownership(self):
         d_user = pwd.getpwuid(os.stat(self.server_path).st_uid).pw_name
         m_user = getpass.getuser()
@@ -353,6 +363,9 @@ class CommandStart(CommandTyTerminal):
             self.server_name = os.path.basename(self.server_path)
             if self.server_name in self.servers:
                 raise Mark2Error("server already running: %s" % self.server_name)
+
+        # check for mark2.properties
+        self.check_config()
 
         # check we own the server dir
         self.check_ownership()
