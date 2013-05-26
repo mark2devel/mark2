@@ -7,16 +7,21 @@ import zipfile
 def load(cls, *files):
     o = None
     for f in files:
-        if os.path.isfile(f):
-            with open(f) as f:
-                o = cls(f, o)
+        if isinstance(f, basestring):
+            if os.path.isfile(f):
+                with open(f) as f:
+                    o = cls(f, o)
+        else:
+            o = cls(f, 0)
     return o
+
 
 def load_jar(jar, path):
     z = zipfile.ZipFile(jar, 'r')
     o = Lang(z.open(path, 'r'))
     z.close()
     return o
+
 
 class Properties(dict):
     def __init__(self, f, parent=None):
@@ -123,6 +128,7 @@ class Properties(dict):
             if k.startswith(prefix):
                 yield k[len(prefix):], v
 
+
 class Mark2Properties(Properties):
     def get_plugins(self):
         plugins = {}
@@ -143,6 +149,8 @@ class Mark2Properties(Properties):
 
         return [(n, plugins[n]) for n in sorted(enabled)]
 
+    def get_service(self, service):
+        return self.get_by_prefix('mark2.service.{0}'.format(service))
 
     def get_jvm_options(self):
         options = []

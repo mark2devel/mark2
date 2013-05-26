@@ -11,6 +11,10 @@ import subprocess
 import getpass
 import pwd
 import tempfile
+from . import manager
+
+#config:
+from .shared import find_config, open_resource
 
 #attach:
 from . import user_client
@@ -68,7 +72,7 @@ class Command(object):
         pass
 
     def do_start(self):
-        self.script_path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+        pass
 
     def do_end(self):
         pass
@@ -85,7 +89,7 @@ class Command(object):
 
     @classmethod
     def get_options_spec(cls):
-        return sum([list(b.options_spec) for b in cls.get_bases()[::-1]], [])
+        return sum([list(b.options_spec) for b in [cls] + cls.get_bases()[::-1]], [])
 
     def parse_options(self, c_args):
         options = {}
@@ -317,11 +321,15 @@ class CommandStart(CommandTyTerminal):
         else:
             raise Mark2Error("path does not exist: " + self.server_path)
 
-    @staticmethod
-    def get_umask():
-        cu = os.umask(0)
-        os.umask(cu)
-        return "{0:03o}".format(cu)
+    def check_config(self):
+        new_cfg = find_config('mark2.properties')
+        if os.path.exists(new_cfg):
+            return
+        if os.path.exists(os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'config'))):
+            new_dir = os.path.dirname(new_cfg)
+            raise Mark2Error("mark2's configuration location has changed! move your config files to {0}".format(new_dir))
+        else:
+            raise Mark2Error("mark2 is unconfigured! run `mark2 config`")
 
     def check_ownership(self):
         d_user = pwd.getpwuid(os.stat(self.server_path).st_uid).pw_name
@@ -331,93 +339,20 @@ class CommandStart(CommandTyTerminal):
                 "please start mark2 as `sudo -u {d_user} mark2 start ...`"
             raise Mark2Error(e.format(d_user=d_user,m_user=m_user))
 
-    def check_executable(self, cmd):
-        return subprocess.call(
-            ["type", cmd],
-            shell = True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        ) == 0
+    def daemonize(self):
+        if os.fork():
+            return 1
+        if os.fork() != 0:
+            sys.exit(0)
 
-    def copy_config(self, src, dest, header=''):
-        f0 = open(src, 'r')
-        f1 = open(dest, 'w')
-        l0 = ''
+        null = os.open('/dev/null', os.O_RDWR)
+        for fileno in (1, 2, 3):
+            try:
+                os.dup2(null, fileno)
+            except:
+                pass
 
-        while l0.strip() == '' or l0.startswith('### ###'):
-            l0 = f0.readline()
-
-        f1.write(header)
-
-        while l0 != '':
-            f1.write(l0)
-            l0 = f0.readline()
-
-        f0.close()
-        f1.close()
-
-    def diff_config(self, src, dest):
-        diff = ""
-
-        with open(src, 'r') as f0:
-            d0 = f0.readlines()
-        with open(dest,'r') as f1:
-            d1 = f1.readlines()
-
-        import difflib
-        ignore = " \t\f\r\n"
-        s = difflib.SequenceMatcher(lambda x: x in ignore, d0, d1)
-        for tag, i0, i1, j0, j1 in s.get_opcodes():
-            if tag in ('replace', 'insert'):
-                for l1 in d1[j0:j1]:
-                    if l1.strip(ignore) != '':
-                        diff += l1
-
-        return diff
-
-    def check_config(self):
-        path_old = 'resources/mark2.default.properties'
-        path_new = 'config/mark2.properties'
-
-        def write_config(data=''):
-            data = "# see resources/mark2.default.properties for details\n" + data
-            with open(path_new, 'w') as file_new:
-                file_new.write(data)
-
-        #exit 1: already configured
-        if os.path.exists(path_new):
-            return
-
-        self.make_writable('config')
-
-        #exit 2: no editor
-        if not self.check_executable("editor"):
-            return write_config()
-
-        #exit 3: user intervention
-        print "mark2 is unconfigured!"
-        response = raw_input('would you like to configure it now [yes]? ') or 'yes'
-        if response != 'yes':
-            return write_config()
-
-        #launch our editor
-        fd_tmp, path_tmp = tempfile.mkstemp(prefix='mark2.properties.', text=True)
-        self.copy_config(path_old, path_tmp)
-        subprocess.call(['editor', path_tmp])
-
-        #diff the files
-        write_config(self.diff_config(path_old, path_tmp))
-        os.remove(path_tmp)
-
-
-    def get_env(self):
-        env = dict(os.environ)
-        pp = env.get('PYTHONPATH', '')
-        if len(pp) > 0:
-            env['PYTHONPATH'] = self.script_path + os.pathsep + pp
-        else:
-            env['PYTHONPATH'] = self.script_path
-        return env
+        return 0
 
     def run(self):
         # parse the server path
@@ -429,10 +364,7 @@ class CommandStart(CommandTyTerminal):
             if self.server_name in self.servers:
                 raise Mark2Error("server already running: %s" % self.server_name)
 
-        # move to the directory this script is in
-        os.chdir(os.path.realpath(self.script_path))
-
-        # check we've got config/mark2.properties
+        # check for mark2.properties
         self.check_config()
 
         # check we own the server dir
@@ -451,29 +383,99 @@ class CommandStart(CommandTyTerminal):
             os.remove(p)
             i += 1
 
-        # build command
-        command = [
-            'twistd',
-            '--pidfile', self.shared('pid'),
-            '--logfile', '/dev/null',
-            '--umask', self.get_umask(),
-            'mark2',
-            '--shared-path', self.shared_path,
-            '--server-name', self.server_name,
-            '--server-path', self.server_path]
+        if self.daemonize() == 0:
+            with open(self.shared('pid'), 'w') as f:
+                f.write("{0}\n".format(os.getpid()))
 
-        if self.jar_file:
-            command += ['--jar-file', self.jar_file]
+            mgr = manager.Manager(self.shared_path, self.server_name, self.server_path, self.jar_file)
+            reactor.callWhenRunning(mgr.startup)
+            reactor.run()
 
-        # start twistd
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self.get_env())
-        stderr = process.communicate()[1].strip()
-        if stderr != '':
-            print stderr
-            raise Mark2Error("twistd failed to start up!")
+            sys.exit(0)
 
         self.wait = '# mark2 started|stopped\.'
         self.wait_from_start = True
+
+
+class CommandConfig(Command):
+    """configure mark2"""
+    options_spec = (('ask', ('-a', '--ask'), '', 'Ask before starting an editor'),)
+    name = 'config'
+
+    def check_executable(self, cmd):
+        return subprocess.call(
+            ["type", cmd],
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        ) == 0
+
+    def copy_config(self, src, dest, header=''):
+        f0 = src
+        f1 = dest
+        l0 = ''
+
+        while l0.strip() == '' or l0.startswith('### ###'):
+            l0 = f0.readline()
+
+        f1.write(header)
+
+        while l0 != '':
+            f1.write(l0)
+            l0 = f0.readline()
+
+        f0.close()
+        f1.close()
+
+    def diff_config(self, src, dest):
+        diff = ""
+
+        d0 = src.readlines()
+        d1 = dest.readlines()
+
+        import difflib
+        ignore = " \t\f\r\n"
+        s = difflib.SequenceMatcher(lambda x: x in ignore, d0, d1)
+        for tag, i0, i1, j0, j1 in s.get_opcodes():
+            if tag in ('replace', 'insert'):
+                for l1 in d1[j0:j1]:
+                    if l1.strip(ignore) != '':
+                        diff += l1
+
+        return diff
+
+    def run(self):
+        path_old = 'resources/mark2.default.properties'
+        path_new = find_config('mark2.properties')
+
+        def write_config(data=''):
+            data = "# see resources/mark2.default.properties for details\n" + data
+            with open(path_new, 'w') as file_new:
+                file_new.write(data)
+
+        if not self.check_executable("editor"):
+            return write_config() if not os.path.exists(path_new) else None
+
+        if "MARK2_TEST" not in os.environ and self.options.get('ask', False):
+            response = raw_input('would you like to configure mark2 now? [yes] ') or 'yes'
+            if response != 'yes':
+                return write_config() if not os.path.exists(path_new) else None
+
+        if os.path.exists(path_new):
+            subprocess.call(['editor', path_new])
+        else:
+            #launch our editor
+            fd_tmp, path_tmp = tempfile.mkstemp(prefix='mark2.properties.', text=True)
+            with open_resource(path_old) as src:
+                with open(path_tmp, 'w') as dst:
+                    self.copy_config(src, dst)
+            subprocess.call(['editor', path_tmp])
+
+            #diff the files
+            with open_resource(path_old) as src:
+                with open(path_tmp, 'r') as dst:
+                    write_config(self.diff_config(src, dst))
+            os.remove(path_tmp)
 
 
 class CommandList(CommandTyStateful):
@@ -488,7 +490,6 @@ class CommandAttach(CommandTySelective):
     """attach to a server"""
     name = 'attach'
     def run(self):
-        os.chdir(self.script_path)
         f = user_client.UserClientFactory(self.server_name, self.shared_path)
         f.main()
 
@@ -577,7 +578,7 @@ class CommandJarGet(Command):
         reactor.run()
 
 
-commands = (CommandHelp, CommandStart, CommandList, CommandAttach, CommandStop, CommandKill, CommandSend, CommandJarList, CommandJarGet)
+commands = (CommandHelp, CommandStart, CommandList, CommandAttach, CommandStop, CommandKill, CommandSend, CommandJarList, CommandJarGet, CommandConfig)
 commands_d = dict([(c.name, c) for c in commands])
 
 

@@ -1,10 +1,10 @@
 import struct
 
-from twisted.application.service import Service
 from twisted.internet import task, reactor
 from twisted.internet.protocol import Protocol, ClientFactory
 
-from ..events import Event, StatPlayerCount, ServerOutput, ServerStarted
+from mk2.events import Event, StatPlayerCount, ServerOutput
+from mk2.plugins import Plugin
 
 
 class PingProtocol(Protocol):
@@ -35,20 +35,17 @@ class PingFactory(ClientFactory):
         return pr
 
 
-class Ping(Service):
-    name = "ping"
+class Ping(Plugin):
     alive = False
     event_id = None
-    
-    def __init__(self, parent, interval):
-        self.parent = parent
 
+    interval = 10
+    
+    def setup(self):
         self.host = self.parent.properties['server_ip'] or '127.0.0.1'
 
-        self.parent.events.register(self.server_started, ServerStarted)
-
         self.task = task.LoopingCall(self.loop)
-        self.task.start(interval, now=False)
+        self.task.start(self.interval, now=False)
 
     def server_started(self, event):
         if self.event_id:

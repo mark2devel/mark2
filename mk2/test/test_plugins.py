@@ -8,10 +8,6 @@ from twisted.internet.task import Clock
 from twisted.trial import unittest
 
 
-# Hack plugins' __file__ so it looks for plugins in the test directory
-plugins.__file__ = os.path.join(*(['/'] + plugins.__file__.split(os.sep)[:-2] + ['test', '_']))
-
-
 class TestEventDispatcher(events.EventDispatcher):
     def __init__(self):
         events.EventDispatcher.__init__(self, lambda a: None)
@@ -47,7 +43,7 @@ class PluginTestBase:
         self.config = self
         self.fatal_error = lambda *a: None
         self.events = TestEventDispatcher()
-        self.plugins = plugins.PluginManager(self)
+        self.plugins = plugins.PluginManager(self, search_path='test')
 
     def console(self, *a, **kw):
         print a, kw

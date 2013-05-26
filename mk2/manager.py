@@ -2,19 +2,20 @@ import os
 import traceback
 import signal
 import re
+import sys
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
-from twisted.application.service import MultiService, Service
 from twisted.python import log, logfile
 
 #mark2 things
-from . import events, properties, user_server, process, plugins
+from . import events, properties, plugins
 from .events import EventPriority
-from .services import ping
+from .services import process
+from .shared import find_config, open_resource
 
 
-MARK2_BASE = os.getcwd()
+MARK2_BASE = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
 """
 
@@ -23,48 +24,36 @@ This is the 'main' class that handles most of the logic
 """
 
 
-class Manager(MultiService):
+class Manager(object):
     name = "manager"
     started = False
     
     def __init__(self, shared_path, server_name, server_path, jar_file=None):
-        MultiService.__init__(self)
         self.shared_path = shared_path
         self.server_name = server_name
         self.server_path = server_path
         self.jar_file = jar_file
         self.players = set()
 
-    def startService(self):
-        Service.startService(self)
+    def startup(self):
+        reactor.addSystemEventTrigger('before', 'shutdown', self.before_reactor_stop)
+
         try:
-            self.startServiceReal()
+            self.really_start()
         except Exception:
             for l in traceback.format_exc().split("\n"):
+                print l
                 self.console(l, kind='error')
             self.shutdown()
 
-    def stopService(self):
-        def finish_up(d):
-            self.console("mark2 stopped.")
+    def before_reactor_stop(self):
+        self.console("mark2 stopped.")
 
-        d = MultiService.stopService(self)
-        d.addCallback(finish_up)
-        return d
-
-    def startServiceReal(self):
+    def really_start(self):
         #start event dispatcher
         self.events = events.EventDispatcher(self.handle_dispatch_error)
 
         #add some handlers
-        self.events.register(self.handle_cmd_help,          events.Hook, public=True, name="help", doc="displays this message")
-        self.events.register(self.handle_cmd_events,        events.Hook, public=True, name="events", doc="lists events")
-        self.events.register(self.handle_cmd_plugins,       events.Hook, public=True, name="plugins", doc="lists running plugins")
-        self.events.register(self.handle_cmd_reload_plugin, events.Hook, public=True, name="reload-plugin", doc="reload a plugin")
-        self.events.register(self.handle_cmd_rehash,        events.Hook, public=True, name="rehash", doc="reload config and any plugins that changed")
-        self.events.register(self.handle_cmd_reload,        events.Hook, public=True, name="reload", doc="reload config and all plugins")
-        self.events.register(self.handle_cmd_jar,           events.Hook, public=True, name="jar", doc="wrap a different server jar")
-
         self.events.register(self.handle_server_output, events.ServerOutput,  priority=EventPriority.MONITOR, pattern="")
         self.events.register(self.handle_console,       events.Console,       priority=EventPriority.MONITOR)
         self.events.register(self.handle_fatal,         events.FatalError,    priority=EventPriority._HIGH)
@@ -115,26 +104,25 @@ class Manager(MultiService):
         self.events.register(handler, events.ServerOutput, pattern=".*")
 
         #load server.properties
-        self.properties = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
+        self.properties = properties.load(properties.Mark2Properties, open_resource('resources/server.default.properties'), 'server.properties')
         if self.properties is None:
             return self.fatal_error(reason="couldn't find server.properties")
 
         #register chat handlers
-        for key, e_ty in (
-            ('join', events.PlayerJoin),
-            ('quit', events.PlayerQuit),
-            ('chat', events.PlayerChat)):
-            self.events.register(lambda e, e_ty=e_ty: self.events.dispatch(e_ty(**e.match.groupdict())), events.ServerOutput, pattern=self.config['mark2.regex.'+key])
+        for key, e_ty in (('join', events.PlayerJoin),
+                          ('quit', events.PlayerQuit),
+                          ('chat', events.PlayerChat)):
+            self.events.register(lambda e, e_ty=e_ty: self.events.dispatch(e_ty(**e.match.groupdict())),
+                                 events.ServerOutput,
+                                 pattern=self.config['mark2.regex.' + key])
 
-        #start services
-        if self.config['mark2.service.ping.enabled']:
-            self.addService(ping.Ping(
-                self,
-                self.config['mark2.service.ping.interval']))
-
-        self.process = process.Process(self, self.jar_file)
-        self.addService(self.process)
-        self.addService(user_server.UserServer(self, os.path.join(self.shared_path, "%s.sock" % self.server_name)))
+        self.socket = os.path.join(self.shared_path, "%s.sock" % self.server_name)
+        
+        self.services = plugins.PluginManager(self, search_path='services')
+        for name in self.services.find():
+            result = self.services.load(name, **dict(self.config.get_service(name)))
+            if not result:
+                return self.fatal_error(reason="couldn't load service: '{0}'".format(name))
 
         #load plugins
         self.plugins = plugins.PluginManager(self)
@@ -175,9 +163,9 @@ class Manager(MultiService):
 
     def load_config(self):
         self.config = properties.load(properties.Mark2Properties,
-            os.path.join(MARK2_BASE, 'resources', 'mark2.default.properties'),
-            os.path.join(MARK2_BASE, 'config', 'mark2.properties'),
-            'mark2.properties')
+                                      open_resource('resources/mark2.default.properties'),
+                                      find_config('mark2.properties'),
+                                      'mark2.properties')
         if self.config is None:
             return self.fatal_error(reason="couldn't find mark2.properties")
 
@@ -199,77 +187,8 @@ class Manager(MultiService):
     
     def send(self, line):
         self.events.dispatch(events.ServerInput(line=line))
-    
-    def table(self, v):
-        m = 0
-        for name, doc in v:
-            m = max(m, len(name))
-        
-        for name, doc in sorted(v, key=lambda x: x[0]):
-            self.console(" ~%s | %s" % (name.ljust(m), doc))
             
     #handlers
-    def handle_cmd_help(self, event):
-        o = []
-        for _, callback, args in self.events.get(events.Hook):
-            if args.get('public', False):
-                o.append((args['name'], args.get('doc', '')))
-        
-        self.console("The following commands are available:")
-        self.table(o)
-    
-    def handle_cmd_events(self, event):
-        self.console("The following events are available:")
-        self.table([(n, c.doc) for n, c in events.get_all()])
-
-    def handle_cmd_plugins(self, events):
-        self.console("These plugins are running: " + ", ".join(sorted(self.plugins.keys())))
-
-    def handle_cmd_reload_plugin(self, event):
-        if event.args in self.plugins:
-            self.plugins.reload(event.args)
-            self.console("%s reloaded." % event.args)
-        else:
-            self.console("unknown plugin.")
-
-    def handle_cmd_rehash(self, event):
-        # make a dict of old and new plugin list
-        plugins_old = dict(self.config.get_plugins())
-        self.config = properties.load(properties.Mark2Properties,
-                                      os.path.join(MARK2_BASE, 'resources', 'mark2.default.properties'),
-                                      os.path.join(MARK2_BASE, 'config', 'mark2.properties'),
-                                      'mark2.properties')
-        self.plugins.config = self.config
-        plugins_new = dict(self.config.get_plugins())
-        # reload the union of old plugins and new plugins
-        requires_reload = set(plugins_old.keys()) | set(plugins_new.keys())
-        # (except plugins whose config is exactly the same)
-        for k in list(requires_reload):
-            if plugins_old.get(k, False) == plugins_new.get(k, False):
-                requires_reload.remove(k)
-        requires_reload = list(requires_reload)
-        # actually reload
-        for p in requires_reload:
-            self.plugins.reload(p)
-        reloaded = filter(None, requires_reload)
-        self.console("%d plugins reloaded: %s" % (len(reloaded), ", ".join(reloaded)))
-
-    def handle_cmd_reload(self, event):
-        self.plugins.unload_all()
-        self.load_config()
-        self.load_plugins()
-        self.console("config + plugins reloaded.")
-
-    def handle_cmd_jar(self, event):
-        new_jar = process.find_jar(
-            self.config['mark2.jar_path'].split(';'),
-            event.args)
-        if new_jar:
-            self.console("I will switch to {0} at the next restart".format(new_jar))
-            self.jar_file = self.process.jarfile = new_jar
-        else:
-            self.console("Can't find a matching jar file.")
-
     def handle_server_output(self, event):
         self.events.dispatch(events.Console(source='server',
                                             line=event.line,
@@ -287,7 +206,7 @@ class Manager(MultiService):
         self.shutdown()
 
     def handle_server_started(self, event):
-        properties_ = properties.load(properties.Mark2Properties, os.path.join(MARK2_BASE, 'resources', 'server.default.properties'), 'server.properties')
+        properties_ = properties.load(properties.Mark2Properties, open_resource('resources/server.default.properties'), 'server.properties')
         if properties_:
             self.properties = properties_
         if not self.started:
