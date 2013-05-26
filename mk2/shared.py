@@ -6,32 +6,31 @@ def open_resource(name):
     return pkg_resources.resource_stream('mk2', name)
 
 
-_config_base = None
+_config_found = False
 
 
-_config_try = [os.path.join(os.path.expanduser("~"), ".config", "mark2"), "/etc/mark2"]
 if "VIRTUAL_ENV" in os.environ:
-    _config_try.insert(0, os.path.join(os.environ["VIRTUAL_ENV"], ".config", "mark2"))
+    _config_base = os.path.join(os.environ["VIRTUAL_ENV"], ".config", "mark2")
+elif __file__.startswith('/home/'):
+    _config_base = os.path.join(os.path.expanduser("~"), ".config", "mark2")
+else:
+    _config_base = os.path.join(os.path.join("/etc/mark2"))
 
 
-def find_config(name):
-    global _config_base
-    if not _config_base:
-        for path in _config_try:
-            if os.path.exists(path):
-                _config_base = path
-                break
+def find_config(name, create=True):
+    global _config_base, _config_found
+    if not _config_found:
+        if os.path.exists(_config_base):
+            _config_found = True
 
-    if not _config_base:
-        for path in _config_try:
-            try:
-                os.makedirs(path)
-                _config_base = path
-                break
-            except OSError:
-                pass
+    if create and not _config_found:
+        try:
+            os.makedirs(_config_base)
+            _config_found = True
+        except OSError:
+            pass
 
-    if not _config_base:
+    if not _config_found:
         raise ValueError
 
     return os.path.join(_config_base, name)
