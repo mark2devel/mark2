@@ -94,8 +94,6 @@ setup(
 
     author="Barnaby Gale & Ed Kellett",
     author_email="not.real.email@mark2.io",
-    maintainer="Ed Kellett",
-    maintainer_email="edk141@gmail.com",
     description="Minecraft server wrapper",
     license="MIT",
     keywords="mark2 minecraft server wrapper",
