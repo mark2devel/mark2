@@ -88,33 +88,10 @@ class Manager(object):
             if self.jar_file is None:
                 return self.fatal_error("Couldn't find server jar!")
 
-        #load lang
-        self.lang = properties.load_jar(self.jar_file, 'lang/en_US.lang')
-        if self.lang is None:
-            return self.fatal_error(reason="couldn't load lang!")
-        deaths = list(self.lang.get_deaths())
-        def handler(e, cause=None):
-            for name, (pattern, format) in deaths:
-                m = re.match(pattern, e.data)
-                if m:
-                    self.events.dispatch(events.PlayerDeath(cause=cause,
-                                                            format=format,
-                                                            **m.groupdict()))
-                    break
-        self.events.register(handler, events.ServerOutput, pattern=".*")
-
         #load server.properties
         self.properties = properties.load(properties.Mark2Properties, open_resource('resources/server.default.properties'), 'server.properties')
         if self.properties is None:
             return self.fatal_error(reason="couldn't find server.properties")
-
-        #register chat handlers
-        for key, e_ty in (('join', events.PlayerJoin),
-                          ('quit', events.PlayerQuit),
-                          ('chat', events.PlayerChat)):
-            self.events.register(lambda e, e_ty=e_ty: self.events.dispatch(e_ty(**e.match.groupdict())),
-                                 events.ServerOutput,
-                                 pattern=self.config['mark2.regex.' + key])
 
         self.socket = os.path.join(self.shared_path, "%s.sock" % self.server_name)
         
