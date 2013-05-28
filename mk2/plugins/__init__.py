@@ -2,12 +2,83 @@
 from os import path
 import imp
 import inspect
+import pkg_resources
 import traceback
-from pkg_resources import resource_listdir, resource_isdir, resource_exists, resource_filename
+import sys
 
 from twisted.internet import reactor
 
 from ..events import Hook, ServerInput, ServerStarted, ServerStopping
+
+
+class PluginLoadError(Exception):
+    def __init__(self, message, exc=None):
+        self.message = message
+        self.exc = exc
+
+    def format(self, name):
+        l = ["{0}: {1}".format(name, self.message)]
+        if self.exc:
+            l += ''.join(traceback.format_exception(*self.exc)).split('\n')
+        return l
+
+
+class PluginLoader(object):
+    def __init__(self, search_path):
+        self.search_path = search_path
+
+
+class ResourcePluginLoader(PluginLoader):
+    def load_plugin(self, name):
+        p = path.join(self.search_path, name + '.py')
+        if not pkg_resources.resource_exists('mk2', p):
+            return False
+
+        try:
+            module = imp.load_source(name, pkg_resources.resource_filename('mk2', p))
+            classes = inspect.getmembers(module, inspect.isclass)
+            for n, cls in classes:
+                if issubclass(cls, Plugin) and not cls is Plugin:
+                    return cls
+            #if we've reached this point, there's no subclass of Plugin in the file!
+            raise PluginLoadError("a file for '{0}' exists, but there is no plugin in it".format(name))
+        except Exception:
+            raise PluginLoadError("'{0}'' failed to load".format(name), sys.exc_info())
+
+    def find_plugins(self):
+        for f in pkg_resources.resource_listdir('mk2', self.search_path):
+            if pkg_resources.resource_isdir('mk2', path.join(self.search_path, f)):
+                continue
+            if f.endswith('.py') and f != '__init__.py':
+                yield f[:-3]
+
+
+class EntryPointPluginLoader(PluginLoader):
+    def load_plugin(self, name):
+        pl = list(pkg_resources.iter_entry_points('mark2.{0}'.format(self.search_path), name))
+        if len(pl) == 0:
+            return False
+        elif len(pl) > 1:
+            def_list = ', '.join(ep.dist.project_name for ep in pl)
+            raise PluginLoadError("{0} is multiply provided (by {1})".format(name, def_list))
+        # we've established that pl contains exactly one EntryPoint
+        ep = pl[0]
+        try:
+            ep.require()
+        except ImportError:
+            raise PluginLoadError("couldn't load requirements for {0}".format(name), sys.exc_info())
+        try:
+            cls = ep.load(require=False)
+        except ImportError:
+            raise PluginLoadError("couldn't load '{0}'".format(name), sys.exc_info())
+        # cls must be a Plugin subclass
+        if not issubclass(cls, Plugin):
+            raise PluginLoadError("'{0}' was advertised, but is not a Plugin".format(name))
+        return cls
+
+    def find_plugins(self):
+        for ep in pkg_resources.iter_entry_points('mark2.{0}'.format(self.search_path)):
+            yield ep.name
 
 
 class Plugin:
@@ -152,51 +223,52 @@ class Plugin:
 
 
 class PluginManager(dict):
-    def __init__(self, parent, search_path='plugins'):
+    def __init__(self, parent, search_path='plugins', name='plugin',
+                 loaders=(ResourcePluginLoader, EntryPointPluginLoader)):
         self.parent = parent
         self.states = {}
+        self.name = name
         self.search_path = search_path
-        self.plugins_list = []
-        for f in resource_listdir('mk2', search_path):
-            if resource_isdir('mk2', path.join(search_path, f)):
-                continue
-            if f.endswith('.py') and f != '__init__.py':
-                self.plugins_list.append(f[:-3])
+        self.loaders = []
+        for l in loaders:
+            self.loaders.append(l(search_path))
         dict.__init__(self)
 
     def find(self):
-        return (f for f in self.plugins_list)
+        names = set()
+        for loader in self.loaders:
+            names |= set(loader.find_plugins())
+        return list(names)
 
     def load(self, name, **kwargs):
-        p = path.join(self.search_path, name + '.py')
-        if not resource_exists('mk2', p):
-            self.parent.console("can't find plugin: '%s'" % name, kind='error')
-            return
-        try:
-            module = imp.load_source(name, resource_filename('mk2', p))
-            classes = inspect.getmembers(module, inspect.isclass)
-            for n, cls in classes:
-                if issubclass(cls, Plugin) and not cls is Plugin:
-                    #instantiate plugin
-                    plugin = cls(self.parent, name, **kwargs)
+        for loader in self.loaders:
+            try:
+                cls = loader.load_plugin(name)
 
-                    #restore state
-                    if name in self.states:
-                        plugin.load_state(self.states[name])
-                        del self.states[name]
+                # if we can't load the plugin from there just try another
+                # loader
+                if cls is False:
+                    continue
 
-                    #register plugin
-                    self[name] = plugin
+                #instantiate plugin
+                plugin = cls(self.parent, name, **kwargs)
 
-                    #return
-                    return plugin
+                #restore state
+                if name in self.states:
+                    plugin.load_state(self.states[name])
+                    del self.states[name]
 
-            #if we've reached this point, there's no subclass of Plugin in the file!
-            self.parent.console("a file for plugin '%s' exists, but there is no plugin in it" % name, kind='error')
-        except Exception:
-            self.parent.console("plugin '%s' failed to load. stack trace follows" % name, kind='error')
-            for l in traceback.format_exc().split("\n"):
-                self.parent.console(l, kind='error')
+                #register plugin
+                self[name] = plugin
+
+                return plugin
+
+            except PluginLoadError as e:
+                for line in e.format(self.name):
+                    self.parent.console(line)
+                return None
+
+        self.parent.console("couldn't find plugin: {0}".format(name))
 
     def unload(self, name):
         plugin = self[name]
