@@ -118,14 +118,14 @@ class Manager(object):
 
         self.socket = os.path.join(self.shared_path, "%s.sock" % self.server_name)
         
-        self.services = plugins.PluginManager(self, search_path='services')
+        self.services = plugins.PluginManager(self, search_path='services', name='service')
         for name in self.services.find():
             result = self.services.load(name, **dict(self.config.get_service(name)))
             if not result:
                 return self.fatal_error(reason="couldn't load service: '{0}'".format(name))
 
         #load plugins
-        self.plugins = plugins.PluginManager(self)
+        self.plugins = plugins.PluginManager(self, search_path='plugins', name='plugin')
         self.load_plugins()
 
         #start the server
@@ -182,7 +182,7 @@ class Manager(object):
             self.events.dispatch(events.Console(**k))
     
     def fatal_error(self, *a, **k):
-        k['reason'] = a[0] if a else None
+        k.setdefault('reason', a[0] if a else None)
         self.events.dispatch(events.FatalError(**k))
     
     def send(self, line):
