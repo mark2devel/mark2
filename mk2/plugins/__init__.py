@@ -68,6 +68,9 @@ class EntryPointPluginLoader(PluginLoader):
         except ImportError:
             raise PluginLoadError("couldn't load requirements for {0}".format(name), sys.exc_info())
         try:
+            # force reloading
+            if ep.module_name in sys.modules:
+                del sys.modules[ep.module_name]
             cls = ep.load(require=False)
         except ImportError:
             raise PluginLoadError("couldn't load '{0}'".format(name), sys.exc_info())
