@@ -2,7 +2,6 @@ from setuptools import setup
 
 from setuptools.command.install import install
 import os
-import subprocess
 import sys
 
 requirements = ["{0}=={1}".format(*s) for s in [
