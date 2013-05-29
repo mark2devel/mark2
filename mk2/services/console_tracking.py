@@ -1,5 +1,5 @@
 from mk2 import properties
-from mk2.events import EventPriority, PlayerChat, PlayerDeath, PlayerJoin, PlayerQuit, ServerOutput, ServerStart
+from mk2.events import PlayerChat, PlayerDeath, PlayerJoin, PlayerQuit, ServerOutput
 from mk2.plugins import Plugin
 
 import re
