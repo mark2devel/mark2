@@ -19,7 +19,7 @@ else:
     _config_base = os.path.join(os.path.join("/etc/mark2"))
 
 
-def find_config(name, create=True):
+def find_config(name, create=True, ignore_errors=False):
     global _config_base, _config_found
     if not _config_found:
         if os.path.exists(_config_base):
@@ -32,7 +32,7 @@ def find_config(name, create=True):
         except OSError:
             pass
 
-    if not _config_found:
+    if not ignore_errors and not _config_found:
         raise ValueError
 
     return os.path.join(_config_base, name)

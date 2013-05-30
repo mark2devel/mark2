@@ -322,7 +322,7 @@ class CommandStart(CommandTyTerminal):
             raise Mark2Error("path does not exist: " + self.server_path)
 
     def check_config(self):
-        new_cfg = find_config('mark2.properties')
+        new_cfg = find_config('mark2.properties', ignore_errors=True)
         if os.path.exists(new_cfg):
             return
         if os.path.exists(os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'config'))):
