@@ -1,8 +1,6 @@
 import os
 import traceback
 import signal
-import re
-import sys
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
