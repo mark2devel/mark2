@@ -14,9 +14,6 @@ from .events import EventPriority
 from .services import process
 from .shared import find_config, open_resource
 
-
-MARK2_BASE = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
-
 """
 
 This is the 'main' class that handles most of the logic
