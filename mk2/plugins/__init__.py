@@ -134,6 +134,8 @@ class Plugin:
 
         if track:
             self._events.append(ident)
+            
+        return ident
 
     def unregister(self, ident):
         self.parent.events.unregister(ident)
@@ -227,11 +229,14 @@ class Plugin:
 
 class PluginManager(dict):
     def __init__(self, parent, search_path='plugins', name='plugin',
+                 get_config=lambda *a: {}, require_config=False,
                  loaders=(ResourcePluginLoader, EntryPointPluginLoader)):
         self.parent = parent
         self.states = {}
         self.name = name
         self.search_path = search_path
+        self.get_config = get_config
+        self.require_config = require_config
         self.loaders = []
         for l in loaders:
             self.loaders.append(l(search_path))
@@ -243,7 +248,12 @@ class PluginManager(dict):
             names |= set(loader.find_plugins())
         return list(names)
 
-    def load(self, name, **kwargs):
+    def load(self, name):
+        kwargs = self.get_config(name)
+        if self.require_config and kwargs in (None, False):
+            self.parent.console("not loading {0}: no config".format(name))
+            return None
+
         for loader in self.loaders:
             try:
                 cls = loader.load_plugin(name)
@@ -284,13 +294,7 @@ class PluginManager(dict):
     def reload(self, name):
         if name in self:
             self.unload(name)
-        kwargs = dict(self.parent.config.get_plugins()).get(name, None)
-        if not kwargs is None:
-            return self.load(name, **kwargs)
-
-    def load_all(self):
-        for name, kwargs in self.parent.config.get_plugins():
-            self.load(name, **kwargs)
+        return self.load(name)
 
     def unload_all(self):
         for name in self.keys():

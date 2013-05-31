@@ -90,14 +90,21 @@ class Manager(object):
 
         self.socket = os.path.join(self.shared_path, "%s.sock" % self.server_name)
         
-        self.services = plugins.PluginManager(self, search_path='services', name='service')
+        self.services = plugins.PluginManager(self,
+                                              search_path='services',
+                                              name='service',
+                                              get_config=self.get_service_config)
         for name in self.services.find():
-            result = self.services.load(name, **dict(self.config.get_service(name)))
+            result = self.services.load(name)
             if not result:
                 return self.fatal_error(reason="couldn't load service: '{0}'".format(name))
 
         #load plugins
-        self.plugins = plugins.PluginManager(self, search_path='plugins', name='plugin')
+        self.plugins = plugins.PluginManager(self,
+                                             search_path='plugins',
+                                             name='plugin',
+                                             get_config=self.get_plugin_config,
+                                             require_config=True)
         self.load_plugins()
 
         #start the server
@@ -141,9 +148,15 @@ class Manager(object):
         if self.config is None:
             return self.fatal_error(reason="couldn't find mark2.properties")
 
+    def get_plugin_config(self, name):
+        return dict(self.config.get_plugins()).get(name, {})
+
+    def get_service_config(self, name):
+        return dict(self.config.get_service(name))
+
     def load_plugins(self):
-        self.plugins.config = self.config
-        self.plugins.load_all()
+        for name, _ in self.config.get_plugins():
+            self.plugins.load(name)
     
     def shutdown(self):
         reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
