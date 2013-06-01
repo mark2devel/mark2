@@ -1,5 +1,5 @@
-from plugins import Plugin
-from events import ServerEvent, EventPriority
+from mk2.plugins import Plugin
+from mk2.events import ServerEvent, EventPriority
 
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, DeferredList
