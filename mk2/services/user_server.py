@@ -146,5 +146,11 @@ class UserServer(Plugin):
         socket = self.parent.socket
         if os.path.exists(socket):
             os.remove(socket)
-        factory = UserServerFactory(self.parent)
-        reactor.listenUNIX(socket, factory, mode=self.parent.config.get_umask('sock'))
+        self.factory = UserServerFactory(self.parent)
+        reactor.listenUNIX(socket, self.factory, mode=self.parent.config.get_umask('sock'))
+
+    def save_state(self):
+        return self.factory.players
+
+    def load_state(self, state):
+        self.factory.players = state
