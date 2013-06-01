@@ -1,10 +1,11 @@
 import feedparser
-import res
+import re
 from twisted.web.client import getPage
 
 from mk2.plugins import Plugin
 
 reddit_link = re.compile('http://(?:www\.)?redd(?:\.it/|it\.com/(?:tb|(?:r/[\w\.]+/)?comments)/)(\w+)(/.+/)?(\w{7})?')
+
 
 #Many thanks to Adam Wight for this
 class FeedPoller(object):
