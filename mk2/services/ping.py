@@ -39,7 +39,7 @@ class Ping(Plugin):
     alive = False
     event_id = None
 
-    interval = 10
+    interval = Plugin.Property(default=10)
     
     def setup(self):
         self.host = self.parent.properties['server_ip'] or '127.0.0.1'
