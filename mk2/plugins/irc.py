@@ -445,63 +445,63 @@ class IRCBotFactory(protocol.ClientFactory):
 
 class IRC(Plugin):
     #connection
-    host = None
-    port = None
-    server_password = ""
-    channel = None
-    certificate = None
-    ssl = False
-    server_fingerprint = None
+    host               = Plugin.Property(required=True)
+    port               = Plugin.Property(required=True)
+    server_password    = Plugin.Property()
+    channel            = Plugin.Property(required=True)
+    certificate        = Plugin.Property()
+    ssl                = Plugin.Property(default=False)
+    server_fingerprint = Plugin.Property()
 
     #user
-    nickname = "RelayBot"
-    realname = "mark2 IRC relay"
-    ident    = "RelayBot"
-    username = ""
-    password = ""
+    nickname = Plugin.Property(default="RelayBot")
+    realname = Plugin.Property(default="mark2 IRC relay")
+    ident    = Plugin.Property(default="RelayBot")
+    username = Plugin.Property(default="")
+    password = Plugin.Property(default="")
 
     #general
-    cancel_highlight = False
-    cancel_highlight_str = u"_"
+    cancel_highlight     = Plugin.Property(default=False)
+    cancel_highlight_str = Plugin.Property(default=u"_")
 
     #game -> irc settings
-    game_columns = True
+    game_columns = Plugin.Property(default=True)
 
-    game_status_enabled = True
-    game_status_format  = u"!, | server {what}."
+    game_status_enabled = Plugin.Property(default=True)
+    game_status_format  = Plugin.Property(default=u"!, | server {what}.")
 
-    game_chat_enabled = True
-    game_chat_format  = u"{username}, | {message}"
-    game_chat_private = None
+    game_chat_enabled = Plugin.Property(default=True)
+    game_chat_format  = Plugin.Property(default=u"{username}, | {message}")
+    game_chat_private = Plugin.Property(default=None)
 
-    game_join_enabled = True
-    game_join_format  = u"*, | --> {username}"
+    game_join_enabled = Plugin.Property(default=True)
+    game_join_format  = Plugin.Property(default=u"*, | --> {username}")
 
-    game_quit_enabled = True
-    game_quit_format  = u"*, | <-- {username}"
+    game_quit_enabled = Plugin.Property(default=True)
+    game_quit_format  = Plugin.Property(default=u"*, | <-- {username}")
 
-    game_death_enabled = True
-    game_death_format = u"*, | {text}"
+    game_death_enabled = Plugin.Property(default=True)
+    game_death_format  = Plugin.Property(default=u"*, | {text}")
 
-    game_server_message_enabled = True
-    game_server_message_format  = u"#server, | {message}"
+    game_server_message_enabled = Plugin.Property(default=True)
+    game_server_message_format  = Plugin.Property(default=u"#server, | {message}")
 
     #bukkit only
-    game_me_enabled = True
-    game_me_format  = u"*, | {username} {message}"
+    game_me_enabled = Plugin.Property(default=True)
+    game_me_format  = Plugin.Property(default=u"*, | {username} {message}")
 
     #irc -> game settings
-    irc_chat_enabled = True
-    irc_chat_command = u"say [IRC] <{nickname}> {message}"
-    irc_chat_status = None
+    irc_chat_enabled    = Plugin.Property(default=True)
+    irc_chat_command    = Plugin.Property(default=u"say [IRC] <{nickname}> {message}")
+    irc_chat_status     = Plugin.Property(default=None)
 
-    irc_command_prefix = "!"
-    irc_command_status = None
-    irc_command_allow = ""
-    irc_command_mark2 = False
+    irc_command_prefix  = Plugin.Property(default="!")
+    irc_command_status  = Plugin.Property(default=None)
+    irc_command_allow   = Plugin.Property(default="")
+    irc_command_mark2   = Plugin.Property(default=False)
 
-    irc_players_enabled = True
-    irc_players_format  = u"*, | players currently in game: {players}"
+    irc_players_enabled = Plugin.Property(default=True)
+    irc_players_format  = Plugin.Property(default=u"*, | players currently in game: {players}")
 
     def setup(self):
         self.players = []

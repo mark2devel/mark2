@@ -1,10 +1,11 @@
 from mk2.plugins import Plugin
 from mk2.events import UserInput
 
+
 class Su(Plugin):
-    command = "sudo -su {user} -- {command}"
-    mode = "include"
-    proc = "ban;unban"
+    command = Plugin.Property(default="sudo -su {user} -- {command}")
+    mode = Plugin.Property(default="include")
+    proc = Plugin.Property(default="ban;unban")
     
     def setup(self):
         self.register(self.uinput, UserInput)

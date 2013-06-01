@@ -24,7 +24,7 @@ class MumbleProtocol(DatagramProtocol):
         if len(self.buff) < 24:
             return
 
-        if not self.buff.startswith('\x00\x01\x02\x03' + '\x00'*8):
+        if not self.buff.startswith('\x00\x01\x02\x03' + '\x00' * 8):
             self.parent.console("the mumble server gave us crazy data!")
             self.buff = ""
             return
@@ -37,19 +37,21 @@ class MumbleProtocol(DatagramProtocol):
 
 
 class Mumble(Plugin):
-    host = ""
-    port = 64738
-    timeout = 10
-    trigger = "!mumble"
-    command_up = \
-        "msg {username} &2host: &a{host}\n" + \
-        "msg {username} &2port: &a{port}\n" + \
-        "msg {username} &2status: &aup! users: {users_current}/{users_max}"
+    host       = Plugin.Property(required=True)
+    port       = Plugin.Property(default=64738)
+    timeout    = Plugin.Property(default=10)
+    trigger    = Plugin.Property(default="!mumble")
+    command_up = Plugin.Property(default='''
+msg {username} &2host: &a{host}
+msg {username} &2port: &a{port}
+msg {username} &2status: &aup! users: {users_current}/{users_max}
+'''.strip())
 
-    command_down = \
-        "msg {username} &2host: &a{host}\n" +\
-        "msg {username} &2port: &a{port}\n" +\
-        "msg {username} &2status: &adown."
+    command_down = Plugin.Property(default='''
+msg {username} &2host: &a{host}
+msg {username} &2port: &a{port}
+msg {username} &2status: &adown.
+'''.strip())
 
     def setup(self):
         self.users = []

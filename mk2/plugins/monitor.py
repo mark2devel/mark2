@@ -53,19 +53,19 @@ class Check(object):
 
 
 class Monitor(Plugin):
-    crash_enabled  = True
-    crash_timeout  = 3
-    crash_warn     = 0
+    crash_enabled  = Plugin.Property(default=True)
+    crash_timeout  = Plugin.Property(default=3)
+    crash_warn     = Plugin.Property(default=0)
 
-    oom_enabled    = True
+    oom_enabled    = Plugin.Property(default=True)
 
-    ping_enabled   = True
-    ping_timeout   = 3
-    ping_warn      = 0
+    ping_enabled   = Plugin.Property(default=True)
+    ping_timeout   = Plugin.Property(default=3)
+    ping_warn      = Plugin.Property(default=0)
 
-    pcount_enabled = False
-    pcount_timeout = 3
-    pcount_warn    = 0
+    pcount_enabled = Plugin.Property(default=False)
+    pcount_timeout = Plugin.Property(default=3)
+    pcount_warn    = Plugin.Property(default=0)
 
     def setup(self):
         do_step = False

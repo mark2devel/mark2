@@ -3,8 +3,8 @@ from mk2.events import Hook
 
 
 class Save(Plugin):
-    warn_message = "WARNING: saving map in {delay}."
-    message      = "MAP IS SAVING."
+    warn_message = Plugin.Property(default="WARNING: saving map in {delay}.")
+    message      = Plugin.Property(default="MAP IS SAVING.")
     
     def setup(self):
         self.register(self.save, Hook, public=True, name='save', doc='save the map')

@@ -7,9 +7,9 @@ from mk2.events import Console, ServerStopped, ServerStopping, ServerOutput
 
 
 class Log(Plugin):
-    gzip      = True
-    path      = "logs/server-{timestamp}-{status}.log.gz"
-    vanilla = False
+    gzip      = Plugin.Property(default=True)
+    path      = Plugin.Property(default="logs/server-{timestamp}-{status}.log.gz")
+    vanilla   = Plugin.Property(default=False)
     
     log = u""
     

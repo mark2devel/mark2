@@ -41,10 +41,10 @@ class RedisFactory(protocol.ReconnectingClientFactory):
 
 
 class Redis(Plugin):
-    host         = "localhost"
-    port         = 6379
-    channel      = "mark2-{server}"
-    relay_events = "StatPlayers,PlayerJoin,PlayerQuit,PlayerChat,PlayerDeath"
+    host         = Plugin.Property(default="localhost")
+    port         = Plugin.Property(default=6379)
+    channel      = Plugin.Property(default="mark2-{server}")
+    relay_events = Plugin.Property(default="StatPlayers,PlayerJoin,PlayerQuit,PlayerChat,PlayerDeath")
 
     def setup(self):
         channel = self.channel.format(server=self.parent.server_name)

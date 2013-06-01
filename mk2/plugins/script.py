@@ -95,8 +95,8 @@ class ScriptEntry(object):
 
 
 class Script(Plugin):
-    path = 'scripts.txt'
-    shell = '/bin/sh'
+    path = Plugin.Property(default='scripts.txt')
+    shell = Plugin.Property(default='/bin/sh')
     
     def setup(self):
         self.scripts = []

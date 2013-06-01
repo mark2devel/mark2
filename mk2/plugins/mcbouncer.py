@@ -30,10 +30,10 @@ class BouncerAPI:
         return inner
 
 class MCBouncer(Plugin):
-    api_base   = 'http://mcbouncer.com/api'
-    api_key    = None
-    reason     = "Banned by an operator"
-    proxy_mode = False
+    api_base   = Plugin.Property(default='http://mcbouncer.com/api')
+    api_key    = Plugin.Property(default=None)
+    reason     = Plugin.Property(default="Banned by an operator")
+    proxy_mode = Plugin.Property(default=False)
     
     def setup(self):
         self.bouncer = BouncerAPI(self.api_base, self.api_key, self.on_error)

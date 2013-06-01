@@ -9,11 +9,11 @@ import shlex
 
 
 class Backup(Plugin):
-    path = "backups/{timestamp}.tar.gz"
-    mode = "include"
-    spec = "world*"
-    tar_flags = '-hpczf'
-    flush_wait = 5
+    path = Plugin.Property(default="backups/{timestamp}.tar.gz")
+    mode = Plugin.Property(default="include")
+    spec = Plugin.Property(default="world*")
+    tar_flags = Plugin.Property(default='-hpczf')
+    flush_wait = Plugin.Property(default=5)
 
     backup_stage = 0
     autosave_enabled = True

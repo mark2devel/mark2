@@ -24,10 +24,11 @@ class FeedPoller(object):
         if result.entries:
             self.last_seen_id = result.entries[-1].id
 
+
 class RSS(Plugin):
-    url            = ""
-    check_interval = 60
-    command        = "say {link} - {title}"
+    url = Plugin.Property(default="")
+    check_interval = Plugin.Property(default=60)
+    command = Plugin.Property(default="say {link} - {title}")
     
     def setup(self):
         self.poller = FeedPoller()

@@ -3,16 +3,16 @@ from mk2.events import Hook, ServerStop, StatPlayers, StatPlayerCount
 
 
 class Shutdown(Plugin):
-    restart_warn_message   = "WARNING: planned restart in {delay}."
-    stop_warn_message      = "WARNING: server going down for planned maintainence in {delay}."
-    restart_message        = "Server restarting."
-    stop_message           = "Server going down for maintainence."
-    restart_cancel_message = "WARNING: planned restart cancelled."
-    restart_cancel_reason  = "WARNING: planned restart cancelled ({reason})."
-    stop_cancel_message    = "WARNING: planned maintenance cancelled."
-    stop_cancel_reason     = "WARNING: planned maintenance cancelled ({reason})."
-    kick_command           = "kick {player} {message}"
-    kick_mode              = "all"
+    restart_warn_message   = Plugin.Property(default="WARNING: planned restart in {delay}.")
+    stop_warn_message      = Plugin.Property(default="WARNING: server going down for planned maintainence in {delay}.")
+    restart_message        = Plugin.Property(default="Server restarting.")
+    stop_message           = Plugin.Property(default="Server going down for maintainence.")
+    restart_cancel_message = Plugin.Property(default="WARNING: planned restart cancelled.")
+    restart_cancel_reason  = Plugin.Property(default="WARNING: planned restart cancelled ({reason}).")
+    stop_cancel_message    = Plugin.Property(default="WARNING: planned maintenance cancelled.")
+    stop_cancel_reason     = Plugin.Property(default="WARNING: planned maintenance cancelled ({reason}).")
+    kick_command           = Plugin.Property(default="kick {player} {message}")
+    kick_mode              = Plugin.Property(default="all")
     
     failsafe = None
 

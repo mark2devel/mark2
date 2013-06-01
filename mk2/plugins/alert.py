@@ -5,9 +5,9 @@ from mk2.plugins import Plugin
 
 
 class Alert(Plugin):
-    interval = 200
-    command = "say {message}"
-    path = "alerts.txt"
+    interval = Plugin.Property(default=200)
+    command  = Plugin.Property(default="say {message}")
+    path     = Plugin.Property(default="alerts.txt")
     
     messages = []
     

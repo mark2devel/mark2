@@ -6,8 +6,8 @@ from mk2.events import ServerOutput
 
 
 class Trigger(Plugin):
-    command = "msg {user} {message}"
-    path = "triggers.txt"
+    command = Plugin.Property(default="msg {user} {message}")
+    path = Plugin.Property(default="triggers.txt")
     
     triggers = {}
     

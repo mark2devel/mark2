@@ -179,15 +179,15 @@ class SMTPEndpoint(Endpoint):
 
 
 class Push(Plugin):
-    endpoints           = ""
+    endpoints           = Plugin.Property(default="")
 
-    email_address       = "mark2@fantastic.minecraft.server"
-    email_smtp_server   = ""
-    email_smtp_user     = ""
-    email_smtp_password = ""
-    email_smtp_security = False
+    email_address       = Plugin.Property(default="mark2@fantastic.minecraft.server")
+    email_smtp_server   = Plugin.Property(default="")
+    email_smtp_user     = Plugin.Property(default="")
+    email_smtp_password = Plugin.Property(default="")
+    email_smtp_security = Plugin.Property(default=False)
 
-    pushover_token      = ""
+    pushover_token      = Plugin.Property(default="")
     
     def setup(self):
         global _plugin
