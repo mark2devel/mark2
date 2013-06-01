@@ -95,6 +95,9 @@ class Manager(object):
                                               name='service',
                                               get_config=self.get_service_config)
         for name in self.services.find():
+            cfg = self.get_service_config(name)
+            if not cfg.get('enabled', True):
+                continue
             result = self.services.load(name)
             if not result:
                 return self.fatal_error(reason="couldn't load service: '{0}'".format(name))
