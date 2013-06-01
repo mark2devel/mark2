@@ -162,12 +162,12 @@ class Plugin:
     def repeating_task(self, callback, interval, name=None, now=False):
         hook = self._task(callback, name)
         t = self.parent.events.dispatch_repeating(hook, interval, now=now)
-        t._stop    = t.stop
+        t._stop = t.stop
         t._active = lambda: t.running
         self._tasks.append(t)
     
     def _task(self, callback, name=None):
-        if name == None:
+        if name is None:
             name = id(callback)
         hook = Hook(name=name)
         self.parent.events.register(callback, Hook, name=name)
