@@ -61,7 +61,7 @@ class ScriptEntry(object):
             p.outReceived = lambda d: [execute_next(self.execute_reduced, l, cmd) for l in d.split("\n")]
             p.processEnded = lambda r: d.callback(None)
 
-            reactor.spawnProcess(p, self.plugin.shell, [self.plugin.shell, '-c', cmd], uid=self.plugin.uid)
+            reactor.spawnProcess(p, self.plugin.shell, [self.plugin.shell, '-c', cmd])
 
             d.addCallback(lambda r: execute)
             return d
@@ -97,16 +97,8 @@ class ScriptEntry(object):
 class Script(Plugin):
     path = 'scripts.txt'
     shell = '/bin/sh'
-    user = ''
     
     def setup(self):
-        self.uid = None
-        if self.user != '':
-            try:
-                self.uid = pwd.getpwnam(self.user).pw_uid
-            except KeyError:
-                self.console("warning: couldn't get uid of script user '%s'" % self.user)
-        
         self.scripts = []
         if not os.path.isfile(self.path):
             return
