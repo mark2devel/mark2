@@ -147,10 +147,10 @@ class Plugin:
             self.unregister(ident)
     
     def save_state(self):
-        return [getattr(self, k) for k in self.restore]
+        return dict((k, getattr(self, k)) for k in self.restore)
 
     def load_state(self, state):
-        [setattr(self, k, state.pop(0)) for k in self.restore]
+        [setattr(self, k, v) for k, v in state.iteritems()]
     
     def delayed_task(self, callback, delay, name=None):
         hook = self._task(callback, name)
