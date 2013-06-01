@@ -43,7 +43,7 @@ class ResourcePluginLoader(PluginLoader):
             #if we've reached this point, there's no subclass of Plugin in the file!
             raise PluginLoadError("a file for '{0}' exists, but there is no plugin in it".format(name))
         except Exception:
-            raise PluginLoadError("'{0}'' failed to load".format(name), sys.exc_info())
+            raise PluginLoadError("'{0}' failed to load".format(name), sys.exc_info())
 
     def find_plugins(self):
         for f in pkg_resources.resource_listdir('mk2', self.search_path):
@@ -264,7 +264,10 @@ class PluginManager(dict):
                     continue
 
                 #instantiate plugin
-                plugin = cls(self.parent, name, **kwargs)
+                try:
+                    plugin = cls(self.parent, name, **kwargs)
+                except Exception:
+                    raise PluginLoadError("'{0}' failed to initialize".format(name), sys.exc_info())
 
                 #restore state
                 if name in self.states:
