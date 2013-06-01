@@ -387,7 +387,7 @@ class IRCBot(irc.IRCClient):
         self.sendLine("AUTHENTICATE *")
         self.sasl_finish()
         if whine:
-            self.console("failed to log in.")
+            self.console("irc: failed to log in.")
 
     def irc_904(self, prefix, params):
         print params
