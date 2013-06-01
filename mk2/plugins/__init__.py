@@ -84,7 +84,49 @@ class EntryPointPluginLoader(PluginLoader):
             yield ep.name
 
 
+class _PluginProperty(object):
+    def __init__(self, default=None, type_=False, required=False):
+        self.default = default
+        self.required = required
+
+        self.type = default.__class__ if (default is not None and type_ is False) else type_
+
+    def coerce(self, value):
+        if self.type is False or isinstance(value, self.type):
+            return value
+        return self.type(value)
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return instance._args.get(self, self.default)
+
+    def __set__(self, instance, value):
+        instance._args[self] = self.coerce(value)
+
+
+class PluginMetaclass(type):
+    def __init__(cls, name, bases, dict_):
+        cls._contains = [n for n, v in inspect.getmembers(cls)
+                         if isinstance(v, _PluginProperty)]
+        cls._requires = [n for n in cls._contains if getattr(cls, n).required]
+
+        for b in bases:
+            if hasattr(b, '_contains'):
+                cls._contains.extend(b._contains)
+            if hasattr(b, '_requires'):
+                cls._requires.extend(b._requires)
+
+        return type.__init__(cls, name, bases, dict)
+
+
 class Plugin:
+    __metaclass__ = PluginMetaclass
+
+    Property = _PluginProperty
+
+    enabled = Property()
+
     restore = tuple()
 
     def __init__(self, parent, name, **kwargs):
@@ -101,9 +143,23 @@ class Plugin:
         self._tasks = []
         self._events = []
         self._services = []
-    
-        for n, v in kwargs.iteritems():
-            setattr(self, n, v)
+
+        self._args = {}
+
+        missing = set(self._requires) - set(kwargs.iterkeys())
+        excess = set(kwargs.iterkeys()) - set(self._contains)
+        if missing:
+            raise Exception("Plugin {0} missing properties: {1}".
+                            format(self.__class__.__name__, ", ".join(missing)))
+        elif excess:
+            raise Exception("Plugin {0} got extraneous properties: {1}".
+                            format(self.__class__.__name__, ", ".join(excess)))
+        for k, v in kwargs.iteritems():
+            try:
+                setattr(self, k, v)
+            except TypeError:
+                expected_type = getattr(self.__class__, k).type.__name__
+                raise Exception("{0!r} is invalid for {1}.{2} which expects type {3}".format(v, self.__class__.__name__, k, expected_type))
         
         self.register(self.server_started, ServerStarted)
         self.register(self.server_stopping, ServerStopping)
