@@ -39,7 +39,7 @@ class ResourcePluginLoader(PluginLoader):
             classes = inspect.getmembers(module, inspect.isclass)
             for n, cls in classes:
                 if issubclass(cls, Plugin) and not cls is Plugin:
-                    return cls
+                    return cls, None
             #if we've reached this point, there's no subclass of Plugin in the file!
             raise PluginLoadError("a file for '{0}' exists, but there is no plugin in it".format(name))
         except Exception:
@@ -77,7 +77,7 @@ class EntryPointPluginLoader(PluginLoader):
         # cls must be a Plugin subclass
         if not issubclass(cls, Plugin):
             raise PluginLoadError("'{0}' was advertised, but is not a Plugin".format(name))
-        return cls
+        return cls, ep.dist.version
 
     def find_plugins(self):
         for ep in pkg_resources.iter_entry_points('mark2.{0}'.format(self.search_path)):
@@ -312,16 +312,19 @@ class PluginManager(dict):
 
         for loader in self.loaders:
             try:
-                cls = loader.load_plugin(name)
+                result = loader.load_plugin(name)
 
                 # if we can't load the plugin from there just try another
                 # loader
-                if cls is False:
+                if result is False:
                     continue
+
+                cls, version = result
 
                 #instantiate plugin
                 try:
                     plugin = cls(self.parent, name, **kwargs)
+                    plugin._version = version
                 except Exception:
                     raise PluginLoadError("'{0}' failed to initialize".format(name), sys.exc_info())
 
@@ -342,9 +345,11 @@ class PluginManager(dict):
 
         self.parent.console("couldn't find plugin: {0}".format(name))
 
-    def unload(self, name):
+    def unload(self, name, forget=False):
+        assert name in self
         plugin = self[name]
-        self.states[name] = plugin.save_state()
+        if not forget:
+            self.states[name] = plugin._version, plugin.save_state()
         plugin.teardown()
         plugin.stop_tasks()
         plugin.unregister_all()
