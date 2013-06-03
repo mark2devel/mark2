@@ -330,7 +330,7 @@ class PluginManager(dict):
 
                 #restore state
                 if name in self.states:
-                    plugin.load_state(self.states[name])
+                    plugin.load_state(self.states[name][1])
                     del self.states[name]
 
                 #register plugin
