@@ -1,6 +1,7 @@
 import time
 import gzip
 import os
+import re
 
 from mk2.plugins import Plugin
 from mk2.events import Console, ServerStopped, ServerStopping, ServerOutput
@@ -12,24 +13,28 @@ class Log(Plugin):
     vanilla   = Plugin.Property(default=False)
     
     log = u""
-    
     reason = "unknown"
+    time_re = re.compile(r'(?:\d{2}:\d{2}:\d{2}) (.*)')
 
     restore = ('log',)
     
     def setup(self):
         if self.vanilla:
-            self.register(self.vanilla_logger, ServerOutput)
+            self.register(self.vanilla_logger, ServerOutput, pattern='.*')
         else:
             self.register(self.logger, Console)
         self.register(self.shutdown, ServerStopped)
         self.register(self.pre_shutdown, ServerStopping)
 
     def vanilla_logger(self, event):
-        self.log += u"%s\n" % event.line
+        m = self.time_re.match(event.line)
+        if m:
+            self.log += u"{0} {1}\n".format(event.time, m.group(1))
+        else:
+            self.log += u"{0}\n".format(event.line)
     
     def logger(self, event):
-        self.log += u"%s\n" % event.value()
+        self.log += u"{0}\n".format(event.value())
     
     def pre_shutdown(self, event):
         self.reason = event.reason
