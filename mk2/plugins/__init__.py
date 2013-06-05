@@ -157,7 +157,7 @@ class Plugin:
         for k, v in kwargs.iteritems():
             try:
                 setattr(self, k, v)
-            except TypeError:
+            except ValueError:
                 expected_type = getattr(self.__class__, k).type.__name__
                 raise Exception("{0!r} is invalid for {1}.{2} which expects type {3}".format(v, self.__class__.__name__, k, expected_type))
         
