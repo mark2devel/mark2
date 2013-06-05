@@ -28,8 +28,8 @@ class Check(object):
         if self.timeout and self.time == self.timeout:
             timeout = "{0} minutes".format(self.timeout)
             self.console("{0} -- restarting.".format(self.message.format(timeout=timeout)))
-            self.dispatch(ServerEvent(cause=   "server/error/" + self.event[0],
-                                      data=    "REBOOTING SERVER: " + self.event[1].format(timeout=timeout),
+            self.dispatch(ServerEvent(cause="server/error/" + self.event[0],
+                                      data="REBOOTING SERVER: " + self.event[1].format(timeout=timeout),
                                       priority=1))
             self.dispatch(ServerStop(reason=self.stop_reason, respawn=True))
         elif self.warn and self.time == self.warn:
@@ -38,8 +38,8 @@ class Check(object):
             else:
                 self.console(self.warning)
             time = "{0} minutes".format(self.warn)
-            self.dispatch(ServerEvent(cause=   "server/warning/" + self.event[0],
-                                      data=    "WARNING: " + self.event[1].format(timeout=time),
+            self.dispatch(ServerEvent(cause="server/warning/" + self.event[0],
+                                      data="WARNING: " + self.event[1].format(timeout=time),
                                       priority=1))
         else:
             if self.timeout:
@@ -78,7 +78,7 @@ class Monitor(Plugin):
             do_step = True
             self.checks['crash'] =  Check(self, name="crash",
                                           timeout=self.crash_timeout,
-                                          warn=   self.crash_warn,
+                                          warn=self.crash_warn,
                                           message="server has crashed",
                                           warning="server might have crashed",
                                           event=("hang", "server didn't respond for {timeout}"),
@@ -89,7 +89,7 @@ class Monitor(Plugin):
             do_step = True
             self.checks['ping'] =   Check(self, name="ping",
                                           timeout=self.ping_timeout,
-                                          warn=   self.ping_warn,
+                                          warn=self.ping_warn,
                                           message="server is not accepting connections",
                                           warning="server might have stopped accepting connections",
                                           event=("ping", "server didn't respond for {timeout}"),
@@ -100,7 +100,7 @@ class Monitor(Plugin):
             do_step = True
             self.checks['pcount'] = Check(self, name="pcount",
                                           timeout=self.pcount_timeout,
-                                          warn=   self.pcount_warn,
+                                          warn=self.pcount_warn,
                                           message="server has had 0 players for {timeout}, something is wrong",
                                           warning="server has 0 players, might be inaccessible",
                                           event=("player-count", "server had 0 players for {timeout}"),
