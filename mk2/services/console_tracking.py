@@ -11,11 +11,9 @@ class ConsoleTracking(Plugin):
 
     def setup(self):
         lang = properties.load_jar(self.parent.jar_file, 'lang/en_US.lang')
-        if lang is None:
-            return self.fatal_error(reason="couldn't load lang!")
-        self.deaths = tuple(lang.get_deaths())
-
-        self.register(self.death_handler, ServerOutput, pattern=".*")
+        if lang is not None:
+            self.deaths = tuple(lang.get_deaths())
+            self.register(self.death_handler, ServerOutput, pattern=".*")
 
         self.register_chat()
 
