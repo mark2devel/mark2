@@ -32,7 +32,6 @@ class ConsoleTracking(Plugin):
             ev.append(self.register(lambda e, e_ty=e_ty: self.dispatch(e_ty(**e.match.groupdict())),
                                     ServerOutput,
                                     pattern=pattern))
-        self.console(str(ev))
         self.chat_events = tuple(ev)
 
     def death_handler(self, event):
