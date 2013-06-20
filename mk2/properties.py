@@ -17,10 +17,13 @@ def load(cls, *files):
 
 
 def load_jar(jar, path):
-    z = zipfile.ZipFile(jar, 'r')
-    o = Lang(z.open(path, 'r'))
-    z.close()
-    return o
+    try:
+        z = zipfile.ZipFile(jar, 'r')
+        o = Lang(z.open(path, 'r'))
+        z.close()
+        return o
+    except KeyError:
+        return None
 
 
 class Properties(dict):
