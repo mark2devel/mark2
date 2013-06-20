@@ -209,7 +209,7 @@ class Push(Plugin):
     
     def configure_endpoints(self):
         eps = self.endpoints.split("\n")
-        self.endpoints = []
+        self._endpoints = []
         for ep in eps:
             if not ep.strip():
                 continue
@@ -225,11 +225,11 @@ class Push(Plugin):
                 inst.url = url
                 for k, v in [d.split("=") for d in md]:
                     setattr(inst, k, v)
-                self.endpoints.append(inst)
+                self._endpoints.append(inst)
             except Exception as e:
                 self.console("push: ERROR ({0}) adding endpoint: {1}".format(e, ep))
     
     def send_alert(self, event):
-        for ep in self.endpoints:
+        for ep in self._endpoints:
             if ep.filter(event):
                 ep.push(event)
