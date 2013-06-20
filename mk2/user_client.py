@@ -302,6 +302,12 @@ class UI:
         contents.append((urwid.Divider(), self.g_users.options()))
         contents.extend(new)
 
+    def safe_unicode(self, text):
+        if urwid.supports_unicode():
+            return text
+        else:
+            return text.encode('ascii', errors='replace')
+
     def append_output(self, line):
         scroll = False
         del self.lines[:-999]
@@ -319,7 +325,7 @@ class UI:
         except IndexError:  # nothing in listbox
             pass
 
-        self.g_output_list.append(urwid.Text(console_repr(line)))
+        self.g_output_list.append(urwid.Text(self.safe_unicode(console_repr(line))))
         if scroll:
             self.g_output.focus_position += 1
 
@@ -333,7 +339,7 @@ class UI:
         lines = [l for l in lines if self.filter(l)]
 
         for line in lines:
-            contents.append(urwid.Text(console_repr(line)))
+            contents.append(urwid.Text(self.safe_unicode(console_repr(line))))
 
         try:
             self.g_output.focus_position = len(lines) - 1
