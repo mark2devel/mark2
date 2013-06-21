@@ -11,7 +11,7 @@ class Alert(Plugin):
     
     messages = []
     
-    def server_started(self, event):
+    def setup(self):
         if self.path and os.path.exists(self.path):
             f = open(self.path, 'r')
             for l in f:
