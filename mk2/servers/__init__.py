@@ -1,5 +1,5 @@
-import importlib
 import json
+import sys
 
 from twisted.internet import reactor, defer
 from twisted.web.client import getPage, HTTPClientFactory
@@ -72,7 +72,9 @@ class JenkinsJarProvider(JarProvider):
 modules = []
 for m in ['bukkit', 'feed_the_beast', 'forge', 'libigot', 'mcpcplus', 'nukkit', 'spigot', 'technic', 'vanilla']:
     try:
-        modules.append(importlib.import_module('.' + m, "mk2.servers"))
+        name = "mk2.servers.{0}".format(m)
+        __import__(name)
+        modules.append(sys.modules[name])
     except ImportError:
         pass
 
