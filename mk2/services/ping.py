@@ -50,8 +50,9 @@ class Ping(Plugin):
     def server_started(self, event):
         if self.event_id:
             self.parent.events.unregister(self.event_id)
+        pattern = r"\s*(?:/{0}:\d+ lost connection|Reached end of stream for /{0})"
         self.event_id = self.parent.events.register(lambda ev: Event.EAT, ServerOutput,
-                                                    pattern=r"\s*/%s:\d+ lost connection" % self.host)
+                                                    pattern=pattern.format(self.host))
 
     def loop(self):
         host = self.parent.properties['server_ip'] or '127.0.0.1'
