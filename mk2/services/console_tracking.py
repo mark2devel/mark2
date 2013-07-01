@@ -10,7 +10,7 @@ class ConsoleTracking(Plugin):
     chat_events = tuple()
 
     def setup(self):
-        lang = properties.load_jar(self.parent.jar_file, 'lang/en_US.lang')
+        lang = properties.load_jar(self.parent.jar_file, 'assets/minecraft/lang/en_US.lang', 'lang/en_US.lang')
         if lang is not None:
             self.deaths = tuple(lang.get_deaths())
             self.register(self.death_handler, ServerOutput, pattern=".*")
