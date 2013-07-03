@@ -340,9 +340,14 @@ class CommandStart(CommandTyTerminal):
             raise Mark2Error(e.format(d_user=d_user,m_user=m_user))
 
     def daemonize(self):
-        if os.fork():
+        if os.fork() > 0:
             return 1
-        if os.fork() != 0:
+
+        os.chdir(".")
+        os.setsid()
+        os.umask(0)
+
+        if os.fork() > 0:
             sys.exit(0)
 
         null = os.open('/dev/null', os.O_RDWR)
