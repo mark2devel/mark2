@@ -220,7 +220,7 @@ class Manager(object):
         elif event.line.startswith('#'):
             pass
         else:
-            self.events.dispatch(events.ServerInput(line=event.line, parse_colors=True))
+            self.events.dispatch(events.ServerInput(line=event.line))
     
     def handle_command(self, user, text):
         self.console(text, prompt=">", user=user)

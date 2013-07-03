@@ -14,11 +14,6 @@ class ServerInput(Event):
     is available: self.send("say hello")"""
     
     line         = Event.Arg(required=True)
-    parse_colors = Event.Arg(default=False)
-
-    def setup(self):
-        if self.parse_colors:
-            self.line = re.sub("(?i)\&([0-9a-fklmnor])", u"\u00a7\\1", self.line)
 
 
 class ServerOutput(Event):
