@@ -19,9 +19,11 @@ class Alert(Plugin):
                 if l:
                     self.messages.append(l)
             f.close()
-            
-            if self.messages:
-                self.repeating_task(self.repeater, self.interval)
+
+    def server_started(self, event):
+        if self.messages:
+            self.repeating_task(self.repeater, self.interval)
 
     def repeater(self, event):
         self.send_format(self.command, parseColors=True, message=random.choice(self.messages))
+
