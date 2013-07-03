@@ -22,6 +22,7 @@ This is the 'main' class that handles most of the logic
 class Manager(object):
     name = "manager"
     started = False
+    shutting_down = False
     
     def __init__(self, shared_path, server_name, server_path, jar_file=None):
         self.shared_path = shared_path
@@ -162,7 +163,9 @@ class Manager(object):
             self.plugins.load(name)
     
     def shutdown(self):
-        reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
+        if not self.shutting_down:
+            self.shutting_down = True
+            reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
 
     def console(self, line, **k):
         for l in unicode(line).split(u"\n"):
