@@ -44,7 +44,7 @@ class Log(Plugin):
         if reason == None:
             reason = "ok"
             
-        timestamp = time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime())
+        timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
         
         path = self.path.format(timestamp=timestamp, name=self.parent.name, status=reason)
 

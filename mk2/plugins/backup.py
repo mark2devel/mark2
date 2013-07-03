@@ -80,7 +80,7 @@ class Backup(Plugin):
         return self.done_backup
 
     def do_backup(self, *a):
-        timestamp = time.strftime("%Y-%m-%d-%H:%M:%S", time.gmtime())
+        timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
         path = self.path.format(timestamp=timestamp, name=self.parent.server_name)
         if not os.path.exists(os.path.dirname(path)):
             try:
