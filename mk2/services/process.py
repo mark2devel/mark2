@@ -87,7 +87,7 @@ class Process(Plugin):
             l = e.line
             if not l.endswith('\n'):
                 l += '\n'
-            self.transport.write(l.encode(self.locale))
+            self.transport.write(l.encode(self.locale, 'ignore'))
             e.handled = True
 
     def server_starting(self, e):
