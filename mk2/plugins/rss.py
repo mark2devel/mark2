@@ -46,4 +46,4 @@ class RSS(Plugin):
             m = reddit_link.match(entry['link'])
             if m:
                 entry['link'] = "http://redd.it/" + m.group(1)
-            self.send_format(self.command, parseColors=True, **entry)
+            self.send_format(self.command, **entry)

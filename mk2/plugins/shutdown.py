@@ -41,17 +41,17 @@ class Shutdown(Plugin):
         self.cancel_preempt = 0
     
     def warn_restart(self, delay):
-        self.send_format("say %s" % self.restart_warn_message, parseColors=True, delay=delay)
+        self.send_format("say %s" % self.restart_warn_message, delay=delay)
     
     def warn_stop(self, delay):
-        self.send_format("say %s" % self.stop_warn_message, parseColors=True, delay=delay)
+        self.send_format("say %s" % self.stop_warn_message, delay=delay)
 
     def warn_cancel(self, reason, thing):
         if reason:
             message = self.restart_cancel_reason if thing == "restart" else self.stop_cancel_reason
         else:
             message = self.restart_cancel_message if thing == "restart" else self.stop_cancel_message
-        self.send_format("say %s" % message, parseColors=True, reason=reason)
+        self.send_format("say %s" % message, reason=reason)
 
     def nice_stop(self, respawn, kill):
         if not kill:

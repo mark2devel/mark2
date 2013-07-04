@@ -85,4 +85,4 @@ msg {username} &2status: &adown.
         self.stop_tasks()
 
     def send_response(self, command, **d):
-        self.send_format(command, parseColors=True, host=self.host, port=self.port, **d)
+        self.send_format(command, host=self.host, port=self.port, **d)

@@ -610,4 +610,4 @@ class IRC(Plugin):
 
     def irc_message(self, user, message):
         if self.irc_chat_enabled:
-            self.send_format(self.irc_chat_command, parseColors=True, nickname=user, message=message)
+            self.send_format(self.irc_chat_command, nickname=user, message=message)

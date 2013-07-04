@@ -25,5 +25,5 @@ class Alert(Plugin):
             self.repeating_task(self.repeater, self.interval)
 
     def repeater(self, event):
-        self.send_format(self.command, parseColors=True, message=random.choice(self.messages))
+        self.send_format(self.command, message=random.choice(self.messages))
 

@@ -235,12 +235,12 @@ class Plugin:
                 t._stop()
         self._tasks = []
         
-    def send(self, l, parseColors=False):
-        self.dispatch(ServerInput(line=l, parse_colors=parseColors))
+    def send(self, l):
+        self.dispatch(ServerInput(line=l))
 
-    def send_format(self, l, parseColors=False, **kw):
+    def send_format(self, l, **kw):
         kw = dict((k, FormatWrapper(v)) for k, v in kw.iteritems())
-        self.send(l.format(**kw), parseColors=parseColors)
+        self.send(l.format(**kw))
     
     def action_chain_cancellable(self, spec, callbackWarn, callbackAction, callbackCancel=None):
         intervals = [self.parse_time(i) for i in spec.split(';')]
