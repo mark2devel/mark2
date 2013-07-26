@@ -4,6 +4,8 @@ from setuptools.command.install import install
 import os
 import sys
 
+MARK2_VERSION = "0.1.4.2"
+
 requirements = ["{0}=={1}".format(*s) for s in [
 
 ("feedparser", "5.1.3"),
@@ -62,7 +64,7 @@ sys._getframe = getframe
 
 setup(
     name="mark2",
-    version="0.1.4.1",
+    version=MARK2_VERSION,
 
     packages=[
         'mk2',
