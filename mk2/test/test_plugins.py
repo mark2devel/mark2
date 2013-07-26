@@ -1,6 +1,5 @@
 from mk2 import events, plugins
 
-import os
 import sys
 
 from twisted.internet import task
@@ -38,12 +37,25 @@ class TestPlugin(plugins.Plugin):
         self.bar = state
 
 
+class TestPluginLoader(plugins.PluginLoader):
+    plugins = {'test': TestPlugin}
+
+    def load_plugin(self, name):
+        if name in self.plugins:
+            return self.plugins[name], None
+        else:
+            return False
+
+    def find_plugins(self):
+        return list(self.plugins.keys())
+
+
 class PluginTestBase:
     def setUp(self):
         self.config = self
         self.fatal_error = lambda *a: None
         self.events = TestEventDispatcher()
-        self.plugins = plugins.PluginManager(self, search_path='test')
+        self.plugins = plugins.PluginManager(self, loaders=(TestPluginLoader,))
 
     def console(self, *a, **kw):
         print a, kw
@@ -54,25 +66,25 @@ class PluginTestBase:
 
 class PluginLoading(PluginTestBase, unittest.TestCase):
     def test_load(self):
-        self.assertTrue(self.plugins.load('test_plugins') is not None)
+        self.assertTrue(self.plugins.load('test') is not None)
 
     def test_reload(self):
-        self.plugins.reload('test_plugins')
+        self.plugins.reload('test')
 
 
 class PluginTestCase(PluginTestBase, unittest.TestCase):
     def setUp(self):
         PluginTestBase.setUp(self)
-        self.plugins.load('test_plugins')
+        self.plugins.load('test')
 
     @property
     def plugin(self):
-        return self.plugins['test_plugins']
+        return self.plugins['test']
 
     def test_load_save_state(self):
         self.assertEqual(self.plugin.foo, 'foo')
         self.assertEqual(self.plugin.bar, 'bar')
-        self.plugins.reload('test_plugins')
+        self.plugins.reload('test')
         self.assertEqual(self.plugin.bar, 'foo')
 
     def test_parse_time(self):
