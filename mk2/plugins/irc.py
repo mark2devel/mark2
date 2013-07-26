@@ -121,6 +121,9 @@ class IRCBot(irc.IRCClient):
         self.sendLine("CAP LS")
         return irc.IRCClient.register(self, nickname, hostname, servername)
 
+    def sendLine(self, line):
+        irc.IRCClient.sendLine(self, line.encode('ascii', 'replace'))
+
     def _parse_cap(self, cap):
         mod = ''
         while cap[0] in "-~=":
