@@ -464,7 +464,7 @@ class IRC(Plugin):
     password = Plugin.Property(default="")
 
     #general
-    cancel_highlight     = Plugin.Property(default=False)
+    cancel_highlight     = Plugin.Property(default=False, type_=False)
     cancel_highlight_str = Plugin.Property(default=u"_")
 
     #game -> irc settings
