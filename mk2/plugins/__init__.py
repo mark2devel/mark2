@@ -85,14 +85,14 @@ class EntryPointPluginLoader(PluginLoader):
 
 
 class _PluginProperty(object):
-    def __init__(self, default=None, type_=False, required=False):
+    def __init__(self, default=None, type_=None, required=False):
         self.default = default
         self.required = required
 
-        self.type = default.__class__ if (default is not None and type_ is False) else type_
+        self.type = default.__class__ if (default is not None and type_ is None) else type_
 
     def coerce(self, value):
-        if self.type is False or isinstance(value, self.type):
+        if self.type in (False, None) or isinstance(value, self.type):
             return value
         return self.type(value)
 
