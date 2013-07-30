@@ -26,7 +26,7 @@ class ProcessProtocol(protocol.ProcessProtocol):
         data[0] = self.obuff + data[0]
         self.obuff = data.pop()
         for l in data:
-            self.output(l)
+            self.output(l.strip('\r'))
 
     def makeConnection(self, transport):
         self.dispatch(events.ServerStarting(pid=transport.pid))
