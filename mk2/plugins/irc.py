@@ -113,6 +113,8 @@ class IRCBot(irc.IRCClient):
         self.channel     = plugin.channel.encode('ascii')
         self.console     = plugin.console
         self.irc_message = plugin.irc_message
+        self.irc_action  = plugin.irc_action
+        self.irc_chat_status = plugin.irc_chat_status
         self.mangle_username = plugin.mangle_username
 
         self.users       = InsensitiveDict()
@@ -314,7 +316,7 @@ class IRCBot(irc.IRCClient):
         nick = user.split('!')[0]
         p = self.factory.parent
         
-        if not self.has_status(nick, p.irc_chat_status):
+        if not self.has_status(nick, self.irc_chat_status):
             return
 
         if p.irc_players_enabled and msg.lower() == p.irc_command_prefix + "players":
@@ -332,7 +334,18 @@ class IRCBot(irc.IRCClient):
                     p.send(' '.join(argv))
 
         else:
-            p.irc_message(nick, msg)
+            self.irc_message(nick, msg)
+
+    def action(self, user, channel, msg):
+        self.console("%s %s %s" % (user, channel, msg))
+        if channel != self.channel:
+            return
+        if '!' not in user:
+            return
+        nick = user.split('!')[0]
+        
+        if self.has_status(nick, self.irc_chat_status):
+            self.irc_action(nick, msg)
 
     def irc_AUTHENTICATE(self, prefix, params):
         self.sasl_continue(params[0])
@@ -498,6 +511,7 @@ class IRC(Plugin):
     #irc -> game settings
     irc_chat_enabled    = Plugin.Property(default=True)
     irc_chat_command    = Plugin.Property(default=u"say [IRC] <{nickname}> {message}")
+    irc_action_command  = Plugin.Property(default=u"say [IRC] * {nickname} {message}")
     irc_chat_status     = Plugin.Property(default=None)
 
     irc_command_prefix  = Plugin.Property(default="!")
@@ -616,3 +630,8 @@ class IRC(Plugin):
     def irc_message(self, user, message):
         if self.irc_chat_enabled:
             self.send_format(self.irc_chat_command, nickname=user, message=message)
+
+    def irc_action(self, user, message):
+        if self.irc_chat_enabled:
+            self.console("{} {}".format(user, message))
+            self.send_format(self.irc_action_command, nickname=user, message=message)
