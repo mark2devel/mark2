@@ -113,6 +113,7 @@ class IRCBot(irc.IRCClient):
         self.channel     = plugin.channel.encode('ascii')
         self.console     = plugin.console
         self.irc_message = plugin.irc_message
+        self.mangle_username = plugin.mangle_username
 
         self.users       = InsensitiveDict()
         self.cap_requests = set()
@@ -317,7 +318,8 @@ class IRCBot(irc.IRCClient):
             return
 
         if p.irc_players_enabled and msg.lower() == p.irc_command_prefix + "players":
-            self.say(self.channel, p.irc_players_format.format(players=', '.join(p.players)))
+            self.say(self.channel, p.irc_players_format.format(
+                players=', '.join(map(self.mangle_username, p.players))))
 
         elif p.irc_command_prefix and msg.startswith(p.irc_command_prefix) and p.irc_command_status and self.has_status(nick, p.irc_command_status):
             argv = msg[len(p.irc_command_prefix):].split(' ')
@@ -584,7 +586,7 @@ class IRC(Plugin):
             self.factory.client.quit("Plugin unloading.")
         
     def mangle_username(self, username):
-        if self.cancel_highlight == False:
+        if not self.cancel_highlight:
             return username
         elif self.cancel_highlight == "insert":
             return username[:-1] + self.cancel_highlight_str + username[-1:]
