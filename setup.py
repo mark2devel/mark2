@@ -4,7 +4,7 @@ from setuptools.command.install import install
 import os
 import sys
 
-MARK2_VERSION = "0.1.4.2"
+MARK2_VERSION = "0.1.4.3"
 
 requirements = ["{0}=={1}".format(*s) for s in [
 
