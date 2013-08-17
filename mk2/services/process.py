@@ -20,9 +20,9 @@ class ProcessProtocol(protocol.ProcessProtocol):
     def output(self, line):
         self.dispatch(events.ServerOutput(line=line))
 
-    def childDataReceived(self, fd, data)
+    def childDataReceived(self, fd, data):
         if data[0] == '\b':
-            data.lstrip(' \b')
+            data = data.lstrip(' \b')
         data = data.decode(self.locale)
         data = data.split("\n")
         data[0] = self.obuff + data[0]
