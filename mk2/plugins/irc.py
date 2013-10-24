@@ -111,6 +111,7 @@ class IRCBot(irc.IRCClient):
         self.ns_password = plugin.password
         self.password    = plugin.server_password.encode('ascii')
         self.channel     = plugin.channel.encode('ascii')
+        self.key         = plugin.key.encode('ascii')
         self.console     = plugin.console
         self.irc_message = plugin.irc_message
         self.irc_action  = plugin.irc_action
@@ -191,7 +192,7 @@ class IRCBot(irc.IRCClient):
         if self.ns_username and self.ns_password and not self.sasl_login:
             self.msg('NickServ', 'IDENTIFY {0} {1}'.format(self.ns_username, self.ns_password))
         
-        self.join(self.channel)
+        self.join(self.channel, self.key)
 
     def irc_JOIN(self, prefix, params):
         nick = prefix.split('!')[0]
@@ -467,6 +468,7 @@ class IRC(Plugin):
     port               = Plugin.Property(required=True)
     server_password    = Plugin.Property()
     channel            = Plugin.Property(required=True)
+    key                = Plugin.Property()
     certificate        = Plugin.Property()
     ssl                = Plugin.Property(default=False)
     server_fingerprint = Plugin.Property()
