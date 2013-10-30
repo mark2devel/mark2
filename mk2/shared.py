@@ -13,7 +13,7 @@ if "MARK2_CONFIG_DIR" in os.environ:
     _config_base = os.environ["MARK2_CONFIG_DIR"]
 elif "VIRTUAL_ENV" in os.environ:
     _config_base = os.path.join(os.environ["VIRTUAL_ENV"], ".config", "mark2")
-elif __file__.startswith('/home/'):
+elif __file__.startswith(os.path.realpath('/home/')):
     _config_base = os.path.join(os.path.expanduser("~"), ".config", "mark2")
 else:
     _config_base = os.path.join(os.path.join("/etc/mark2"))
