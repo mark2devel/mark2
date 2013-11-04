@@ -56,6 +56,8 @@ class Monitor(Plugin):
     crash_enabled  = Plugin.Property(default=True)
     crash_timeout  = Plugin.Property(default=3)
     crash_warn     = Plugin.Property(default=0)
+    crash_unknown_cmd_message    = Plugin.Property(default="Unknown command.*")
+    crash_check_command    = Plugin.Property(default="")
 
     oom_enabled    = Plugin.Property(default=True)
 
@@ -122,9 +124,9 @@ class Monitor(Plugin):
 
         if self.crash_enabled:
             self.register(self.handle_crash_ok, ServerOutput,
-                          pattern='Unknown command.*',
+                          pattern=self.crash_unknown_cmd_message,
                           track=False)
-            self.send('')  # Blank command to trigger 'Unknown command'
+            self.send(self.crash_check_command)  # Blank command to trigger 'Unknown command'
     
     def reset_counts(self):
         for c in self.checks.values():
