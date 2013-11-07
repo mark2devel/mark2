@@ -4,10 +4,7 @@ from . import Event, get_timestamp
 
 # input/output
 output_exp = re.compile(
-    r'(\d{4}-\d{2}-\d{2} |)(\d{2}:\d{2}:\d{2}) \[([A-Z]+)\] (?:%s)?(.*)' % '|'.join((re.escape(x) for x in (
-        '[Minecraft] ',
-        '[Minecraft-Server] '
-    ))))
+        r'\[(\d{4}-\d{2}-\d{2} |)(\d{2}:\d{2}:\d{2})\] \[[^/\]]*/([A-Z]+)\]: (.*)')
 
 class ServerInput(Event):
     """Send data to the server's stdin. In plugins, a shortcut
