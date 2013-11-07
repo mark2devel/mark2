@@ -24,10 +24,7 @@ class Alert(Plugin):
             f.close()
 
     def count_check(self, event):
-        if event.players_current >= self.min_pcount:
-            self.requirements_met = True
-        else:
-            self.requirements_met = False
+        self.requirements_met = event.players_current >= self.min_pcount
 
     def server_started(self, event):
         if self.messages:
