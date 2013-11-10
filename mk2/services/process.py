@@ -64,7 +64,7 @@ class Process(Plugin):
         self.register(self.server_stopping, events.ServerStopping, priority=EventPriority.MONITOR)
         self.register(self.server_stopped,  events.ServerStopped,  priority=EventPriority.MONITOR)
 
-        reactor.addSystemEventTrigger('before', 'shutdown', selfk.before_reactor_stop)
+        reactor.addSystemEventTrigger('before', 'shutdown', self.before_reactor_stop)
 
     def build_command(self):
         cmd = []
