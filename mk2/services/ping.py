@@ -40,6 +40,7 @@ class Ping(Plugin):
     event_id = None
 
     interval = Plugin.Property(default=10)
+    ping_pattern = Plugin.Property(default=r"\s*(?:/{0}:\d+ lost connection|Reached end of stream for /{0})")
     
     def setup(self):
         self.host = self.parent.properties['server_ip'] or '127.0.0.1'
@@ -50,9 +51,8 @@ class Ping(Plugin):
     def server_started(self, event):
         if self.event_id:
             self.parent.events.unregister(self.event_id)
-        pattern = r"\s*(?:/{0}:\d+ lost connection|Reached end of stream for /{0})"
         self.event_id = self.parent.events.register(lambda ev: Event.EAT, ServerOutput,
-                                                    pattern=pattern.format(self.host))
+                                                    pattern=self.ping_pattern.format(self.host))
 
     def loop(self):
         host = self.parent.properties['server_ip'] or '127.0.0.1'
