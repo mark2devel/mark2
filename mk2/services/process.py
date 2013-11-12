@@ -52,12 +52,14 @@ class Process(Plugin):
     transport = None
     failsafe = None
     stat_process = None
+    done_pattern = Plugin.Property(default='Done \\(([0-9\\.]+)s\\)\\!.*')
+    stop_cmd = Plugin.Property(default='stop\n')
 
     def setup(self):
         self.register(self.server_input,    events.ServerInput,    priority=EventPriority.MONITOR)
         self.register(self.server_start,    events.ServerStart,    priority=EventPriority.MONITOR)
         self.register(self.server_starting, events.ServerStarting)
-        self.register(self._server_started, events.ServerOutput, pattern='Done \\(([0-9\\.]+)s\\)\\!.*')
+        self.register(self._server_started, events.ServerOutput, pattern=self.done_pattern)
         self.register(self.server_stop,     events.ServerStop,     priority=EventPriority.MONITOR)
         self.register(self.server_stopping, events.ServerStopping, priority=EventPriority.MONITOR)
         self.register(self.server_stopped,  events.ServerStopped,  priority=EventPriority.MONITOR)
@@ -112,7 +114,7 @@ class Process(Plugin):
             self.transport.signalProcess('KILL')
         else:
             self.parent.console("stopping minecraft server")
-            self.transport.write('stop\n')
+            self.transport.write(self.stop_cmd)
             self.failsafe = self.parent.events.dispatch_delayed(events.ServerStop(respawn=e.respawn, reason=e.reason, kill=True, announce=False), self.parent.config['mark2.shutdown_timeout'])
 
     def server_stopping(self, e):
