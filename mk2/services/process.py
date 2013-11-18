@@ -75,7 +75,7 @@ class Process(Plugin):
         cmd.extend(self.parent.config.get_jvm_options())
         cmd.append('-jar')
         cmd.append(self.parent.jar_file)
-        cmd.append(self.cli_args)
+        cmd.append(self.server_args)
         return cmd
 
     def server_start(self, e=None):
