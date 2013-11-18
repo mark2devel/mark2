@@ -12,6 +12,7 @@ class Alert(Plugin):
     min_pcount = Plugin.Property(default=0)
     
     messages = []
+    requirements_met = True
     
     def setup(self):
         self.register(self.count_check, StatPlayerCount)
@@ -24,7 +25,10 @@ class Alert(Plugin):
             f.close()
 
     def count_check(self, event):
-        self.requirements_met = event.players_current >= self.min_pcount
+        if event.players_current >= self.min_pcount:
+            self.requirements_met = True
+        else:
+            self.requirements_met = False
 
     def server_started(self, event):
         if self.messages:
