@@ -2,6 +2,7 @@ import locale
 from twisted.internet import protocol, reactor, error, defer, task
 import glob
 import psutil
+import shlex
 
 
 from mk2 import events
@@ -55,7 +56,7 @@ class Process(Plugin):
     done_pattern = Plugin.Property(default='Done \\(([0-9\\.]+)s\\)\\!.*')
     stop_cmd = Plugin.Property(default='stop\n')
     java_path = Plugin.Property(default='java')
-    server_args = Plugin.Property(default='nogui')
+    server_args = Plugin.Property(default='')
 
     def setup(self):
         self.register(self.server_input,    events.ServerInput,    priority=EventPriority.MONITOR)
@@ -75,7 +76,9 @@ class Process(Plugin):
         cmd.extend(self.parent.config.get_jvm_options())
         cmd.append('-jar')
         cmd.append(self.parent.jar_file)
-        cmd.extend(self.server_args.split(";"))
+        cmd.append('nogui')
+        if self.server_args != '':
+            cmd.extend(shlex.split(self.server_args))
         return cmd
 
     def server_start(self, e=None):
