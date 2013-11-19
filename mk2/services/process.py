@@ -77,8 +77,7 @@ class Process(Plugin):
         cmd.append('-jar')
         cmd.append(self.parent.jar_file)
         cmd.append('nogui')
-        if self.server_args != '':
-            cmd.extend(shlex.split(self.server_args))
+        cmd.extend(shlex.split(self.server_args))
         return cmd
 
     def server_start(self, e=None):
