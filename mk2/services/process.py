@@ -103,7 +103,7 @@ class Process(Plugin):
         self.stat_process.start(self.parent.config['java.ps.interval'])
 
     def _server_started(self, e):
-        self.parent.events.dispatch(events.ServerStarted(time=e.match.group(1)))
+        self.parent.events.dispatch(events.ServerStarted())
 
     @defer.inlineCallbacks
     def server_stop(self, e):

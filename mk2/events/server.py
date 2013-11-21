@@ -71,10 +71,6 @@ class ServerStarted(Event):
     the server_started method.
     """
 
-    time = Event.Arg()
-
-#stop
-
 
 class ServerStop(Event):
     """Issue this event to stop the server."""
