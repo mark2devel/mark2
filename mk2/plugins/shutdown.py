@@ -55,7 +55,6 @@ class Shutdown(Plugin):
 
     def nice_stop(self, respawn, kill):
         if not kill:
-            self.send('save-all')
             message = self.restart_message if respawn else self.stop_message
             if self.kick_mode == 'all':
                 for player in self.players:
