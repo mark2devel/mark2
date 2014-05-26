@@ -409,8 +409,7 @@ class CommandConfig(Command):
 
     def check_executable(self, cmd):
         return subprocess.call(
-            ["type", cmd],
-            shell=True,
+            ["command", "-v", cmd],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         ) == 0
@@ -453,20 +452,26 @@ class CommandConfig(Command):
         path_old = 'resources/mark2.default.properties'
         path_new = find_config('mark2.properties')
 
-        editor = os.environ["EDITOR"] if "EDITOR" in os.environ else "editor"
-
         def write_config(data=''):
             data = "# see resources/mark2.default.properties for details\n" + data
             with open(path_new, 'w') as file_new:
                 file_new.write(data)
 
-        if not self.check_executable(editor):
-            return write_config() if not os.path.exists(path_new) else None
-
         if "MARK2_TEST" not in os.environ and self.options.get('ask', False):
             response = raw_input('would you like to configure mark2 now? [yes] ') or 'yes'
             if response != 'yes':
                 return write_config() if not os.path.exists(path_new) else None
+
+        editors = ["editor", "nano", "vim", "vi", "emacs"]
+        if "EDITOR" in os.environ:
+            editors.insert(0, os.environ["EDITOR"])
+        for editor in editors:
+            if self.check_executable(editor):
+                break
+        else:
+            if not os.path.exists(path_new):
+                write_config()
+            raise Mark2Error("no editor found. please set the $EDITOR environment variable.")
 
         if os.path.exists(path_new):
             subprocess.call([editor, path_new])
