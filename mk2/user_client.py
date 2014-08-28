@@ -325,7 +325,7 @@ class UI:
         except IndexError:  # nothing in listbox
             pass
 
-        self.g_output_list.append(urwid.Text(self.safe_unicode(console_repr(line))))
+        self.g_output_list.append(urwid.Text(colorize(self.safe_unicode(console_repr(line)))))
         if scroll:
             self.g_output.focus_position += 1
 
@@ -339,7 +339,7 @@ class UI:
         lines = [l for l in lines if self.filter(l)]
 
         for line in lines:
-            contents.append(urwid.Text(self.safe_unicode(console_repr(line))))
+            contents.append(urwid.Text(colorize(self.safe_unicode(console_repr(line)))))
 
         try:
             self.g_output.focus_position = len(lines) - 1
@@ -671,6 +671,54 @@ class UserClientProtocol(LineReceiver):
 
     def get_users(self):
         self.send("get_users")
+
+def colorize(text):
+
+    """
+    Convert minecraft color codes to ansi escape codes
+    """
+
+    mappings_mc_ansi = {'0':30, '1':34, '2':32, '3':36, '4':31, '5':35, '6':33, '7':37,
+                        '8':30, '9':34, 'a':32, 'b':36, 'c':31, 'd':35, 'e':33, 'f':37}
+#                        '8':38, '9':42, 'a':40, 'b':44, 'c':39, 'd':43, 'e':41, 'f':45}
+
+    if text.find(u'\u00A7') != -1:
+        for code in mappings_mc_ansi:
+            text = text.replace(u'\u00A7' + code, '\033[' + str(mappings_mc_ansi[code]) + u'm')
+
+    """
+    Convert ansi escape codes to urwid display attributes
+    """
+
+    mappings_fg = {30: 'black', 31: 'light red', 32: 'light green', 33: 'yellow', 34: 'light blue', 35: 'light magenta', 36: 'light cyan', 37: 'dark gray'}
+    mappings_bg = {40: 'black', 41: 'dark red', 42: 'dark green', 43: 'brown', 44: 'dark blue', 45: 'dark magenta', 46: 'dark cyan', 47: 'light gray'}
+
+    text_attributed = []
+
+    parts = unicode(text).split(u'\x1b')
+
+    regex = re.compile(r"^\[([;\d]+)m(.*)$", re.UNICODE | re.DOTALL)
+
+    for part in parts:
+        r = regex.match(part)
+
+        if r:
+            if r.group(2) != '':
+                foreground = 'white'
+                background = 'black'
+                for code in r.group(1).split(';'):
+                    if (int(code) in mappings_fg):
+                        foreground = mappings_fg[int(code)]
+
+                    if (int(code) in mappings_bg):
+                        background = mappings_bg[int(code)]
+
+                text_attributed.append((urwid.AttrSpec(foreground, background), r.group(2)))
+        else:
+            if part != '':
+                text_attributed.append(part)
+
+    return text_attributed
 
 
 if __name__ == '__main__':
