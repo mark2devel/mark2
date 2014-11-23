@@ -30,8 +30,9 @@
 #    |    |    |    |    #--------- Day of the Week (0 - 6)
 #    |    |    |    |    |    #---- Command to run
 #    |    |    |    |    |    |
-     */5  *    *    *    *    ~save 1m
-     0    */2  *    *    *    ~restart 10m;5m;1m
-     @serverstopped           ~backup
+     */15  *    *    *    *    ~save 1m
+     0    */6  *    *    *    ~restart 10m;5m;1m
      @serverstopped           $rm server.log
+#    */5  *    *    *    *    /tps
+#    @serverstopped           ~backup
 #    @serverstopped           $carto.sh

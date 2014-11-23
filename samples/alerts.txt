@@ -1,0 +1,3 @@
+This server is being ran using mark2.
+This message appears on line two of the alerts.txt file.
+Have a nice day!
