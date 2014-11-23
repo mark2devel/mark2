@@ -4,7 +4,7 @@ from . import Event, get_timestamp
 
 # input/output
 output_exp = re.compile(
-        r'^(?:\d{4}-\d{2}-\d{2} |)\[?(\d{2}:\d{2}:\d{2})\]? \[?(?:[^\]]+?/|)([A-Z]+)\]:? (.*)')
+        r'^(?:\W|)+(?:\d{4}-\d{2}-\d{2} |)\[?(\d{2}:\d{2}:\d{2})\]? \[?(?:[^\]]+?/|)([A-Z]+)\]:? (.*)')
 
 class ServerInput(Event):
     """Send data to the server's stdin. In plugins, a shortcut
@@ -31,8 +31,8 @@ class ServerOutput(Event):
             self.level= g[1]
             self.data = g[2]
         else:
-            self.level= "???"
-            self.data = self.line.strip()
+            self.level= "RAW"
+            self.data = self.line
         
         self.time = get_timestamp(self.time)
     
@@ -40,7 +40,7 @@ class ServerOutput(Event):
         if level and level != self.level:
             return False
         
-        m = re.match(pattern, self.data)
+        m = re.match(pattern, self.data.strip())
         if not m:
             return False
         
