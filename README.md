@@ -1,17 +1,11 @@
-# THIS SOFTWARE IS ABANDONED
-
-# THIS SOFTWARE IS ABANDONED
-
-mark2 is continuing to accumulate bugs which will almost certainly not be fixed.
-
-Future versions of minecraft WILL break mark2 in serious ways. Some things are already badly broken.
-
-You are advised to move to another wrapper!
-
-# mark2 [![Build Status](https://travis-ci.org/mcdevs/mark2.png?branch=master)](https://travis-ci.org/mcdevs/mark2)
+# mark2 [![Build Status](https://travis-ci.org/gsand/mark2.png?branch=master)](https://travis-ci.org/gsand/mark2)
 
 mark2 is a minecraft server wrapper, written in python and twisted. It aims to be *the* definitive wrapper, providing a
 rich feature-set and a powerful plugin interface. It has no requirement on craftbukkit.
+
+see [INSTALL.md](INSTALL.md) for requirements and installation instructions
+
+see [USAGE.md](USAGE.md) for details on how to use mark2
 
 ## features
 
@@ -32,7 +26,3 @@ rich feature-set and a powerful plugin interface. It has no requirement on craft
 * Back up your map and server log when the server stops
 * Print a random message at an interval, e.g. '[SERVER] Lock your chests with /lock'
 * Respond to user commands, e.g. '<Notch> !teamspeak' could `msg Notch Join our teamspeak server at xyz.com`
-
-see INSTALL.md for requirements and installation instructions
-
-see USAGE.md for details on how to use mark2
