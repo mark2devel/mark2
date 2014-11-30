@@ -81,7 +81,7 @@ class Process(Plugin):
         return cmd
 
     def server_start(self, e=None):
-        self.parent.console("starting minecraft server")
+        self.parent.console("starting %s" % self.parent.server_name)
         self.locale = locale.getpreferredencoding()
         self.protocol = ProcessProtocol(self.parent.events.dispatch, self.locale)
         cmd = self.build_command()
@@ -114,10 +114,10 @@ class Process(Plugin):
             yield self.parent.events.dispatch(events.ServerStopping(respawn=e.respawn, reason=e.reason, kill=e.kill))
         if e.kill:
             self.failsafe = None
-            self.parent.console("killing minecraft server")
+            self.parent.console("killing %s" % self.parent.server_name)
             self.transport.signalProcess('KILL')
         else:
-            self.parent.console("stopping minecraft server")
+            self.parent.console("stopping %s" % self.parent.server_name)
             self.transport.write(self.stop_cmd)
             self.failsafe = self.parent.events.dispatch_delayed(events.ServerStop(respawn=e.respawn, reason=e.reason, kill=True, announce=False), self.parent.config['mark2.shutdown_timeout'])
 
