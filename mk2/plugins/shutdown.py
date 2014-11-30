@@ -11,7 +11,7 @@ class Shutdown(Plugin):
     restart_cancel_reason  = Plugin.Property(default="WARNING: planned restart cancelled ({reason}).")
     stop_cancel_message    = Plugin.Property(default="WARNING: planned maintenance cancelled.")
     stop_cancel_reason     = Plugin.Property(default="WARNING: planned maintenance cancelled ({reason}).")
-	alert_command          = Plugin.Property(default="say %s")
+    alert_command          = Plugin.Property(default="say %s")
     kick_command           = Plugin.Property(default="kick {player} {message}")
     kick_mode              = Plugin.Property(default="all")
     
