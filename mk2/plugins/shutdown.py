@@ -11,6 +11,7 @@ class Shutdown(Plugin):
     restart_cancel_reason  = Plugin.Property(default="WARNING: planned restart cancelled ({reason}).")
     stop_cancel_message    = Plugin.Property(default="WARNING: planned maintenance cancelled.")
     stop_cancel_reason     = Plugin.Property(default="WARNING: planned maintenance cancelled ({reason}).")
+	alert_command          = Plugin.Property(default="say %s")
     kick_command           = Plugin.Property(default="kick {player} {message}")
     kick_mode              = Plugin.Property(default="all")
     
@@ -41,17 +42,17 @@ class Shutdown(Plugin):
         self.cancel_preempt = 0
     
     def warn_restart(self, delay):
-        self.send_format("say %s" % self.restart_warn_message, delay=delay)
+        self.send_format(self.alert_command % self.restart_warn_message, delay=delay)
     
     def warn_stop(self, delay):
-        self.send_format("say %s" % self.stop_warn_message, delay=delay)
+        self.send_format(self.alert_command % self.stop_warn_message, delay=delay)
 
     def warn_cancel(self, reason, thing):
         if reason:
             message = self.restart_cancel_reason if thing == "restart" else self.stop_cancel_reason
         else:
             message = self.restart_cancel_message if thing == "restart" else self.stop_cancel_message
-        self.send_format("say %s" % message, reason=reason)
+        self.send_format(self.alert_command % message, reason=reason)
 
     def nice_stop(self, respawn, kill):
         if not kill:
