@@ -1,0 +1,3 @@
+{"color":"dark_purple","text":"This server is being ran using ","extra":[{"color":"green","text":"mark2.","clickEvent":{"action":"open_url","value":"https://github.com/gsand/mark2"},"hoverEvent":{"action":"show_text","value":{"text":"","extra":[{"color":"gold","text":"View on Github"}]}},"bold":"true"}]}
+{"color":"gold","text":"This message appears on line two of the alerts.txt file."}
+{"color":"green","text":"Have a nice day!"}
