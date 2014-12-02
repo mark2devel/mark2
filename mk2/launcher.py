@@ -329,7 +329,7 @@ class CommandStart(CommandTyTerminal):
             new_dir = os.path.dirname(new_cfg)
             raise Mark2Error("mark2's configuration location has changed! move your config files to {0}".format(new_dir))
         else:
-            raise Mark2Error("mark2 is unconfigured! run `mark2 config`")
+            raise Mark2Error("mark2 is unconfigured! run `mark2 config` or `mkdir /etc/mark2 && touch /etc/mark2/mark2.properties` as root")
 
     def check_ownership(self):
         d_user = pwd.getpwuid(os.stat(self.server_path).st_uid).pw_name
@@ -410,6 +410,7 @@ class CommandConfig(Command):
     def check_executable(self, cmd):
         return subprocess.call(
             ["command", "-v", cmd],
+            shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         ) == 0
