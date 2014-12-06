@@ -49,11 +49,11 @@ mark2 dependencies:
 mark2 doesn't need to be installed to a particular directory, but if you have no reasonable ideas `/usr/mark2` will be
 okay. First, download mark2:
 
-    $ git clone https://github.com/mcdevs/mark2.git
+    $ git clone https://github.com/gsand/mark2.git
 
 If you don't have git (and you probably should!) you could:
 
-    $ wget https://github.com/mcdevs/mark2/archive/master.tar.gz
+    $ wget https://github.com/gsand/mark2/archive/master.tar.gz
     $ tar zxvf master.tar.gz
     $ rm master.tar.gz
     $ mv mark2-master mark2
