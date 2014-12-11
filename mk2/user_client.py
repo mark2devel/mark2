@@ -477,13 +477,13 @@ class UserClientFactory(ClientFactory):
         return self.client
 
     def switch_server(self, delta=1):
+        index = self.servers.index(self.client.name)
         self.update_servers()
         if len(self.servers) == 0:  # no running servers
             return self.ui.stop()
         if len(self.servers) == 1:  # don't switch with only one server
             return
 
-        index = self.servers.index(self.client.name)
         name = self.servers[(index + delta) % len(self.servers)]
         self.connect_to_server(name)
 
