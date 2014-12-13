@@ -216,7 +216,7 @@ class UI:
         g_head         = urwid.AttrMap(urwid.Columns((self.g_servers, self.g_users)), 'head')
 
         #main
-        self.g_output  = urwid.ListBox(self.g_output_list)
+        self.g_output  = urwid.AttrMap(urwid.ListBox(self.g_output_list), 'output')
         self.g_stats   = urwid.Text("")
 
         #player menu
@@ -236,13 +236,12 @@ class UI:
         g_prompt = urwid.AttrMap(self.g_prompt, 'prompt', 'prompt_focus')
 
         self.g_frame = urwid.Frame(g_main, g_head, g_prompt, focus_part='footer')
-        self.g_main = urwid.AttrMap(urwid.Padding(self.g_frame, left=1, right=1), 'frame')
 
         #log.addObserver(lambda m: self.append_output(str(m['message'])))
 
     def main(self):
         self.loop = urwid.MainLoop(
-            self.g_main,
+            self.g_frame,
             self.palette,
             input_filter=self.filter_input,
             event_loop=urwid.TwistedEventLoop()
@@ -285,8 +284,7 @@ class UI:
 
         contents = self.g_servers.contents
         del contents[0:len(contents)]
-        sep = u'\u2022' if urwid.supports_unicode() else u':'
-        contents.append((urwid.AttrMap(urwid.Text(u' mark2 %s' % sep), 'mark2'), self.g_servers.options('pack')))
+        contents.append((urwid.AttrMap(urwid.Text(u' mark2 '), 'mark2'), self.g_servers.options('pack')))
         contents.extend(new)
         contents.append((urwid.Divider(), self.g_users.options()))
 
