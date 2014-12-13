@@ -216,7 +216,7 @@ class UI:
         g_head         = urwid.AttrMap(urwid.Columns((self.g_servers, self.g_users)), 'head')
 
         #main
-        self.g_output  = urwid.AttrMap(urwid.ListBox(self.g_output_list), 'output')
+        self.g_output  = urwid.ListBox(self.g_output_list)
         self.g_stats   = urwid.Text("")
 
         #player menu
@@ -228,7 +228,7 @@ class UI:
             ('pack', urwid.AttrMap(urwid.LineBox(self.g_stats, title='stats'), 'stats')),
             urwid.AttrMap(urwid.LineBox(self.g_pmenu, title="players"), 'menu')))
         g_main    = urwid.Columns((
-            urwid.WidgetDisable(urwid.AttrMap(urwid.LineBox(self.g_output, title='server'), 'console')),
+            urwid.WidgetDisable(urwid.AttrMap(urwid.LineBox(urwid.AttrMap(self.g_output, 'output'), title='server'), 'console')),
             ('fixed', 31, g_sidebar)))
 
         #foot
