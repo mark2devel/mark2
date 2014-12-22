@@ -77,6 +77,7 @@ class Monitor(Plugin):
             self.register(self.handle_oom, ServerOutput, level='SEVERE', pattern='java\.lang\.OutOfMemoryError.*')
 
         if self.crash_enabled:
+            self.register(self.handle_unknown_crash, ServerOutput, level='ERROR', pattern='This crash report has been saved to.*')
             do_step = True
             self.checks['crash'] =  Check(self, name="crash",
                                           timeout=self.crash_timeout,
@@ -146,6 +147,14 @@ class Monitor(Plugin):
                                   data="server ran out of memory",
                                   priority=1))
         self.dispatch(ServerStop(reason='out of memory', respawn=True))
+    
+    # unknown crash
+    def handle_unknown_crash(self, event):
+        self.console('server crashed for unknown reason, restarting...')
+        self.dispatch(ServerEvent(cause='server/error/unknown',
+                                  data="server crashed for unknown reason",
+                                  priority=1))
+        self.dispatch(ServerStop(reason='unknown reason', respawn=True))
 
     # ping
     def handle_ping(self, event):
