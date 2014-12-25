@@ -278,8 +278,10 @@ class UI:
     def set_servers(self, servers, current=None):
         new = []
         for s in sorted(servers):
-            e = PMenuButton(" %s " % s, lambda button, _s=s: self.connect_to_server(_s))
-            e = urwid.AttrMap(e, 'server_current' if s == current else 'server')
+            if s == current:
+                e = urwid.AttrMap(urwid.Text(" %s " % s), 'server_current')
+            else:
+                e = urwid.AttrMap(PMenuButton(" %s " % s, lambda button, _s=s: self.connect_to_server(_s)), 'server')
             new.append((e, self.g_servers.options('pack')))
 
         contents = self.g_servers.contents
