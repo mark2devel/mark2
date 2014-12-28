@@ -45,9 +45,9 @@ called `.mark2rc.properties` in your home directory to customize.
 ### controls
 
 * Use command scrollback with the up and down arrow keys
-* Scroll with pageup and pagedown
+* Scroll with pageup, pagedown, home, and end
 * Press tab to auto-complete a player name, or write 'say ' if you haven't entered any text
-* Switch between servers with ctrl + left/right arrow key.
+* Switch between servers with alt/option + left/right arrow key.
 * Switch to the players list with ctrl + p
 * Move back a menu level with backspace, or move straight to the first with esc
 * Press either esc or backspace while on the player menu to focus the prompt

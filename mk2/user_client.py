@@ -263,9 +263,9 @@ class UI:
             elif key == 'end':
                 self.g_output.set_focus_valign("bottom")
                 self.g_output.set_focus(len(self.g_output_list) - 1, coming_from='above')
-            elif key == 'ctrl left':
+            elif key == 'meta left':
                 self.switch_server(-1)
-            elif key == 'ctrl right':
+            elif key == 'meta right':
                 self.switch_server(1)
             elif key == 'ctrl p':
                 self.g_frame.focus_position = 'body'
