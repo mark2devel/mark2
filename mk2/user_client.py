@@ -262,7 +262,7 @@ class UI:
                 self.g_output.set_focus(0)
             elif key == 'end':
                 self.g_output.set_focus_valign("bottom")
-                self.g_output.set_focus(len(self.g_output_list), coming_from='above')
+                self.g_output.set_focus(len(self.g_output_list) - 1, coming_from='above')
             elif key == 'ctrl left':
                 self.switch_server(-1)
             elif key == 'ctrl right':
