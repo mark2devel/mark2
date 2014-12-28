@@ -258,6 +258,11 @@ class UI:
         for key in keys:
             if key in ('page up', 'page down'):
                 self.g_output.keypress((0, 16), key)
+            elif key == 'home':
+                self.g_output.set_focus(0)
+            elif key == 'end':
+                self.g_output.set_focus_valign("bottom")
+                self.g_output.set_focus(len(self.g_output_list), coming_from='above')
             elif key == 'ctrl left':
                 self.switch_server(-1)
             elif key == 'ctrl right':
