@@ -535,7 +535,7 @@ class UserClientFactory(ClientFactory):
         pass
 
     def server_disconnected(self, client):
-        self.switch_server()
+        self.switch_server(-1)
 
     def server_output(self, line):
         self.ui.append_output(line)
