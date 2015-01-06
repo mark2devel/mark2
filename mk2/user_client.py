@@ -216,8 +216,9 @@ class UI:
         g_head         = urwid.AttrMap(urwid.Columns((self.g_servers, self.g_users)), 'head')
 
         #main
-        self.g_output  = urwid.ListBox(self.g_output_list)
-        self.g_stats   = urwid.Text("")
+        self.g_output      = urwid.ListBox(self.g_output_list)
+        self.g_output_wrap = urwid.LineBox(urwid.AttrMap(self.g_output, 'output'))
+        self.g_stats       = urwid.Text("")
 
         #player menu
         def escape():
@@ -228,7 +229,7 @@ class UI:
             ('pack', urwid.AttrMap(urwid.LineBox(self.g_stats, title='stats'), 'stats')),
             urwid.AttrMap(urwid.LineBox(self.g_pmenu, title="players"), 'menu')))
         g_main    = urwid.Columns((
-            urwid.WidgetDisable(urwid.AttrMap(urwid.LineBox(urwid.AttrMap(self.g_output, 'output'), title='server'), 'console')),
+            urwid.WidgetDisable(urwid.AttrMap(self.g_output_wrap, 'console')),
             ('fixed', 31, g_sidebar)))
 
         #foot
@@ -285,6 +286,7 @@ class UI:
         for s in sorted(servers):
             if s == current:
                 e = urwid.AttrMap(urwid.Text(" %s " % s), 'server_current')
+                self.g_output_wrap.set_title(s)
             else:
                 e = urwid.AttrMap(PMenuButton(" %s " % s, lambda button, _s=s: self.connect_to_server(_s)), 'server')
             new.append((e, self.g_servers.options('pack')))
