@@ -213,7 +213,7 @@ class UI:
         #header
         self.g_servers = urwid.Columns([])
         self.g_users   = urwid.Columns([])
-        g_head         = urwid.AttrMap(urwid.Columns((self.g_servers, self.g_users)), 'head')
+        g_head         = urwid.AttrMap(urwid.Columns((('weight', 3, self.g_servers), self.g_users)), 'head')
 
         #main
         self.g_output      = urwid.ListBox(self.g_output_list)
