@@ -78,17 +78,18 @@ class Prompt(urwid.Edit):
                 self.load_prompt()
         elif key == 'enter':
             text = self.get_prompt()
-            self.run_command(text)
-            self.history_pos = len(self.history) - 1
-            if self.history[self.history_pos - 1] == text:
-                self.set_prompt('')
-                self.cursor = 0
-                self.save_prompt()
-            else:
-                self.save_prompt()
-                self.history.append('')
-                self.history_pos += 1
-                self.load_prompt()
+            if len(text) > 0:
+                self.run_command(text)
+                self.history_pos = len(self.history) - 1
+                if self.history[self.history_pos - 1] == text:
+                    self.set_prompt('')
+                    self.cursor = 0
+                    self.save_prompt()
+                else:
+                    self.save_prompt()
+                    self.history.append('')
+                    self.history_pos += 1
+                    self.load_prompt()
         elif key == 'tab':
             text = self.get_prompt()
             if text == '':
