@@ -9,6 +9,7 @@
 * twisted
 * twisted-web
 * twisted-words (for IRC support)
+* python-twisted-mail (for email notifications and sms gateway text messages)
 * feedparser (for RSS support)
 * pyopenssl (for push notifications and IRC over SSL)
 
@@ -16,8 +17,7 @@
 
 This should suffice:
 
-    $ sudo apt-get install python-dev python-pip
-    $ sudo pip install -r requirements.txt
+    $ sudo apt-get install git libssl-dev python-dev python-feedparser python-psutil python-twisted-core python-twisted-mail python-twisted-web python-twisted-words python-urwid
 
 ### centos
 
