@@ -101,6 +101,7 @@ class Process(Plugin):
     def server_starting(self, e):
         self.stat_process = task.LoopingCall(self.update_stat, psutil.Process(e.pid))
         self.stat_process.start(self.parent.config['java.ps.interval'])
+        self.parent.console("pid: %s" % e.pid)
 
     def _server_started(self, e):
         self.parent.events.dispatch(events.ServerStarted())
