@@ -169,7 +169,7 @@ class Mark2Properties(Properties):
                 elif a == 'X':
                     options.append('-X%s%s' % (b, v))
                 elif a == 'XX':
-                    if v in (True, False):
+                    if type(v) == bool:
                         options.append('-XX:%s%s' % ('+' if v else '-', b))
                     else:
                         options.append('-XX:%s=%s' % (b, v))
