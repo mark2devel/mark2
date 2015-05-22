@@ -3,6 +3,6 @@
 # restart-on-crash: false
 # restart-script: ./start.sh
 
-BASEDIR=$(pwd)
-sleep 2
+BASEDIR=`dirname $0`
+sleep 1
 mark2 start $BASEDIR
