@@ -3,6 +3,4 @@
 # restart-on-crash: false
 # restart-script: ./start.sh
 
-BASEDIR=`dirname $0`
-sleep 1
-mark2 start $BASEDIR
+mark2 send -n ${PWD##*/} ~restart
