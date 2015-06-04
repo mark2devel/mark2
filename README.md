@@ -1,5 +1,24 @@
 # mark2
 
+     mark2  server01  server02                                        user
+    ┌────────────── server01 ──────────────┐┌─────────── stats ───────────┐
+    │2015-06-04 13:55:34 | Server          ││cpu: 0.20%                   │
+    │permissions file permissions.yml is   ││mem: 2.06%                   │
+    │empty, ignoring it                    ││load: 0.10, 0.14, 0.11       │
+    │2015-06-04 13:55:35 | Done (3.522s)!  ││players: 0 of 300            │
+    │For help, type "help" or "?"          │└─────────────────────────────┘
+    │2015-06-04 13:55:35 | Using epoll     │┌────────── players ──────────┐
+    │channel type                          ││                             │
+    │2015-06-04 13:55:35 | [NoCheatPlus]   ││                             │
+    │Post-enable running...                ││                             │
+    │2015-06-04 13:55:35 | [NoCheatPlus]   ││                             │
+    │Post-enable finished.                 ││                             │
+    │2015-06-04 13:56:16 # user attached   ││                             │
+    │2015-06-04 13:56:24 # user detached   ││                             │
+    │2015-06-04 14:00:37 # user attached   ││                             │
+    └──────────────────────────────────────┘└─────────────────────────────┘
+     >
+
 mark2 is a minecraft server wrapper, written in python and twisted. It aims to be *the* definitive wrapper, providing a
 rich feature-set and a powerful plugin interface. It has no requirement on craftbukkit.
 
