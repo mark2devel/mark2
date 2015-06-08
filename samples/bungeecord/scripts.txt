@@ -1,0 +1,19 @@
+### ###
+### ###
+### ### Generic BungeeCord mark2 options
+### ### Place a copy of this file in the same directory as BungeeCord
+### ### 
+### ###
+
+#    #----------------------------- Minute (0 - 59)
+#    |    #------------------------ Hour   (0 - 23)
+#    |    |    #------------------- Day of the Month (1 - 31)
+#    |    |    |    #-------------- Month  (1 - 12)
+#    |    |    |    |    #--------- Day of the Week (0 - 6)
+#    |    |    |    |    |    #---- Command to run
+#    |    |    |    |    |    |
+
+# runs ~restart-empty at midnight every day
+     *    0    *    *    *    ~restart-empty
+# removes proxy.log file on when BungeeCord stops
+     @serverstopped           $rm proxy.log*
