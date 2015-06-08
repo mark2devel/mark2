@@ -82,7 +82,7 @@ class Monitor(Plugin):
             self.checks['crash'] =  Check(self, name="crash",
                                           timeout=self.crash_timeout,
                                           warn=self.crash_warn,
-                                          message="server has crashed",
+                                          message="server might have crashed: not accepting accepting console commands or crash-unknown-cmd-message is not set",
                                           warning="server might have crashed",
                                           event=("hang", "server didn't respond for {timeout}"),
                                           stop_reason="crashed")
@@ -93,7 +93,7 @@ class Monitor(Plugin):
             self.checks['ping'] =   Check(self, name="ping",
                                           timeout=self.ping_timeout,
                                           warn=self.ping_warn,
-                                          message="server is not accepting connections",
+                                          message="server might have crashed: not accepting connections or wrong port is being pinged.",
                                           warning="server might have stopped accepting connections",
                                           event=("ping", "server didn't respond for {timeout}"),
                                           stop_reason="not accepting connections")
@@ -104,7 +104,7 @@ class Monitor(Plugin):
             self.checks['pcount'] = Check(self, name="pcount",
                                           timeout=self.pcount_timeout,
                                           warn=self.pcount_warn,
-                                          message="server has had 0 players for {timeout}, something is wrong",
+                                          message="server might have crashed: has had 0 players for {timeout}",
                                           warning="server has 0 players, might be inaccessible",
                                           event=("player-count", "server had 0 players for {timeout}"),
                                           stop_reason="zero players")
