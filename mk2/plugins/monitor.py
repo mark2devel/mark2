@@ -60,6 +60,7 @@ class Monitor(Plugin):
     crash_check_command    = Plugin.Property(default="")
 
     oom_enabled    = Plugin.Property(default=True)
+    crash_report_enabled    = Plugin.Property(default=True)
 
     ping_enabled   = Plugin.Property(default=True)
     ping_timeout   = Plugin.Property(default=3)
@@ -76,8 +77,10 @@ class Monitor(Plugin):
         if self.oom_enabled:
             self.register(self.handle_oom, ServerOutput, level='SEVERE', pattern='java\.lang\.OutOfMemoryError.*')
 
-        if self.crash_enabled:
+        if self.crash_report_enabled:
             self.register(self.handle_unknown_crash, ServerOutput, level='ERROR', pattern='This crash report has been saved to.*')
+
+        if self.crash_enabled:
             do_step = True
             self.checks['crash'] =  Check(self, name="crash",
                                           timeout=self.crash_timeout,
