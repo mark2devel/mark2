@@ -98,7 +98,7 @@ class UserServerFactory(Factory):
     
     def __init__(self, parent):
         self.parent     = parent
-        self.scrollback = Scrollback(200)
+        self.scrollback = Scrollback(self.parent.config['mark2.scrollback.length'])
         self.users      = set()
         
         self.parent.events.register(self.handle_console, events.Console)
