@@ -1,0 +1,38 @@
+# The 'scripts' plugin uses a cron-like syntax. 
+
+# TIME FORMAT
+# similar to cron - http://www.adminschoice.com/crontab-quick-reference
+# currently does not support ','
+# all examples are given for the 'minute' field:
+#    *       run every minute
+#    0       run on the hour
+#    */5     run every 5 minutes
+#    0-30/5  run every 5 minutes for the first half hour of every hour
+
+# EVENT FORMAT
+# instead of specifying a time, you may specify an event to listen out for.
+# a list of available events can be seen by running ~events from console.
+# to use, replace the time spec with '@eventname', e.g. '@serverstopped'
+
+# COMMAND FORMAT
+#    #       print the # and everything following it to the mark2 console
+#    /       run a minecraft command
+#    ~       run a mark2 command
+#    $       execute a shell command, you can define the shell to use in your
+#            mark2.properties. each line of the command's stdout will be
+#            interpreted as one of the above.
+#
+
+#    #----------------------------- Minute (0 - 59)
+#    |    #------------------------ Hour   (0 - 23)
+#    |    |    #------------------- Day of the Month (1 - 31)
+#    |    |    |    #-------------- Month  (1 - 12)
+#    |    |    |    |    #--------- Day of the Week (0 - 6)
+#    |    |    |    |    |    #---- Command to run
+#    |    |    |    |    |    |
+#    */15 *    *    *    *    ~save 1m
+     0    */6  *    *    *    ~restart 10m;5m;1m
+#    @serverstopped           $rm server.log
+#    */5  *    *    *    *    /tps
+#    @serverstopped           ~backup
+#    @serverstopped           $carto.sh
