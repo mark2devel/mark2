@@ -71,9 +71,12 @@ class ServerStarted(Event):
     the server_started method.
     """
 
-
 class ServerStop(Event):
     """Issue this event to stop the server."""
+    
+    TERMINATE = 0
+    RESTART = 1
+    HOLD = 2
     
     reason   = Event.Arg(required=True)
     respawn  = Event.Arg(required=True)

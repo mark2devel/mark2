@@ -31,7 +31,7 @@ class Check(object):
             self.dispatch(ServerEvent(cause="server/error/" + self.event[0],
                                       data="REBOOTING SERVER: " + self.event[1].format(timeout=timeout),
                                       priority=1))
-            self.dispatch(ServerStop(reason=self.stop_reason, respawn=True))
+            self.dispatch(ServerStop(reason=self.stop_reason, respawn=ServerStop.RESTART))
         elif self.warn and self.time == self.warn:
             if self.timeout:
                 self.console("{0} -- auto restart in {1} minutes".format(self.warning, self.timeout - self.time))
@@ -149,7 +149,7 @@ class Monitor(Plugin):
         self.dispatch(ServerEvent(cause='server/error/oom',
                                   data="server ran out of memory",
                                   priority=1))
-        self.dispatch(ServerStop(reason='out of memory', respawn=True))
+        self.dispatch(ServerStop(reason='out of memory', respawn=ServerStop.RESTART))
     
     # unknown crash
     def handle_unknown_crash(self, event):
@@ -157,7 +157,7 @@ class Monitor(Plugin):
         self.dispatch(ServerEvent(cause='server/error/unknown',
                                   data="server crashed for unknown reason",
                                   priority=1))
-        self.dispatch(ServerStop(reason='unknown reason', respawn=True))
+        self.dispatch(ServerStop(reason='unknown reason', respawn=ServerStop.RESTART))
 
     # ping
     def handle_ping(self, event):

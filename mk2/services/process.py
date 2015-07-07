@@ -131,9 +131,12 @@ class Process(Plugin):
         if self.failsafe:
             self.failsafe.cancel()
             self.failsafe = None
-        if self.respawn:
+        if self.respawn == events.ServerStop.RESTART:
             self.parent.events.dispatch(events.ServerStart())
-            self.respawn = False
+            self.respawn = events.ServerStop.TERMINATE
+        elif self.respawn == events.ServerStop.HOLD:
+            self.respawn = events.ServerStop.TERMINATE
+            return
         elif self.service_stopping:
             self.service_stopping.callback(0)
         else:
