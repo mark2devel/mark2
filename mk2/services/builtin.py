@@ -31,6 +31,7 @@ class Builtin(Plugin):
                 o.append((args['name'], args.get('doc', '')))
         
         self.console("The following commands are available:")
+        self.console("A \".\" can be used instead of \"~\".")
         self.table(o)
     
     def handle_cmd_events(self, event):
