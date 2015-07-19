@@ -81,12 +81,17 @@ class Process(Plugin):
         return cmd
 
     def server_start(self, e=None):
-        self.parent.console("starting %s" % self.parent.server_name)
-        self.locale = locale.getpreferredencoding()
-        self.protocol = ProcessProtocol(self.parent.events.dispatch, self.locale)
-        cmd = self.build_command()
-
-        self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd, env=None)
+        # make sure the server is actually not running
+        if self.protocol and self.protocol.alive:
+            self.console("skipping start event as the server is already running")
+        else:
+            self.parent.console("starting %s" % self.parent.server_name)
+            self.locale = locale.getpreferredencoding()
+            self.protocol = ProcessProtocol(self.parent.events.dispatch, self.locale)
+            cmd = self.build_command()
+    
+            self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd, env=None)
+        
         if e:
             e.handled = True
 
@@ -110,7 +115,13 @@ class Process(Plugin):
     def server_stop(self, e):
         e.handled = True
         if self.protocol is None or not self.protocol.alive:
-            return
+            if e.respawn == events.ServerStop.TERMINATE:
+                print "I'm stopping the reactor now"
+                reactor.stop()
+                return
+            else:
+                self.parent.console("server is not running")
+                return
         if e.announce:
             yield self.parent.events.dispatch(events.ServerStopping(respawn=e.respawn, reason=e.reason, kill=e.kill))
         if e.kill:
