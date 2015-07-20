@@ -4,7 +4,7 @@ from . import Event, get_timestamp
 
 # input/output
 output_exp = re.compile(
-        r'^(?:\W|)+(?:\d{4}-\d{2}-\d{2} |)\[?(\d{2}:\d{2}:\d{2})\]? \[?(?:[^\]]+?/|)([A-Z]+)\]:? (.*)')
+        r'^(?:\W|\[1G|\[K|)+(?:\d{4}-\d{2}-\d{2} |)\[?(\d{2}:\d{2}:\d{2})\]? \[?(?:[^\]]+?/|)([A-Z]+)\]:? (.*)')
 
 class ServerInput(Event):
     """Send data to the server's stdin. In plugins, a shortcut
