@@ -286,7 +286,7 @@ class UI:
         new = []
         for s in sorted(servers):
             if s == current:
-                e = urwid.AttrMap(urwid.Text(" %s " % s), 'server_current')
+                e = urwid.AttrMap(urwid.Text((urwid.AttrSpec('default,standout','default'), " %s " % s)), 'server_current')
                 self.g_output_wrap.set_title(s)
             else:
                 e = urwid.AttrMap(PMenuButton(" %s " % s, lambda button, _s=s: self.connect_to_server(_s)), 'server')
