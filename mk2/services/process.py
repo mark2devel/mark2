@@ -62,7 +62,7 @@ class Process(Plugin):
         self.register(self.server_input,    events.ServerInput,    priority=EventPriority.MONITOR)
         self.register(self.server_start,    events.ServerStart,    priority=EventPriority.MONITOR)
         self.register(self.server_starting, events.ServerStarting)
-        self.register(self._server_started, events.ServerOutput, pattern=self.done_pattern)
+        self.register(self._server_started, events.ServerOutput,   pattern=self.done_pattern)
         self.register(self.server_stop,     events.ServerStop,     priority=EventPriority.MONITOR)
         self.register(self.server_stopping, events.ServerStopping, priority=EventPriority.MONITOR)
         self.register(self.server_stopped,  events.ServerStopped,  priority=EventPriority.MONITOR)
@@ -111,12 +111,15 @@ class Process(Plugin):
     def _server_started(self, e):
         self.parent.events.dispatch(events.ServerStarted())
 
+    def fullname(o):
+        return o.__module__ + "." + o.__class__.__name__
+
     @defer.inlineCallbacks
     def server_stop(self, e):
         e.handled = True
         if self.protocol is None or not self.protocol.alive:
             if e.respawn == events.ServerStop.TERMINATE:
-                print "I'm stopping the reactor now"
+                print "I'm stopping the reactor now! Reason: %s" % e.reason
                 reactor.stop()
                 return
             else:
@@ -126,10 +129,10 @@ class Process(Plugin):
             yield self.parent.events.dispatch(events.ServerStopping(respawn=e.respawn, reason=e.reason, kill=e.kill))
         if e.kill:
             self.failsafe = None
-            self.parent.console("killing %s" % self.parent.server_name)
+            self.parent.console("killing %s (caused by %s)" % (self.parent.server_name,e.reason))
             self.transport.signalProcess('KILL')
         else:
-            self.parent.console("stopping %s" % self.parent.server_name)
+            self.parent.console("stopping %s (caused by %s)" % (self.parent.server_name,e.reason))
             self.transport.write(self.stop_cmd)
             self.failsafe = self.parent.events.dispatch_delayed(events.ServerStop(respawn=e.respawn, reason=e.reason, kill=True, announce=False), self.parent.config['mark2.shutdown_timeout'])
 
