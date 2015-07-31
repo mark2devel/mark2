@@ -213,7 +213,7 @@ class Manager(object):
     @inlineCallbacks
     def handle_user_input(self, event):
         self.console(event.line, user=event.user, source="user")
-        if event.line.startswith("~"):
+        if event.line.startswith("~") or event.line.startswith("."):
             handled = yield self.events.dispatch(events.Hook(line=event.line))
             if not handled:
                 self.console("unknown command.")

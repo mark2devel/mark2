@@ -1,5 +1,5 @@
 from mk2.plugins import Plugin
-from mk2.events import Hook, ServerStop, StatPlayers, StatPlayerCount
+from mk2.events import Hook, ServerStop, ServerStart, StatPlayers, StatPlayerCount
 
 
 class Shutdown(Plugin):
@@ -30,12 +30,15 @@ class Shutdown(Plugin):
         self.register(self.handle_players, StatPlayers)
         self.register(self.handle_player_count, StatPlayerCount)
         
-        self.register(self.h_stop,          Hook, public=True, name="stop",         doc='cleanly stop the server. specify a delay like `~stop 2m`')
+        self.register(self.h_stop,          Hook, public=True, name="stop",         doc='cleanly stop the server and terminate the wrapper. specify a delay like `~stop 2m`')
         self.register(self.h_restart,       Hook, public=True, name="restart",      doc='cleanly restart the server. specify a delay like `~restart 30s`')
         self.register(self.h_restart_empty, Hook, public=True, name="restart-empty",doc='restart the server next time it has 0 players')
-        self.register(self.h_kill,          Hook, public=True, name="kill",         doc='kill the server')
+        self.register(self.h_hold,          Hook, public=True, name="hold",         doc='cleanly stop the server, but do not terminate the wrapper. specify a delay like `~hold 2m`')
+        self.register(self.h_kill,          Hook, public=True, name="kill",         doc='kill the server and terminate the wrapper')
         self.register(self.h_kill_restart,  Hook, public=True, name="kill-restart", doc='kill the server and bring it back up')
+        self.register(self.h_kill_hold,     Hook, public=True, name="kill-hold",    doc='kill the server, but do not terminate the wrapper')
         self.register(self.h_cancel,        Hook, public=True, name="cancel",       doc='cancel an upcoming shutdown or restart')
+        self.register(self.h_unhold,        Hook, public=True, name="unhold",       doc='unhold the server after it has been held before')
 
     def server_started(self, event):
         self.restart_on_empty = False
@@ -70,7 +73,7 @@ class Shutdown(Plugin):
     def handle_player_count(self, event):
         if event.players_current == 0 and self.restart_on_empty:
             self.restart_on_empty = False
-            self.nice_stop(True, False)
+            self.nice_stop(ServerStop.RESTART, False)
 
     def cancel_something(self, reason=None):
         thing, cancel = self.cancel.pop(0)
@@ -88,7 +91,7 @@ class Shutdown(Plugin):
         if self.should_cancel():
             self.console("I'm not stopping because this shutdown was cancelled with ~cancel")
             return
-        action = lambda: self.nice_stop(False, False)
+        action = lambda: self.nice_stop(ServerStop.TERMINATE, False)
         if event and event.args:
             warn_length, action, cancel = self.action_chain_cancellable(event.args, self.warn_stop, action, self.warn_cancel)
             self.cancel.append(("stop", cancel))
@@ -98,10 +101,20 @@ class Shutdown(Plugin):
         if self.should_cancel():
             self.console("I'm not restarting because this shutdown was cancelled with ~cancel")
             return
-        action = lambda: self.nice_stop(True, False)
+        action = lambda: self.nice_stop(ServerStop.RESTART, False)
         if event and event.args:
             warn_length, action, cancel = self.action_chain_cancellable(event.args, self.warn_restart, action, self.warn_cancel)
             self.cancel.append(("restart", cancel))
+        action()
+        
+    def h_hold(self, event=None):
+        if self.should_cancel():
+            self.console("I'm not stopping because this shutdown was cancelled with ~cancel")
+            return
+        action = lambda: self.nice_stop(ServerStop.HOLD, False)
+        if event and event.args:
+            warn_length, action, cancel = self.action_chain_cancellable(event.args, self.warn_stop, action, self.warn_cancel)
+            self.cancel.append(("stop", cancel))
         action()
 
     def h_restart_empty(self, event):
@@ -112,10 +125,16 @@ class Shutdown(Plugin):
         self.restart_on_empty = True
     
     def h_kill(self, event):
-        self.nice_stop(False, True)
+        self.nice_stop(ServerStop.TERMINATE, True)
     
     def h_kill_restart(self, event):
-        self.nice_stop(True, True)
+        self.nice_stop(ServerStop.RESTART, True)
+    
+    def h_kill_hold(self, event):
+        self.nice_stop(ServerStop.HOLD, True)
+    
+    def h_unhold(self, event):
+        self.dispatch(ServerStart())
 
     def h_cancel(self, event):
         if self.cancel:

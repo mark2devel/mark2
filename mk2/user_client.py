@@ -286,7 +286,7 @@ class UI:
         new = []
         for s in sorted(servers):
             if s == current:
-                e = urwid.AttrMap(urwid.Text(" %s " % s), 'server_current')
+                e = urwid.AttrMap(urwid.Text((urwid.AttrSpec('default,standout','default'), " %s " % s)), 'server_current')
                 self.g_output_wrap.set_title(s)
             else:
                 e = urwid.AttrMap(PMenuButton(" %s " % s, lambda button, _s=s: self.connect_to_server(_s)), 'server')
@@ -489,8 +489,8 @@ class UserClientFactory(ClientFactory):
         self.update_servers()
         if len(self.servers) == 0:  # no running servers
             return self.ui.stop()
-        if len(self.servers) == 1:  # don't switch with only one server
-            return
+        if len(self.servers) == 1 and self.client.name in self.servers: 
+            return # don't switch with only one server
 
         name = self.servers[(index + delta) % len(self.servers)]
         self.connect_to_server(name)
@@ -705,7 +705,7 @@ def colorize(text):
 
     parts = unicode(text).split(u'\x1b')
 
-    regex = re.compile(r"^\[([;\d]+)m(.*)$", re.UNICODE | re.DOTALL)
+    regex = re.compile(r"^\[([;\d]*)m(.*)$", re.UNICODE | re.DOTALL)
 
     for part in parts:
         r = regex.match(part)
@@ -714,7 +714,7 @@ def colorize(text):
             if r.group(2) != '':
                 foreground = 'white'
                 background = 'default'
-                for code in r.group(1).split(';'):
+                for code in filter(None, r.group(1).split(';')):
                     if (int(code) in mappings_fg):
                         foreground = mappings_fg[int(code)]
 

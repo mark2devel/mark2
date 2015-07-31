@@ -62,7 +62,7 @@ class Process(Plugin):
         self.register(self.server_input,    events.ServerInput,    priority=EventPriority.MONITOR)
         self.register(self.server_start,    events.ServerStart,    priority=EventPriority.MONITOR)
         self.register(self.server_starting, events.ServerStarting)
-        self.register(self._server_started, events.ServerOutput, pattern=self.done_pattern)
+        self.register(self._server_started, events.ServerOutput,   pattern=self.done_pattern)
         self.register(self.server_stop,     events.ServerStop,     priority=EventPriority.MONITOR)
         self.register(self.server_stopping, events.ServerStopping, priority=EventPriority.MONITOR)
         self.register(self.server_stopped,  events.ServerStopped,  priority=EventPriority.MONITOR)
@@ -81,12 +81,17 @@ class Process(Plugin):
         return cmd
 
     def server_start(self, e=None):
-        self.parent.console("starting %s" % self.parent.server_name)
-        self.locale = locale.getpreferredencoding()
-        self.protocol = ProcessProtocol(self.parent.events.dispatch, self.locale)
-        cmd = self.build_command()
-
-        self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd, env=None)
+        # make sure the server is actually not running
+        if self.protocol and self.protocol.alive:
+            self.console("skipping start event as the server is already running")
+        else:
+            self.parent.console("starting %s" % self.parent.server_name)
+            self.locale = locale.getpreferredencoding()
+            self.protocol = ProcessProtocol(self.parent.events.dispatch, self.locale)
+            cmd = self.build_command()
+    
+            self.transport = reactor.spawnProcess(self.protocol, cmd[0], cmd, env=None)
+        
         if e:
             e.handled = True
 
@@ -106,19 +111,28 @@ class Process(Plugin):
     def _server_started(self, e):
         self.parent.events.dispatch(events.ServerStarted())
 
+    def fullname(o):
+        return o.__module__ + "." + o.__class__.__name__
+
     @defer.inlineCallbacks
     def server_stop(self, e):
         e.handled = True
         if self.protocol is None or not self.protocol.alive:
-            return
+            if e.respawn == events.ServerStop.TERMINATE:
+                print "I'm stopping the reactor now! Reason: %s" % e.reason
+                reactor.stop()
+                return
+            else:
+                self.parent.console("server is not running")
+                return
         if e.announce:
             yield self.parent.events.dispatch(events.ServerStopping(respawn=e.respawn, reason=e.reason, kill=e.kill))
         if e.kill:
             self.failsafe = None
-            self.parent.console("killing %s" % self.parent.server_name)
+            self.parent.console("killing %s (caused by %s)" % (self.parent.server_name,e.reason))
             self.transport.signalProcess('KILL')
         else:
-            self.parent.console("stopping %s" % self.parent.server_name)
+            self.parent.console("stopping %s (caused by %s)" % (self.parent.server_name,e.reason))
             self.transport.write(self.stop_cmd)
             self.failsafe = self.parent.events.dispatch_delayed(events.ServerStop(respawn=e.respawn, reason=e.reason, kill=True, announce=False), self.parent.config['mark2.shutdown_timeout'])
 
@@ -131,9 +145,12 @@ class Process(Plugin):
         if self.failsafe:
             self.failsafe.cancel()
             self.failsafe = None
-        if self.respawn:
+        if self.respawn == events.ServerStop.RESTART:
             self.parent.events.dispatch(events.ServerStart())
-            self.respawn = False
+            self.respawn = events.ServerStop.TERMINATE
+        elif self.respawn == events.ServerStop.HOLD:
+            self.respawn = events.ServerStop.TERMINATE
+            return
         elif self.service_stopping:
             self.service_stopping.callback(0)
         else:

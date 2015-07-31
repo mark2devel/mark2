@@ -4,7 +4,7 @@ from . import Event, get_timestamp
 
 # input/output
 output_exp = re.compile(
-        r'^(?:\W|)+(?:\d{4}-\d{2}-\d{2} |)\[?(\d{2}:\d{2}:\d{2})\]? \[?(?:[^\]]+?/|)([A-Z]+)\]:? (.*)')
+        r'^(?:\W|\[1G|\[K|)+(?:\d{4}-\d{2}-\d{2} |)\[?(\d{2}:\d{2}:\d{2})\]? \[?(?:[^\]]+?/|)([A-Z]+)\]:?\s*(.*)')
 
 class ServerInput(Event):
     """Send data to the server's stdin. In plugins, a shortcut
@@ -71,9 +71,12 @@ class ServerStarted(Event):
     the server_started method.
     """
 
-
 class ServerStop(Event):
     """Issue this event to stop the server."""
+    
+    TERMINATE = 0
+    RESTART = 1
+    HOLD = 2
     
     reason   = Event.Arg(required=True)
     respawn  = Event.Arg(required=True)

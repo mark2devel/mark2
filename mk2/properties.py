@@ -165,8 +165,12 @@ class Mark2Properties(Properties):
             if m:
                 a, b = m.groups()
                 if a == 'D':
+                    if type(v) == bool:
+                        v = str(v).lower()
                     options.append('-D%s=%s' % (b, v))
                 elif a == 'X':
+                    if type(v) == bool:
+                        v = str(v).lower()
                     options.append('-X%s%s' % (b, v))
                 elif a == 'XX':
                     if type(v) == bool:

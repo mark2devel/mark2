@@ -254,8 +254,13 @@ class Plugin:
                 callbackCancel(*args)
         
         def action_chain_i(i_name, i_delay, i_action):
-            delayed_call[0] = reactor.callLater(i_delay, i_action) 
+            t = reactor.callLater(i_delay, i_action) 
             callbackWarn(i_name)
+            
+            t._stop = t.cancel
+            t._active = t.active
+            delayed_call[0] = t
+            self._tasks.append(t)
         
         lastAction = callbackAction
         lastTime   = 0
