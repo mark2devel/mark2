@@ -111,9 +111,6 @@ class Process(Plugin):
     def _server_started(self, e):
         self.parent.events.dispatch(events.ServerStarted())
 
-    def fullname(o):
-        return o.__module__ + "." + o.__class__.__name__
-
     @defer.inlineCallbacks
     def server_stop(self, e):
         e.handled = True
@@ -127,6 +124,11 @@ class Process(Plugin):
                 return
         if e.announce:
             yield self.parent.events.dispatch(events.ServerStopping(respawn=e.respawn, reason=e.reason, kill=e.kill))
+        
+        
+        if self.failsafe and self.failsafe.active():
+            self.failsafe.cancel()
+            self.failsafe = None
         if e.kill:
             self.failsafe = None
             self.parent.console("killing %s (caused by %s)" % (self.parent.server_name,e.reason))
@@ -142,7 +144,7 @@ class Process(Plugin):
     def server_stopped(self, e):
         if self.stat_process and self.stat_process.running:
             self.stat_process.stop()
-        if self.failsafe:
+        if self.failsafe and self.failsafe.active():
             self.failsafe.cancel()
             self.failsafe = None
         if self.respawn == events.ServerStop.RESTART:
