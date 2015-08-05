@@ -72,7 +72,6 @@ class Process(Plugin):
     def build_command(self):
         cmd = []
         cmd.append(self.java_path)
-        #cmd.append('-server')
         cmd.extend(self.parent.config.get_jvm_options())
         cmd.append('-jar')
         cmd.append(self.parent.jar_file)
