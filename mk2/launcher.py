@@ -532,6 +532,16 @@ class CommandSend(CommandTyTerminal):
             raise Mark2ParseError("nothing to send!")
         self.do_send(self.value)
 
+class CommandSendAll(CommandTyTerminal):
+    """send a console command to all servers"""
+    name = 'sendall'
+    value_spec='INPUT...'
+    def run(self):
+        if self.value is None:
+            raise Mark2ParseError("nothing to send!")
+        for s in self.servers:
+            self.server_name = s
+            self.do_send(self.value)
 
 class CommandJarList(Command):
     """list server jars"""
@@ -591,7 +601,7 @@ class CommandJarGet(Command):
         reactor.run()
 
 
-commands = (CommandHelp, CommandStart, CommandList, CommandAttach, CommandStop, CommandKill, CommandSend, CommandJarList, CommandJarGet, CommandConfig)
+commands = (CommandHelp, CommandStart, CommandList, CommandAttach, CommandStop, CommandKill, CommandSend, CommandSendAll, CommandJarList, CommandJarGet, CommandConfig)
 commands_d = dict([(c.name, c) for c in commands])
 
 
