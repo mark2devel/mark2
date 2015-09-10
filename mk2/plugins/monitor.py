@@ -59,8 +59,9 @@ class Monitor(Plugin):
     crash_unknown_cmd_message    = Plugin.Property(default="Unknown command.*")
     crash_check_command    = Plugin.Property(default="")
 
-    oom_enabled    = Plugin.Property(default=True)
-    crash_report_enabled    = Plugin.Property(default=True)
+    oom_enabled          = Plugin.Property(default=True)
+    crash_report_enabled = Plugin.Property(default=True)
+    jvm_crash_enabled    = Plugin.Property(default=True)
 
     ping_enabled   = Plugin.Property(default=True)
     ping_timeout   = Plugin.Property(default=3)
@@ -79,6 +80,9 @@ class Monitor(Plugin):
 
         if self.crash_report_enabled:
             self.register(self.handle_unknown_crash, ServerOutput, level='ERROR', pattern='This crash report has been saved to.*')
+        
+        if self.jvm_crash_enabled:
+            self.register(self.handle_jvm_crash, ServerOutput, level='RAW', pattern='.*A fatal error has been detected by the Java Runtime Environment:.*')
 
         if self.crash_enabled:
             do_step = True
@@ -158,7 +162,15 @@ class Monitor(Plugin):
                                   data="server crashed for unknown reason",
                                   priority=1))
         self.dispatch(ServerStop(reason='unknown reason', respawn=ServerStop.RESTART))
-
+    
+    # jvm crash
+    def handle_jvm_crash(self, event):
+        self.console('server jvm crashed, restarting...')
+        self.dispatch(ServerEvent(cause='server/error/jvm',
+                                  data="server jvm crashed",
+                                  priority=1))
+        self.dispatch(ServerStop(reason='jvm crash', respawn=ServerStop.RESTART))
+    
     # ping
     def handle_ping(self, event):
         if event.source == 'ping':
