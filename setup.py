@@ -149,7 +149,7 @@ plugins
 * Print a random message at an interval, e.g. '[SERVER] Lock your chests with
   /lock'
 * Respond to user commands, e.g. '<Notch> !teamspeak' could `msg Notch Join our
-  teamspeak server at xyz.com`
+  teamspeak server at example.com`
 
 .. |buildstatus| image:: https://travis-ci.org/mcdevs/mark2.png?branch=master
 '''
