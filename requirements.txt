@@ -1,5 +1,5 @@
 feedparser==5.1.3
 psutil==0.6.1
-pyOpenSSL==0.13
+pyOpenSSL==0.15
 Twisted==13.0.0
-urwid==1.1.1
+urwid==1.3.1
