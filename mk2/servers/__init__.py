@@ -70,7 +70,7 @@ class JenkinsJarProvider(JarProvider):
 
 
 modules = []
-for m in ['feed_the_beast', 'forge', 'spigot', 'technic', 'vanilla']:
+for m in ['vanilla']:
     try:
         name = "mk2.servers.{0}".format(m)
         __import__(name)
