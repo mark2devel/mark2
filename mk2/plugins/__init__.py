@@ -278,11 +278,17 @@ class Plugin:
         return self.action_chain_cancellable(spec, callbackWarn, callbackAction)[:2]
 
     def parse_time(self, spec):
-        symbols = {'s': (1, 'second'), 'm': (60, 'minute'), 'h': (3600, 'hour')}
+        symbols = {
+            's': (1, self.parent.config['mark2.time.second']),
+            'm': (60, self.parent.config['mark2.time.minute']),
+            'h': (3600, self.parent.config['mark2.time.hour']),
+            'd': (86400, self.parent.config['mark2.time.day']),
+            'w': (604800, self.parent.config['mark2.time.week'])
+        }
         v = int(spec[:-1])
         s = symbols[spec[-1]]
         
-        name = "%d %s%s" % (v, s[1], "s" if v>1 else "")
+        name = "%d %s%s" % (v, s[1], self.parent.config['mark2.time.plurals'] if v>1 else "")
         time = v*s[0]
         
         return name, time
