@@ -206,7 +206,7 @@ class UI:
         self.filters = {}
         self.filter = lambda *a: True
 
-        self.g_output_list = urwid.SimpleListWalker([])
+        self.g_output_list = urwid.SimpleFocusListWalker([])
 
         self.build()
 
@@ -336,8 +336,6 @@ class UI:
         self.g_output_list.append(urwid.Text(colorize(self.safe_unicode(console_repr(line)))))
         if scroll:
             self.g_output.focus_position += 1
-
-        self.redraw()
 
     def set_output(self, lines=None):
         contents = self.g_output_list
