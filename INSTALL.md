@@ -21,7 +21,7 @@ This should suffice:
     
 ### arch
 
-    # pacman -S --needed python2 python2-psutil python2-urwid python2-twisted python2-feedparser python2-pyopenssl
+    # pacman -S --needed python2 python2-psutil python2-urwid python2-twisted python2-service-identity python2-feedparser python2-pyopenssl
     
 The `--needed` flag will skip packages already installed.
 
