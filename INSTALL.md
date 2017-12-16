@@ -18,6 +18,12 @@ This should suffice:
 
     $ sudo apt-get install git libssl-dev python-dev python-pip
     $ sudo pip install -r requirements.txt
+    
+### arch
+
+    # pacman -S --needed python2 python2-psutil python2-urwid python2-twisted python2-service-identity python2-feedparser python2-pyopenssl
+    
+The `--needed` flag will skip packages already installed.
 
 ### centos
 
