@@ -142,7 +142,11 @@ class CommandTyStateful(Command):
         o = []
         for path in glob.glob(self.shared('pid', '*')):
             with open(path) as fp:
-                pid = int(fp.read())
+                pid_string = fp.read()
+                if pid_string == "":  # If the pid file is blank.
+                    os.remove(path)
+                    continue
+                pid = int(pid_string)
                 try:
                     os.kill(pid, 0)
                 except OSError as err:
