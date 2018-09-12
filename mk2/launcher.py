@@ -349,7 +349,6 @@ class CommandStart(CommandTyTerminal):
 
         os.chdir(".")
         os.setsid()
-        os.umask(0)
 
         if os.fork() > 0:
             sys.exit(0)
