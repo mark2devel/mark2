@@ -19,11 +19,12 @@ class Backup(Plugin):
     autosave_enabled = True
     proto = None
     done_backup = None
-    
+
     def setup(self):
         self.register(self.backup, Hook, public=True, name='backup', doc='backup the server to a .tar.gz')
         self.register(self.autosave_changed, ServerOutput, pattern="(?P<username>[A-Za-z0-9_]{1,16}): (?P<action>Enabled|Disabled) level saving\.\.")
         self.register(self.autosave_changed, ServerOutput, pattern="Turned (?P<action>on|off) world auto-saving")
+        self.register(self.autosave_changed, ServerOutput, pattern="Automatic saving is now (?P<action>enabled|disabled)")
         self.register(self.server_stopped, ServerStopped, priority=EventPriority.HIGHEST)
 
     def server_started(self, event):
