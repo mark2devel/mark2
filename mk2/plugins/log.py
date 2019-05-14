@@ -2,6 +2,7 @@ import time
 import gzip
 import os
 import re
+import datetime
 
 from mk2.plugins import Plugin
 from mk2.events import Console, ServerStopped, ServerStopping, ServerOutput
@@ -44,7 +45,7 @@ class Log(Plugin):
         if reason == None:
             reason = "ok"
             
-        timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+        timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         
         path = self.path.format(timestamp=timestamp, name=self.parent.name, status=reason)
 
