@@ -1,6 +1,7 @@
 import time
 import glob
 import os
+import datetime
 from twisted.internet import protocol, reactor, defer
 
 from mk2.plugins import Plugin
@@ -81,7 +82,7 @@ class Backup(Plugin):
         return self.done_backup
 
     def do_backup(self, *a):
-        timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
+        timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         path = self.path.format(timestamp=timestamp, name=self.parent.server_name)
         if not os.path.exists(os.path.dirname(path)):
             try:
