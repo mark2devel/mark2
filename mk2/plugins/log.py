@@ -2,7 +2,7 @@ import time
 import gzip
 import os
 import re
-import datetime
+from datetime import datetime
 
 from mk2.plugins import Plugin
 from mk2.events import Console, ServerStopped, ServerStopping, ServerOutput
