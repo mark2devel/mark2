@@ -1,7 +1,7 @@
 import time
 import glob
 import os
-import datetime
+from datetime import datetime
 from twisted.internet import protocol, reactor, defer
 
 from mk2.plugins import Plugin
