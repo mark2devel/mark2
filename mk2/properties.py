@@ -160,6 +160,8 @@ class Mark2Properties(Properties):
 
     def get_jvm_options(self):
         options = []
+        if self.get('java.cli_prepend', '') != '':
+            options.extend(shlex.split(self['java.cli_prepend']))
         for k, v in self.iteritems():
             m = re.match('^java\.cli\.([^\.]+)\.(.+)$', k)
             if m:
