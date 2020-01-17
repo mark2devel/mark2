@@ -16,8 +16,8 @@
 
 This should suffice:
 
-    $ sudo apt-get install git libssl-dev python-dev python-pip
-    $ sudo pip install -r requirements.txt
+    $ sudo apt-get install git libssl-dev python-dev python3-pip
+    $ sudo pip3 install -r requirements.txt
     
 ### arch
 
