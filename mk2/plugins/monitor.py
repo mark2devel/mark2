@@ -2,7 +2,7 @@ from mk2.plugins import Plugin
 from mk2.events import ServerOutput, StatPlayerCount, ServerStop, ServerEvent, Event
 
 
-class Check(object):
+class Check:
     alive = True
     timeout = 0
     time = 0
@@ -26,24 +26,24 @@ class Check(object):
 
         self.time += 1
         if self.timeout and self.time == self.timeout:
-            timeout = "{0} minutes".format(self.timeout)
-            self.console("{0} -- restarting.".format(self.message.format(timeout=timeout)))
+            timeout = "{} minutes".format(self.timeout)
+            self.console("{} -- restarting.".format(self.message.format(timeout=timeout)))
             self.dispatch(ServerEvent(cause="server/error/" + self.event[0],
                                       data="REBOOTING SERVER: " + self.event[1].format(timeout=timeout),
                                       priority=1))
             self.dispatch(ServerStop(reason=self.stop_reason, respawn=ServerStop.RESTART))
         elif self.warn and self.time == self.warn:
             if self.timeout:
-                self.console("{0} -- auto restart in {1} minutes".format(self.warning, self.timeout - self.time))
+                self.console("{} -- auto restart in {} minutes".format(self.warning, self.timeout - self.time))
             else:
                 self.console(self.warning)
-            time = "{0} minutes".format(self.warn)
+            time = "{} minutes".format(self.warn)
             self.dispatch(ServerEvent(cause="server/warning/" + self.event[0],
                                       data="WARNING: " + self.event[1].format(timeout=time),
                                       priority=1))
         else:
             if self.timeout:
-                self.console("{0} -- auto restart in {1} minutes".format(self.warning, self.timeout - self.time))
+                self.console("{} -- auto restart in {} minutes".format(self.warning, self.timeout - self.time))
             else:
                 self.console(self.warning)
 
@@ -76,7 +76,7 @@ class Monitor(Plugin):
         self.checks = {}
 
         if self.oom_enabled:
-            self.register(self.handle_oom, ServerOutput, level='SEVERE', pattern='java\.lang\.OutOfMemoryError.*')
+            self.register(self.handle_oom, ServerOutput, level='SEVERE', pattern=r'java\.lang\.OutOfMemoryError.*')
 
         if self.crash_report_enabled:
             self.register(self.handle_unknown_crash, ServerOutput, level='ERROR', pattern='This crash report has been saved to.*')

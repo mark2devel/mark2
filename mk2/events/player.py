@@ -31,7 +31,7 @@ class PlayerDeath(PlayerEvent):
     format   = Event.Arg(default="{username} died")
 
     def get_text(self, **kw):
-        d = dict(((k, getattr(self, k)) for k in ('username', 'killer', 'weapon')))
+        d = {k: getattr(self, k) for k in ('username', 'killer', 'weapon')}
         d.update(kw)
         return self.format.format(**d)
 

@@ -11,7 +11,7 @@ from mk2.plugins import Plugin
 
 
 class ProcessProtocol(protocol.ProcessProtocol):
-    obuff = u""
+    obuff = ""
     alive = True
 
     def __init__(self, dispatch, locale):
@@ -38,7 +38,7 @@ class ProcessProtocol(protocol.ProcessProtocol):
         self.alive = False
         if isinstance(reason.value, error.ProcessTerminated) and reason.value.exitCode:
             self.dispatch(events.ServerEvent(cause='server/error/exit-failure',
-                                             data="server exited abnormally: {0}".format(reason.getErrorMessage()),
+                                             data="server exited abnormally: {}".format(reason.getErrorMessage()),
                                              priority=1))
             self.dispatch(events.FatalError(reason=reason.getErrorMessage()))
         else:

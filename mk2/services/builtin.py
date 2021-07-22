@@ -22,7 +22,7 @@ class Builtin(Plugin):
             m = max(m, len(name))
         
         for name, doc in sorted(v, key=lambda x: x[0]):
-            self.console(" ~%s | %s" % (name.ljust(m), doc))
+            self.console(" ~{} | {}".format(name.ljust(m), doc))
 
     def handle_cmd_help(self, event):
         o = []
@@ -77,7 +77,7 @@ class Builtin(Plugin):
             self.parent.config['mark2.jar_path'].split(';'),
             event.args)
         if new_jar:
-            self.console("I will switch to {0} at the next restart".format(new_jar))
+            self.console("I will switch to {} at the next restart".format(new_jar))
             self.parent.jar_file = new_jar
         else:
             self.console("Can't find a matching jar file.")

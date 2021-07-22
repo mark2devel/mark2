@@ -16,12 +16,12 @@ class channelFilter(BaseFilter):
     def filter(self,message):
         return self.telegram_channel==message.chat_id
 
-class TelegramBot(object):
+class TelegramBot:
     """docstring for TelegramBot."""
     telegram_channel = None
     mainchannelFilter = None
     def __init__(self, plugin):
-        super(TelegramBot, self).__init__()
+        super().__init__()
         self.plugin = plugin
         self.updater = Updater(token=plugin.telegram_token)
         self.dispatcher = self.updater.dispatcher
@@ -55,32 +55,32 @@ class TelegramRelay(Plugin):
     game_columns = Plugin.Property(default=True)
 
     game_status_enabled = Plugin.Property(default=True)
-    game_status_format  = Plugin.Property(default=u"!, | server {what}.")
+    game_status_format  = Plugin.Property(default="!, | server {what}.")
 
     game_chat_enabled = Plugin.Property(default=True)
-    game_chat_format  = Plugin.Property(default=u"{username}, | {message}")
+    game_chat_format  = Plugin.Property(default="{username}, | {message}")
     game_chat_private = Plugin.Property(default=None)
 
     game_join_enabled = Plugin.Property(default=True)
-    game_join_format  = Plugin.Property(default=u"*, | --> {username}")
+    game_join_format  = Plugin.Property(default="*, | --> {username}")
 
     game_quit_enabled = Plugin.Property(default=True)
-    game_quit_format  = Plugin.Property(default=u"*, | <-- {username}")
+    game_quit_format  = Plugin.Property(default="*, | <-- {username}")
 
     game_death_enabled = Plugin.Property(default=True)
-    game_death_format  = Plugin.Property(default=u"*, | {text}")
+    game_death_format  = Plugin.Property(default="*, | {text}")
 
     game_server_message_enabled = Plugin.Property(default=True)
-    game_server_message_format  = Plugin.Property(default=u"#server, | {message}")
+    game_server_message_format  = Plugin.Property(default="#server, | {message}")
 
     #bukkit only
     game_me_enabled = Plugin.Property(default=True)
-    game_me_format  = Plugin.Property(default=u"*, | {username} {message}")
+    game_me_format  = Plugin.Property(default="*, | {username} {message}")
 
     #irc -> game settings
     telegram_chat_enabled    = Plugin.Property(default=True)
-    telegram_chat_command    = Plugin.Property(default=u"say [TELEGRAM] <{nickname}> {message}")
-    telegram_action_command  = Plugin.Property(default=u"say [TELEGRAM] * {nickname} {message}")
+    telegram_chat_command    = Plugin.Property(default="say [TELEGRAM] <{nickname}> {message}")
+    telegram_action_command  = Plugin.Property(default="say [TELEGRAM] * {nickname} {message}")
     telegram_chat_status     = Plugin.Property(default=None)
 
     telegram_command_prefix  = Plugin.Property(default="!")
@@ -89,7 +89,7 @@ class TelegramRelay(Plugin):
     telegram_command_mark2   = Plugin.Property(default=False)
 
     telegram_players_enabled = Plugin.Property(default=True)
-    telegram_players_format  = Plugin.Property(default=u"*, | players currently in game: {players}")
+    telegram_players_format  = Plugin.Property(default="*, | players currently in game: {players}")
 
     def setup(self):
         self.players = []

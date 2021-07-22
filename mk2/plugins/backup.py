@@ -23,7 +23,7 @@ class Backup(Plugin):
 
     def setup(self):
         self.register(self.backup, Hook, public=True, name='backup', doc='backup the server to a .tar.gz')
-        self.register(self.autosave_changed, ServerOutput, pattern="(?P<username>[A-Za-z0-9_]{1,16}): (?P<action>Enabled|Disabled) level saving\.\.")
+        self.register(self.autosave_changed, ServerOutput, pattern=r"(?P<username>[A-Za-z0-9_]{1,16}): (?P<action>Enabled|Disabled) level saving\.\.")
         self.register(self.autosave_changed, ServerOutput, pattern="Turned (?P<action>on|off) world auto-saving")
         self.register(self.autosave_changed, ServerOutput, pattern="Automatic saving is now (?P<action>enabled|disabled)")
         self.register(self.server_stopped, ServerStopped, priority=EventPriority.HIGHEST)
@@ -87,8 +87,8 @@ class Backup(Plugin):
         if not os.path.exists(os.path.dirname(path)):
             try:
                 os.makedirs(os.path.dirname(path))
-            except IOError:
-                self.console("Warning: {0} does't exist and I can't create it".format(os.path.dirname(path)),
+            except OSError:
+                self.console("Warning: {} does't exist and I can't create it".format(os.path.dirname(path)),
                              kind='error')
                 return
 

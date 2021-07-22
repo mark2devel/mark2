@@ -7,7 +7,7 @@ from twisted.internet import reactor, task
 from twisted.internet.defer import succeed, maybeDeferred
 
 
-class _EventArg(object):
+class _EventArg:
     def __init__(self, default=None, required=False):
         self.default = default
         self.required = required
@@ -29,7 +29,7 @@ class EventMetaclass(type):
         return type.__init__(cls, name, bases, dict)
 
 
-class Event(object):
+class Event:
     __metaclass__ = EventMetaclass
 
     Arg = _EventArg
@@ -70,12 +70,12 @@ class Event(object):
         required_args = set(spec.args[1:-len(spec.defaults or [])])
 
         if required_args - args:
-            return (False, "missing arguments for prefilter: {0}".format(
+            return (False, "missing arguments for prefilter: {}".format(
                     ", ".join(required_args - args)))
         if spec.keywords is None:
             allowed_args = set(spec.args[1:])
             if args - allowed_args:
-                return (False, "excess arguments for prefilter: {0}".format(
+                return (False, "excess arguments for prefilter: {}".format(
                     ", ".join(args - allowed_args)))
         return (True, "")
 
@@ -86,12 +86,12 @@ class Event(object):
         pass
 
     def serialize(self):
-        data = dict((k, getattr(self, k)) for k in self._contains)
+        data = {k: getattr(self, k) for k in self._contains}
         data['class_name'] = self.__class__.__name__
         return data
 
     def __repr__(self):
-        return "{0}({1})".format(self.__class__.__name__, self.serialize())
+        return "{}({})".format(self.__class__.__name__, self.serialize())
 
 
 class EventPriority:
@@ -99,7 +99,7 @@ class EventPriority:
         self.priority, self.monitor = priority, monitor
 
     def __str__(self):
-        return "P{0}".format(self.priority)
+        return "P{}".format(self.priority)
 
     def __repr__(self):
         return str(self)
@@ -164,7 +164,7 @@ class EventList:
         return i
 
     def remove_handler(self, id_):
-        assert id_ in self._handlers, "{0} is not registered".format(id_)
+        assert id_ in self._handlers, "{} is not registered".format(id_)
         self._invalidate()
         del self._handlers[id_]
         self._istack.append(id_)

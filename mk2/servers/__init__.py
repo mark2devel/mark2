@@ -60,11 +60,11 @@ class JenkinsJarProvider(JarProvider):
     name = None
 
     def work(self):
-        self.get('{0}job/{1}/lastSuccessfulBuild/api/json'.format(self.base, self.project), self.handle_data)
+        self.get('{}job/{}/lastSuccessfulBuild/api/json'.format(self.base, self.project), self.handle_data)
 
     def handle_data(self, data):
         data = json.loads(data)
-        url = '{0}job/{1}/lastSuccessfulBuild/artifact/{2}'.format(self.base, self.project, data['artifacts'][0]['relativePath'])
+        url = '{}job/{}/lastSuccessfulBuild/artifact/{}'.format(self.base, self.project, data['artifacts'][0]['relativePath'])
         self.add((self.name, 'Latest'), (None, None), url)
         self.commit()
 
@@ -72,7 +72,7 @@ class JenkinsJarProvider(JarProvider):
 modules = []
 for m in ['vanilla']:
     try:
-        name = "mk2.servers.{0}".format(m)
+        name = "mk2.servers.{}".format(m)
         __import__(name)
         modules.append(sys.modules[name])
     except ImportError:
@@ -150,7 +150,7 @@ def jar_get(name):
                     if ssl:
                         reactor.connectSSL(factory.host, factory.port, factory, ssl.ClientContextFactory())
                     else:
-                        d_result.errback(Exception("{0} is not available because this installation does not have SSL support!".format(name)))
+                        d_result.errback(Exception("{} is not available because this installation does not have SSL support!".format(name)))
                 else:
                     reactor.connectTCP(factory.host, factory.port, factory)
 
@@ -158,7 +158,7 @@ def jar_get(name):
                 factory.deferred.addErrback(d_result.errback)
                 return
 
-        d_result.errback(Exception("{0} is not available!".format(name)))
+        d_result.errback(Exception("{} is not available!".format(name)))
 
     d = get_raw()
     d.addCallbacks(got_results, d_result.errback)

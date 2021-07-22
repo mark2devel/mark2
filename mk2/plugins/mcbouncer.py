@@ -38,10 +38,10 @@ class MCBouncer(Plugin):
     def setup(self):
         self.bouncer = BouncerAPI(self.api_base, self.api_key, self.on_error)
         
-        self.register(self.on_login,  ServerOutput, pattern='([A-Za-z0-9_]{1,16})\[/([0-9\.]+):\d+\] logged in with entity id .+')
-        self.register(self.on_ban,    ServerOutput, pattern='\[([A-Za-z0-9_]{1,16}): Banned player ([A-Za-z0-9_]{1,16})\]')
+        self.register(self.on_login,  ServerOutput, pattern=r'([A-Za-z0-9_]{1,16})\[/([0-9\.]+):\d+\] logged in with entity id .+')
+        self.register(self.on_ban,    ServerOutput, pattern=r'\[([A-Za-z0-9_]{1,16}): Banned player ([A-Za-z0-9_]{1,16})\]')
         self.register(self.on_ban,    ServerOutput, pattern='Banned player ([A-Za-z0-9_]{1,16})')
-        self.register(self.on_pardon, ServerOutput, pattern='\[[A-Za-z0-9_]{1,16}: Unbanned player ([A-Za-z0-9_]{1,16})\]')
+        self.register(self.on_pardon, ServerOutput, pattern=r'\[[A-Za-z0-9_]{1,16}: Unbanned player ([A-Za-z0-9_]{1,16})\]')
         self.register(self.on_pardon, ServerOutput, pattern='Unbanned player ([A-Za-z0-9_]{1,16})')
     
     def on_error(self, error):
@@ -66,8 +66,8 @@ class MCBouncer(Plugin):
     
     def ban_reason(self, user, details):
         if details['is_banned']:
-            self.send('kick %s Banned: %s' % (user, details['reason']))
+            self.send('kick {} Banned: {}'.format(user, details['reason']))
     
     def ip_ban_reason(self, user, details):
         if details['is_banned']:
-            self.send('kick %s Banned: %s' % (user, details['reason']))
+            self.send('kick {} Banned: {}'.format(user, details['reason']))

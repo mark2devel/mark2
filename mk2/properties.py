@@ -57,7 +57,7 @@ class Properties(dict):
         #This handles backslash escapes in keys/values
         def parse(input):
             token = list(input)
-            out = u""
+            out = ""
             uni = False
             while len(token) > 0:
                 c = token.pop(0)
@@ -89,7 +89,7 @@ class Properties(dict):
         d = d.replace('\r\n','\n')
         d = d.replace('\r', '\n')
         #Strip leading whitespace
-        d = re.sub('(?m)\n\s*', '\n', d)
+        d = re.sub('(?m)\n\\s*', '\n', d)
         #Split logical lines
         d = re.split('(?m)' + r_unescaped + '\n', d)
 
@@ -114,7 +114,7 @@ class Properties(dict):
             k = parse(k).replace('-', '_')
             v = parse(v)
 
-            if re.match('^\-?\d+$', v):
+            if re.match(r'^\-?\d+$', v):
                 ty = 'int'
             elif v in ('true', 'false'):
                 ty = 'bool'
@@ -140,7 +140,7 @@ class Mark2Properties(Properties):
         plugins = {}
         enabled = []
         for k, v in self.iteritems():
-            m = re.match('^plugin\.(.+)\.(.+)$', k)
+            m = re.match(r'^plugin\.(.+)\.(.+)$', k)
             if m:
                 plugin, k2 = m.groups()
                 
@@ -156,14 +156,14 @@ class Mark2Properties(Properties):
         return [(n, plugins[n]) for n in sorted(enabled)]
 
     def get_service(self, service):
-        return self.get_by_prefix('mark2.service.{0}.'.format(service))
+        return self.get_by_prefix('mark2.service.{}.'.format(service))
 
     def get_jvm_options(self):
         options = []
         if self.get('java.cli_prepend', '') != '':
             options.extend(shlex.split(self['java.cli_prepend']))
         for k, v in self.iteritems():
-            m = re.match('^java\.cli\.([^\.]+)\.(.+)$', k)
+            m = re.match(r'^java\.cli\.([^\.]+)\.(.+)$', k)
             if m:
                 a, b = m.groups()
                 if a == 'D':
@@ -188,7 +188,7 @@ class Mark2Properties(Properties):
     def get_format_options(self):
         options = {}
         for k, v in self.iteritems():
-            m = re.match('^mark2\.format\.(.*)$', k)
+            m = re.match(r'^mark2\.format\.(.*)$', k)
             if m:
                 options[m.group(1)] = v
         return options
@@ -222,13 +222,13 @@ class Lang(Properties):
             if not v in seen:
                 seen.append(v)
                 regex = reduce(lambda a, r: a.replace(*r),
-                               ((r"\%{0}\$s".format(i + 1),
+                               ((r"\%{}\$s".format(i + 1),
                                  "(?P<{0}>[A-Za-z0-9]{{1,32}})".format(x))
                                 for i, x in enumerate(("username", "killer", "weapon"))),
                                re.escape(v))
                 format = reduce(lambda a, r: a.replace(*r),
-                                (("%{0}$s".format(i + 1),
+                                (("%{}$s".format(i + 1),
                                   "{{{0}}}".format(x))
                                  for i, x in enumerate(("username", "killer", "weapon"))),
                                 v)
-                yield k, ("^{0}$".format(regex), format)
+                yield k, ("^{}$".format(regex), format)

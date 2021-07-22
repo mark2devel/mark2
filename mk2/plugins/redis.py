@@ -55,7 +55,7 @@ class Redis(Plugin):
             if ty:
                 self.register(self.on_event, ty)
             else:
-                self.console("redis: couldn't bind to event: {0}".format(ev))
+                self.console("redis: couldn't bind to event: {}".format(ev))
 
     def on_event(self, event):
         self.factory.relay(event.serialize())

@@ -104,7 +104,7 @@ class Prompt(urwid.Edit):
 
 class PMenuButton(urwid.Button):
     def __init__(self, caption, *a):
-        super(PMenuButton, self).__init__(caption, *a)
+        super().__init__(caption, *a)
         self._w = urwid.SelectableIcon(caption, 0)
 
 
@@ -122,7 +122,7 @@ class PMenuWrap(urwid.WidgetPlaceholder):
 
         self.first()
 
-        super(PMenuWrap, self).__init__(self._pmenu_widgets[0][1])
+        super().__init__(self._pmenu_widgets[0][1])
 
     def fill(self, index, items):
         name, contents = self._pmenu_lists[index]
@@ -294,7 +294,7 @@ class UI:
 
         contents = self.g_servers.contents
         del contents[0:len(contents)]
-        contents.append((urwid.AttrMap(urwid.Text(u' mark2 '), 'mark2'), self.g_servers.options('pack')))
+        contents.append((urwid.AttrMap(urwid.Text(' mark2 '), 'mark2'), self.g_servers.options('pack')))
         contents.extend(new)
         contents.append((urwid.Divider(), self.g_users.options()))
 
@@ -379,7 +379,7 @@ class SystemUsers(set):
             self.add(u.name)
 
 
-class App(object):
+class App:
     def __init__(self, name, interval, update, shell, command):
         self.name = name
         self.interval = interval
@@ -576,7 +576,7 @@ class UserClientFactory(ClientFactory):
                 m = p.match(msg['data'])
                 return m and m.end() == len(msg['data'])
             return _filter
-        patterns = dict((k, makefilter(p)) for k, p in cfg.iteritems())
+        patterns = {k: makefilter(p) for k, p in cfg.iteritems()}
 
         patterns['all'] = lambda a: True
 
@@ -598,7 +598,7 @@ class UserClientFactory(ClientFactory):
         self.ui.set_filter(self.config['use_filter'])
 
 
-class NullFactory(object):
+class NullFactory:
     def __getattr__(self, name):
         return lambda *a, **k: None
 
@@ -688,9 +688,9 @@ def colorize(text):
                         '8':30, '9':34, 'a':32, 'b':36, 'c':31, 'd':35, 'e':33, 'f':37}
 #                        '8':38, '9':42, 'a':40, 'b':44, 'c':39, 'd':43, 'e':41, 'f':45}
 
-    if text.find(u'\u00A7') != -1:
+    if text.find('\u00A7') != -1:
         for code in mappings_mc_ansi:
-            text = text.replace(u'\u00A7' + code, '\033[' + str(mappings_mc_ansi[code]) + u'm')
+            text = text.replace('\u00A7' + code, '\033[' + str(mappings_mc_ansi[code]) + 'm')
 
     """
     Convert ansi escape codes to urwid display attributes
@@ -701,7 +701,7 @@ def colorize(text):
 
     text_attributed = []
 
-    parts = unicode(text).split(u'\x1b')
+    parts = unicode(text).split('\x1b')
 
     regex = re.compile(r"^\[([;\d]*)m(.*)$", re.UNICODE | re.DOTALL)
 

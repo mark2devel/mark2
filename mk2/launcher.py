@@ -302,7 +302,7 @@ class CommandHelp(Command):
                 line += " "*(((i+1)*12)-len(line))
             o.append(line)
 
-        return "\n".join(("  "+l for l in o))
+        return "\n".join("  "+l for l in o)
 
 
 class CommandStart(CommandTyTerminal):
@@ -331,7 +331,7 @@ class CommandStart(CommandTyTerminal):
             return
         if os.path.exists(os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'config'))):
             new_dir = os.path.dirname(new_cfg)
-            raise Mark2Error("mark2's configuration location has changed! move your config files to {0}".format(new_dir))
+            raise Mark2Error("mark2's configuration location has changed! move your config files to {}".format(new_dir))
         else:
             raise Mark2Error("mark2 is unconfigured! run `mark2 config` or `mkdir /etc/mark2 && touch /etc/mark2/mark2.properties` as root")
 
@@ -393,7 +393,7 @@ class CommandStart(CommandTyTerminal):
 
         if self.daemonize() == 0:
             with open(self.shared('pid'), 'w') as f:
-                f.write("{0}\n".format(os.getpid()))
+                f.write("{}\n".format(os.getpid()))
 
             mgr = manager.Manager(self.shared_path, self.server_name, self.server_path, self.jar_file)
             reactor.callWhenRunning(mgr.startup)
@@ -401,7 +401,7 @@ class CommandStart(CommandTyTerminal):
 
             sys.exit(0)
 
-        self.wait = '# mark2 started|stopped\.'
+        self.wait = r'# mark2 started|stopped\.'
         self.wait_from_start = True
 
 
@@ -515,7 +515,7 @@ class CommandStop(CommandTyTerminal):
     name = 'stop'
     def run(self):
         self.do_send('~stop')
-        self.wait='# mark2 stopped\.'
+        self.wait=r'# mark2 stopped\.'
 
 
 class CommandKill(CommandTyTerminal):
@@ -523,7 +523,7 @@ class CommandKill(CommandTyTerminal):
     name = 'kill'
     def run(self):
         self.do_send('~kill')
-        self.wait = '# mark2 stopped\.'
+        self.wait = r'# mark2 stopped\.'
 
 
 class CommandSend(CommandTyTerminal):

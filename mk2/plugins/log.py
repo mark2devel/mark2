@@ -13,7 +13,7 @@ class Log(Plugin):
     path      = Plugin.Property(default="logs/server-{timestamp}-{status}.log.gz")
     vanilla   = Plugin.Property(default=False)
     
-    log = u""
+    log = ""
     reason = "unknown"
     time_re = re.compile(r'(?:\d{2}:\d{2}:\d{2}) (.*)')
 
@@ -30,12 +30,12 @@ class Log(Plugin):
     def vanilla_logger(self, event):
         m = self.time_re.match(event.line)
         if m:
-            self.log += u"{0} {1}\n".format(event.time, m.group(1))
+            self.log += "{} {}\n".format(event.time, m.group(1))
         else:
-            self.log += u"{0}\n".format(event.line)
+            self.log += "{}\n".format(event.line)
     
     def logger(self, event):
-        self.log += u"{0}\n".format(event.value())
+        self.log += "{}\n".format(event.value())
     
     def pre_shutdown(self, event):
         self.reason = event.reason
@@ -52,8 +52,8 @@ class Log(Plugin):
         if not os.path.exists(os.path.dirname(path)):
             try:
                 os.makedirs(os.path.dirname(path))
-            except IOError:
-                self.console("Warning: {0} does't exist and I can't create it".format(os.path.dirname(path)),
+            except OSError:
+                self.console("Warning: {} does't exist and I can't create it".format(os.path.dirname(path)),
                              kind='error')
                 return
         

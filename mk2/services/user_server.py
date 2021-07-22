@@ -109,7 +109,7 @@ class UserServerFactory(Factory):
         self.parent.events.register(self.handle_players,      events.StatPlayers)
         self.parent.events.register(self.handle_process,      events.StatProcess)
         
-        self.stats = dict((k, '___') for k in ('memory', 'cpu', 'players_current', 'players_max'))
+        self.stats = {k: '___' for k in ('memory', 'cpu', 'players_current', 'players_max')}
     
     def buildProtocol(self, addr):
         p = UserServerProtocol()
@@ -138,7 +138,7 @@ class UserServerFactory(Factory):
     
     def handle_process(self, event):
         for n in ('cpu', 'memory'):
-            self.stats[n] = '{0:.2f}'.format(event[n])
+            self.stats[n] = '{:.2f}'.format(event[n])
 
 
 class UserServer(Plugin):

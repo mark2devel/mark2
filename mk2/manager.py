@@ -101,7 +101,7 @@ class Manager(object):
                 continue
             result = self.services.load(name)
             if not result:
-                return self.fatal_error(reason="couldn't load service: '{0}'".format(name))
+                return self.fatal_error(reason="couldn't load service: '{}'".format(name))
 
         #load plugins
         self.plugins = plugins.PluginManager(self,
@@ -168,7 +168,7 @@ class Manager(object):
             reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
 
     def console(self, line, **k):
-        for l in unicode(line).split(u"\n"):
+        for l in unicode(line).split("\n"):
             k['line'] = l
             self.events.dispatch(events.Console(**k))
     

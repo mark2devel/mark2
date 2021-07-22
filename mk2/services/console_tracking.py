@@ -26,7 +26,7 @@ class ConsoleTracking(Plugin):
             try:
                 re.compile(pattern)
             except:
-                return self.fatal_error(reason="mark2.regex.{0} isn't a valid regex!".format(key))
+                return self.fatal_error(reason="mark2.regex.{} isn't a valid regex!".format(key))
             ev.append(self.register(lambda e, e_ty=e_ty: self.dispatch(e_ty(**e.match.groupdict())),
                                     ServerOutput,
                                     pattern=pattern))

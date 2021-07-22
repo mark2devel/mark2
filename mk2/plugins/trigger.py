@@ -13,9 +13,9 @@ class Trigger(Plugin):
     
     def setup(self):
         if self.path and os.path.exists(self.path):
-            f = open(self.path, 'r')
+            f = open(self.path)
             for l in f:
-                m = re.match('^\!?([^,]+),(.+)$', l)
+                m = re.match(r'^\!?([^,]+),(.+)$', l)
                 if m:
                     a, b = m.groups()
                     c = self.triggers.get(a, [])
@@ -24,7 +24,7 @@ class Trigger(Plugin):
             f.close()
             
             if self.triggers:
-                self.register(self.trigger, ServerOutput, pattern='<([A-Za-z0-9_]{1,16})> \!(\w+)')
+                self.register(self.trigger, ServerOutput, pattern=r'<([A-Za-z0-9_]{1,16})> \!(\w+)')
     
     def trigger(self, event):
         user, trigger = event.match.groups()
