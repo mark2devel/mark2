@@ -146,11 +146,11 @@ class Plugin(metaclass=PluginMetaclass):
         missing = set(self._requires) - set(kwargs.keys())
         excess = set(kwargs.keys()) - set(self._contains)
         if missing:
-            raise Exception("Plugin {0} missing properties: {1}".
-                            format(self.__class__.__name__, ", ".join(missing)))
+            raise Exception("Plugin {} missing properties: {}"
+                            .format(self.__class__.__name__, ", ".join(missing)))
         elif excess:
-            raise Exception("Plugin {0} got extraneous properties: {1}".
-                            format(self.__class__.__name__, ", ".join(excess)))
+            raise Exception("Plugin {0} got extraneous properties: {1}"
+                            .format(self.__class__.__name__, ", ".join(excess)))
         for k, v in kwargs.items():
             try:
                 setattr(self, k, v)

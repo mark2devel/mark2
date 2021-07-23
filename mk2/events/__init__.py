@@ -45,11 +45,11 @@ class Event(metaclass=EventMetaclass):
         missing = set(self._requires) - set(args.keys())
         excess = set(args.keys()) - set(self._contains)
         if missing:
-            raise Exception("Event type {0} missing argument(s): {1}".
-                            format(self.__class__.__name__, ", ".join(missing)))
+            raise Exception("Event type {} missing argument(s): {}"
+                            .format(self.__class__.__name__, ", ".join(missing)))
         elif excess:
-            raise Exception("Event type {0} got extraneous argument(s): {1}".
-                            format(self.__class__.__name__, ", ".join(excess)))
+            raise Exception("Event type {} got extraneous argument(s): {}"
+                            .format(self.__class__.__name__, ", ".join(excess)))
         for k, v in args.items():
             setattr(self, k, v)
 
