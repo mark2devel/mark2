@@ -355,7 +355,7 @@ class CommandStart(CommandTyTerminal):
             sys.exit(0)
 
         null = os.open(os.devnull, os.O_RDWR)
-        for fileno in (1, 2, 3):
+        for fileno in (sys.stdin.fileno(), sys.stdout.fileno(), sys.stderr.fileno()):
             try:
                 os.dup2(null, fileno)
             except:
