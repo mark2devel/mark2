@@ -277,10 +277,10 @@ def from_json(data):
     data = json.loads(data)
     return get_by_name(data['name'])(**data['data'])
 
-from console import *
-from error   import *
-from hook    import *
-from player  import *
-from server  import *
-from stat    import *
-from user    import *
+from .console import *
+from .error   import *
+from .hook    import *
+from .player  import *
+from .server  import *
+from .stat    import *
+from .user    import *
