@@ -26,7 +26,7 @@ class TabEvent:
         else:
             self.left, right = line[:pos], line[pos:]
 
-        self.players = filter(lambda p: re.match(right, p, re.I), players)
+        self.players = [player for player in players if re.match(right, p, re.I)]
         if len(self.players) == 0:
             self.fail = line
         self.index = 0
@@ -376,7 +376,7 @@ class SystemUsers(set):
 
     def update_users(self):
         self.clear()
-        for u in psutil.get_users():
+        for u in psutil.users():
             self.add(u.name)
 
 
@@ -399,6 +399,8 @@ class App:
         reactor.spawnProcess(p, self.cmd[0], self.cmd)
 
     def got_out(self, d):
+        if type(d) != str:
+            d = d.decode("utf-8")
         self.buff += d
 
     def got_exit(self, *a):
@@ -577,7 +579,7 @@ class UserClientFactory(ClientFactory):
                 m = p.match(msg['data'])
                 return m and m.end() == len(msg['data'])
             return _filter
-        patterns = {k: makefilter(p) for k, p in cfg.iteritems()}
+        patterns = {k: makefilter(p) for k, p in cfg.items()}
 
         patterns['all'] = lambda a: True
 
@@ -606,7 +608,7 @@ class NullFactory:
 
 class UserClientProtocol(LineReceiver):
     MAX_LENGTH = 999999
-    delimiter = '\n'
+    delimiter = b'\n'
     enabled = False
 
     def __init__(self, name, user, factory):
@@ -665,7 +667,7 @@ class UserClientProtocol(LineReceiver):
     def send(self, ty, **d):
         d['type'] = ty
         if self.alive:
-            self.sendLine(json.dumps(d))
+            self.sendLine(json.dumps(d).encode("utf-8"))
 
     def run_command(self, command):
         self.send("input", line=command, user=self.user)
