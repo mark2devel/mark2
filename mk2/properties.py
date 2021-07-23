@@ -2,6 +2,7 @@ import os
 import re
 import shlex
 import zipfile
+from functools import reduce
 
 
 def load(cls, *files):
@@ -55,8 +56,8 @@ class Properties(dict):
         r_seperator  = r_unescaped + r_whitespace + r_unescaped + '[' + re.escape(''.join(c_seperator + c_whitespace)) + ']'
 
         #This handles backslash escapes in keys/values
-        def parse(input):
-            token = list(input)
+        def parse(inp):
+            token = list(inp)
             out = ""
             uni = False
             while len(token) > 0:
@@ -65,28 +66,32 @@ class Properties(dict):
                     try:
                         c = token.pop(0)
                         if c in c_escapes:
-                            out += ('\\'+c).decode('string-escape')
+                            out += ('\\' + c).encode('latin1') \
+                                             .decode('unicode-escape') \
+                                             .encode('latin1') \
+                                             .decode('utf-8')
                         elif c == 'u':
                             b = ""
                             for i in range(4):
                                 b += token.pop(0)
-                            out += unichr(int(b, 16))
+                            out += chr(int(b, 16))
                             uni = True
                         else:
                             out += c
                     except IndexError:
-                        raise ValueError("Invalid escape sequence in input: %s" % input)
+                        raise ValueError("Invalid escape sequence in input: %s" % inp)
                 else:
                     out += c
 
-            if not uni:
-                out = out.encode('ascii')
             return out
-
-        d = f.read()
+        
+        if f.mode == "rb":
+            d = f.read().decode('utf-8')
+        else:
+            d = f.read()
 
         #Deal with Windows / Mac OS linebreaks
-        d = d.replace('\r\n','\n')
+        d = d.replace('\r\n', '\n')
         d = d.replace('\r', '\n')
         #Strip leading whitespace
         d = re.sub('(?m)\n\\s*', '\n', d)
@@ -130,7 +135,7 @@ class Properties(dict):
         f.close()
 
     def get_by_prefix(self, prefix):
-        for k, v in self.iteritems():
+        for k, v in self.items():
             if k.startswith(prefix):
                 yield k[len(prefix):], v
 
@@ -139,7 +144,7 @@ class Mark2Properties(Properties):
     def get_plugins(self):
         plugins = {}
         enabled = []
-        for k, v in self.iteritems():
+        for k, v in self.items():
             m = re.match(r'^plugin\.(.+)\.(.+)$', k)
             if m:
                 plugin, k2 = m.groups()
@@ -162,7 +167,7 @@ class Mark2Properties(Properties):
         options = []
         if self.get('java.cli_prepend', '') != '':
             options.extend(shlex.split(self['java.cli_prepend']))
-        for k, v in self.iteritems():
+        for k, v in self.items():
             m = re.match(r'^java\.cli\.([^\.]+)\.(.+)$', k)
             if m:
                 a, b = m.groups()
@@ -187,7 +192,7 @@ class Mark2Properties(Properties):
     
     def get_format_options(self):
         options = {}
-        for k, v in self.iteritems():
+        for k, v in self.items():
             m = re.match(r'^mark2\.format\.(.*)$', k)
             if m:
                 options[m.group(1)] = v
