@@ -136,7 +136,7 @@ class Process(Plugin):
             self.transport.signalProcess('KILL')
         else:
             self.parent.console("stopping %s (caused by %s)" % (self.parent.server_name,e.reason))
-            self.transport.write(self.stop_cmd)
+            self.transport.write(self.stop_cmd.encode(self.locale))
             self.failsafe = self.parent.events.dispatch_delayed(events.ServerStop(respawn=e.respawn, reason=e.reason, kill=True, announce=False), self.parent.config['mark2.shutdown_timeout'])
 
     def server_stopping(self, e):
