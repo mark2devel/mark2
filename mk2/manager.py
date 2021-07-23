@@ -118,7 +118,7 @@ class Manager(object):
         o  = "An event handler threw an exception: \n"
         o += "  Callback: %s\n" % callback
         o += "  Event: \n"
-        o += "".join(("    %s: %s\n" % (k, v) for k, v in event.serialize().iteritems()))
+        o += "".join(("    %s: %s\n" % (k, v) for k, v in event.serialize().items()))
 
         # log the message and a very verbose exception log to the log file
         log.msg(o)
@@ -188,7 +188,7 @@ class Manager(object):
                                             data=event.data))
 
     def handle_console(self, event):
-        for line in event.value().encode('utf8').split("\n"):
+        for line in event.value().split("\n"):
             log.msg(line, system="mark2")
     
     def handle_fatal(self, event):

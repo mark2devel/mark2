@@ -30,9 +30,7 @@ class EventMetaclass(type):
         return type.__init__(cls, name, bases, dict)
 
 
-class Event:
-    __metaclass__ = EventMetaclass
-
+class Event(metaclass=EventMetaclass):
     Arg = _EventArg
 
     EAT = 1
@@ -44,15 +42,15 @@ class Event:
         args.update(d)
         self._args = {}
 
-        missing = set(self._requires) - set(args.iterkeys())
-        excess = set(args.iterkeys()) - set(self._contains)
+        missing = set(self._requires) - set(args.keys())
+        excess = set(args.keys()) - set(self._contains)
         if missing:
             raise Exception("Event type {0} missing argument(s): {1}".
                             format(self.__class__.__name__, ", ".join(missing)))
         elif excess:
             raise Exception("Event type {0} got extraneous argument(s): {1}".
                             format(self.__class__.__name__, ", ".join(excess)))
-        for k, v in args.iteritems():
+        for k, v in args.items():
             setattr(self, k, v)
 
         self.setup()
@@ -67,7 +65,7 @@ class Event:
     def _prefilter_argcheck(cls, args):
         spec = inspect.getargspec(cls.prefilter)
 
-        args = set(args.iterkeys())
+        args = set(args.keys())
         required_args = set(spec.args[1:-len(spec.defaults or [])])
 
         if required_args - args:
@@ -132,7 +130,7 @@ class EventList:
     def _build_cache(self):
         def key(i):
             return i[1][0].priority
-        handlers = itertools.groupby(sorted(self._handlers.iteritems(),
+        handlers = itertools.groupby(sorted(self._handlers.items(),
                                             key=key,
                                             reverse=True), key)
         handlers = (l for group, l in handlers)
@@ -211,7 +209,7 @@ class EventDispatcher:
     def _next_event(self, event, iter_, handled=False):
         while True:
             try:
-                id_, callback, args = iter_.next()
+                id_, callback, args = next(iter_)
             except StopIteration:
                 return succeed(handled)
             if event.prefilter(**args):
