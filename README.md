@@ -26,9 +26,9 @@ See [INSTALL.md](INSTALL.md) for requirements and installation instructions
 
 See [USAGE.md](USAGE.md) for details on how to use mark2
 
-## NOTICE!
+## NOTICE
 
-mark2 is currently not functioning fully in this port. As of now, you can do some basic stuff like connect to already running servers and some of the functions work, but you cannot start new servers yet.
+mark2 is currently not fully functional in this port. Errors are going to happen due to how old mark2 code was. Please report them.
 
 ## Features
 
