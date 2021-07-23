@@ -486,7 +486,7 @@ class UserClientFactory(ClientFactory):
         return self.client
 
     def switch_server(self, delta=1):
-        index = self.servers.index(self.client.name)
+        index = self.servers.index(self.client.name.decode("utf-8"))
         self.update_servers()
         if len(self.servers) == 0:  # no running servers
             return self.ui.stop()
