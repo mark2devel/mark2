@@ -28,7 +28,7 @@ class Scrollback:
 
 class UserServerProtocol(LineReceiver):
     MAX_LENGTH = 999999
-    delimiter = '\n'
+    delimiter = b'\n'
     
     tab_last = None
     tab_index = 0
