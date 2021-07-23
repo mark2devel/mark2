@@ -52,7 +52,7 @@ class UserServerProtocol(LineReceiver):
         self._handlers = []
     
     def lineReceived(self, line):
-        msg = json.loads(str(line))
+        msg = json.loads(line.decode("utf-8"))
         ty = msg["type"]
         
         if ty == "attach":
@@ -81,7 +81,7 @@ class UserServerProtocol(LineReceiver):
         
     def send_helper(self, ty, **k):
         k["type"] = ty
-        self.sendLine(json.dumps(k))
+        self.sendLine(json.dumps(k).encode("utf-8"))
     
     def console_helper(self, event):
         self.send_helper("console", **event.serialize())
