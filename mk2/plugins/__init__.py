@@ -369,8 +369,8 @@ class PluginManager(dict):
         return self.load(name)
 
     def unload_all(self):
-        for name in self.keys():
-            self.unload(name)
+        for plugin in set(self):
+            self.unload(plugin)
 
     def reload_all(self):
         self.unload_all()

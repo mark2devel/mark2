@@ -41,7 +41,7 @@ class Builtin(Plugin):
     def handle_cmd_reload_plugin(self, event):
         if event.args in self.parent.plugins:
             self.parent.plugins.reload(event.args)
-            self.console("%s reloaded." % event.args)
+            self.console("{} reloaded.".format(event.args))
         else:
             self.console("unknown plugin.")
 
@@ -61,7 +61,7 @@ class Builtin(Plugin):
         for p in requires_reload:
             self.parent.plugins.reload(p)
         reloaded = filter(None, requires_reload)
-        self.console("%d plugins reloaded: %s" % (len(reloaded), ", ".join(reloaded)))
+        self.console("{} plugins reloaded: {}".format(len(reloaded), ", ".join(reloaded)))
 
     def handle_cmd_reload(self, event):
         self.parent.plugins.unload_all()
