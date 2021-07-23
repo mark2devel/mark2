@@ -216,7 +216,7 @@ class CommandTySelective(CommandTyStateful):
 
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.connect(self.shared('sock'))
-        s.send(d)
+        s.send(d.encode())
         s.close()
 
 
