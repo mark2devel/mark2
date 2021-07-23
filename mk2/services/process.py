@@ -162,7 +162,7 @@ class Process(Plugin):
 
     def update_stat(self, process):
         try:
-            self.parent.events.dispatch(events.StatProcess(cpu=process.get_cpu_percent(interval=0), memory=process.get_memory_percent()))
+            self.parent.events.dispatch(events.StatProcess(cpu=process.cpu_percent(interval=0), memory=process.memory_percent()))
         except psutil.NoSuchProcess:
             pass
 
