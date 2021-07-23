@@ -227,11 +227,11 @@ class Manager(object):
         self.send(text)
 
     def handle_player_join(self, event):
-        self.players.add(str(event.username))
+        self.players.add(event.username.decode("utf-8"))
         self.events.dispatch(events.StatPlayers(players=list(self.players)))
 
     def handle_player_quit(self, event):
-        self.players.discard(str(event.username))
+        self.players.discard(event.username.decode("utf-8"))
         self.events.dispatch(events.StatPlayers(players=list(self.players)))
 
     def handle_server_stopped(self, event):
