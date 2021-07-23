@@ -58,7 +58,7 @@ class PluginTestBase:
         self.plugins = plugins.PluginManager(self, loaders=(TestPluginLoader,))
 
     def console(self, *a, **kw):
-        print a, kw
+        print(a, kw)
 
     def get_plugins(self):
         return {'test_plugins': {}}
@@ -174,7 +174,7 @@ class PluginTestCase(PluginTestBase, unittest.TestCase):
 
         self.plugin.repeating_task(task, 10)
 
-        for i in xrange(100):
+        for i in range(100):
             self.events.advance(10)
 
         self.assertEqual(calls[0], 100)
@@ -187,12 +187,12 @@ class PluginTestCase(PluginTestBase, unittest.TestCase):
 
         self.plugin.repeating_task(task, 10)
 
-        for i in xrange(100):
+        for i in range(100):
             self.events.advance(10)
 
         self.plugin.stop_tasks()
 
-        for i in xrange(100):
+        for i in range(100):
             self.events.advance(10)
 
         self.assertEqual(calls[0], 100)

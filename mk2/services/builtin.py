@@ -1,9 +1,6 @@
-from mk2 import events, properties
+from mk2 import events
 from mk2.services import process
-from mk2.shared import find_config, open_resource
 from mk2.plugins import Plugin
-
-import os
 
 
 class Builtin(Plugin):

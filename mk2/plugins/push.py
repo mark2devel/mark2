@@ -6,7 +6,7 @@ from twisted.internet.defer import Deferred, DeferredList
 from twisted.mail import smtp, relaymanager
 from twisted.web.client import getPage
 
-from cStringIO import StringIO
+from io import StringIO
 from email.mime.text import MIMEText
 from urllib import urlencode
 import re

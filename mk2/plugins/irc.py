@@ -362,7 +362,7 @@ class IRCBot(irc.IRCClient):
 
     def sasl_start(self, cap_list):
         if 'sasl' not in cap_list:
-            print cap_list
+            print(cap_list)
             return
         self.request_cap('sasl')
         self.sasl_result = defer.Deferred()
@@ -409,11 +409,11 @@ class IRCBot(irc.IRCClient):
             self.console("irc: failed to log in.")
 
     def irc_904(self, prefix, params):
-        print params
+        print(params)
         self.sasl_failed()
 
     def irc_905(self, prefix, params):
-        print params
+        print(params)
         self.sasl_failed()
 
     def irc_906(self, prefix, params):
@@ -611,7 +611,7 @@ class IRC(Plugin):
 
     def format(self, format, **data):
         if self.game_columns:
-            f = unicode(format).split(',', 1)
+            f = str(format).split(',', 1)
             f[0] = f[0].format(**data)
             if len(f) == 2:
                 f[0] = f[0].rjust(self.column_width)

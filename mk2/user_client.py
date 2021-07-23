@@ -2,17 +2,18 @@ import getpass
 import glob
 import json
 import os
+import re
 from string import Template
+
+import psutil
+import urwid
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory, ProcessProtocol
 from twisted.internet.task import LoopingCall
 from twisted.protocols.basic import LineReceiver
-import properties
-import psutil
-import re
-import sys
-import urwid
-from shared import console_repr, open_resource
+
+from . import properties
+from .shared import console_repr, open_resource
 
 
 class TabEvent:
@@ -354,7 +355,7 @@ class UI:
         self.redraw()
 
     def set_filter(self, filter_):
-        if isinstance(filter_, basestring):
+        if isinstance(filter_, str):
             return self.set_filter(self.filters[filter_])
         self.filter = filter_.apply
         self.set_output()
@@ -701,7 +702,7 @@ def colorize(text):
 
     text_attributed = []
 
-    parts = unicode(text).split('\x1b')
+    parts = str(text).split('\x1b')
 
     regex = re.compile(r"^\[([;\d]*)m(.*)$", re.UNICODE | re.DOTALL)
 

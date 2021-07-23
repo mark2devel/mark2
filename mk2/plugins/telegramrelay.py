@@ -157,7 +157,7 @@ class TelegramRelay(Plugin):
 
     def format(self, format, **data):
         if self.game_columns:
-            f = unicode(format).split(',', 1)
+            f = str(format).split(',', 1)
             f[0] = f[0].format(**data)
             if len(f) == 2:
                 f[0] = f[0].rjust(self.column_width)

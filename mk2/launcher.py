@@ -257,17 +257,17 @@ class CommandTyTerminal(CommandTySelective):
                     continue
 
                 if line[0] in (" ", "\t"):
-                    print line
+                    print(line)
                     continue
 
                 line = line.split(" ", 3)
                 if line[2] == '[mark2]':
                     line2 = line[3].split(" ", 2)
                     if re.search(self.wait, line2[2]):
-                        print line[3]
+                        print(line[3])
                         return
                     elif not self.only:
-                        print line[3]
+                        print(line[3])
 
 
 class CommandHelp(Command):
@@ -276,20 +276,21 @@ class CommandHelp(Command):
     value_spec = "[COMMAND]"
     def run(self):
         if self.value is None:
-            print help_text.format(
+            print(help_text.format(
                 usage=usage_text,
                 commands=self.columns([(c.name, c.value_spec, c.__doc__) for c in commands]))
+            )
         elif self.value in commands_d:
             cls = commands_d[self.value]
-            print help_sub_text.format(
+            print(help_sub_text.format(
                 subcommand = self.value,
                 doc = cls.__doc__,
                 value_spec = cls.value_spec
+                )
             )
             opts = cls.get_options_spec()
             if len(opts) > 0:
-                print "options:"
-                print self.columns([(' '.join(o[1]), o[2], o[3]) for o in opts]) + "\n"
+                print("options: \n{}\n".format(self.columns([(' '.join(o[1]), o[2], o[3]) for o in opts])))
         else:
             raise Mark2Error("Unknown command: %s" % self.value)
 
@@ -462,7 +463,7 @@ class CommandConfig(Command):
                 file_new.write(data)
 
         if "MARK2_TEST" not in os.environ and self.options.get('ask', False):
-            response = raw_input('would you like to configure mark2 now? [yes] ') or 'yes'
+            response = input('would you like to configure mark2 now? [yes] ') or 'yes'
             if response != 'yes':
                 return write_config() if not os.path.exists(path_new) else None
 
@@ -499,7 +500,7 @@ class CommandList(CommandTyStateful):
     name = 'list'
     def run(self):
         for s in self.servers:
-            print s
+            print(s)
 
 
 class CommandAttach(CommandTySelective):
@@ -553,15 +554,15 @@ class CommandJarList(Command):
     def run(self):
         def err(what):
             if reactor.running: reactor.stop()
-            print "error: %s" % what.value
+            print("error: {}".format(what.value))
 
         def handle(listing):
             if reactor.running: reactor.stop()
             if len(listing) == 0:
-                print "error: no server jars found!"
+                print("error: no server jars found!")
             else:
-                print "The following server jars/zips are available:"
-            print listing
+                print("The following server jars/zips are available:")
+            print(listing)
 
         def start():
             d = servers.jar_list()
@@ -583,17 +584,17 @@ class CommandJarGet(Command):
 
         def err(what):
             #reactor.stop()
-            print "error: %s" % what.value
+            print("error: {}".format(what.value))
 
-        def handle((filename, data)):
+        def handle(filename, data):
             reactor.stop()
             if os.path.exists(filename):
-                print "error: %s already exists!" % filename
+                print("error: {} already exists!").format(filename)
             else:
                 f = open(filename, 'wb')
                 f.write(data)
                 f.close()
-                print "success! saved as %s" % filename
+                print("success! saved as {}".format(filename))
 
         def start():
             d = servers.jar_get(self.value)
@@ -625,6 +626,6 @@ def main():
 
         return 0
     except Mark2Error as e:
-        print e
+        print(e)
 
         return 1

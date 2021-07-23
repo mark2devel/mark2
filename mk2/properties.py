@@ -7,7 +7,7 @@ import zipfile
 def load(cls, *files):
     o = None
     for f in files:
-        if isinstance(f, basestring):
+        if isinstance(f, str):
             if os.path.isfile(f):
                 with open(f) as f:
                     o = cls(f, o)
@@ -180,7 +180,7 @@ class Mark2Properties(Properties):
                     else:
                         options.append('-XX:%s=%s' % (b, v))
                 else:
-                    print "Unknown JVM option type: %s" % a
+                    print("Unknown JVM option type: {}".format(a))
         if self.get('java.cli_extra', '') != '':
             options.extend(shlex.split(self['java.cli_extra']))
         return options

@@ -18,7 +18,7 @@ class RedisProtocol(protocol.Protocol):
         lines = []
         lines.append('*' + str(len(args)))
         for a in args:
-            if isinstance(a, unicode):
+            if isinstance(a, str):
                 a = a.encode('utf8')
             lines.append('$' + str(len(a)))
             lines.append(a)

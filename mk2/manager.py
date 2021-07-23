@@ -1,13 +1,13 @@
 import os
-import traceback
 import signal
+import traceback
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.python import log, logfile
 
 #mark2 things
-from . import events, properties, plugins
+from . import events, plugins, properties
 from .events import EventPriority
 from .services import process
 from .shared import find_config, open_resource
@@ -38,7 +38,7 @@ class Manager(object):
             self.really_start()
         except Exception:
             for l in traceback.format_exc().split("\n"):
-                print l
+                print(l)
                 self.console(l, kind='error')
             self.shutdown()
 
@@ -168,7 +168,7 @@ class Manager(object):
             reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
 
     def console(self, line, **k):
-        for l in unicode(line).split("\n"):
+        for l in str(line).split("\n"):
             k['line'] = l
             self.events.dispatch(events.Console(**k))
     

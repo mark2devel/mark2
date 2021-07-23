@@ -117,7 +117,7 @@ class Process(Plugin):
         e.handled = True
         if self.protocol is None or not self.protocol.alive:
             if e.respawn == events.ServerStop.TERMINATE:
-                print "I'm stopping the reactor now! Reason: %s" % e.reason
+                print("I'm stopping the reactor now! Reason: {}".format(e.reason))
                 reactor.stop()
                 return
             else:
@@ -157,7 +157,7 @@ class Process(Plugin):
         elif self.service_stopping:
             self.service_stopping.callback(0)
         else:
-            print "I'm stopping the reactor now"
+            print("I'm stopping the reactor now")
             reactor.stop()
 
     def update_stat(self, process):

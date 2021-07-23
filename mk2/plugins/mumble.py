@@ -19,7 +19,9 @@ class MumbleProtocol(DatagramProtocol):
     def ping(self, *a):
         self.transport.write('\x00'*12, addr=(self.host, self.port))
 
-    def datagramReceived(self, data, (host, port)):
+    def datagramReceived(self, data, addr):
+        # Compatibility?
+        host, port = addr[0], addr[1]
         self.buff += data
         if len(self.buff) < 24:
             return

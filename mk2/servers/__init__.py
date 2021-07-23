@@ -94,7 +94,7 @@ def get_raw():
             if ok:
                 results.extend(data)
             else:
-                print "error: %s" % data.value
+                print("error: {}".format(data.value))
         d_results.callback(results)
 
     dd.addCallback(callback2)

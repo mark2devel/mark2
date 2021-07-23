@@ -1,9 +1,9 @@
+import json
+import os
+
 from twisted.internet import reactor
 from twisted.internet.protocol import Factory
 from twisted.protocols.basic import LineReceiver
-
-import os
-import json
 
 from mk2 import events
 from mk2.plugins import Plugin
