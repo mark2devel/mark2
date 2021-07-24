@@ -141,7 +141,7 @@ class PMenuWrap(urwid.WidgetPlaceholder):
         acc = self._pmenu_acc
         acc.append(result)
         #run command?
-        if (self._pmenu_stage == 1 and not (result in ('kick', 'ban') and len(self._pmenu_lists[2][1]) > 0)) or\
+        if (self._pmenu_stage == 1 and (result not in ('kick', 'ban') and len(self._pmenu_lists[2][1]) > 0)) or\
            (self._pmenu_stage == 2):
             self.dispatch(' '.join([acc[1]] + [acc[0]] + acc[2:]))
             self.first()
@@ -171,7 +171,7 @@ class PMenuWrap(urwid.WidgetPlaceholder):
 
     def set_players(self, players):
         content = self._pmenu_lists[0][1]
-        diff = lambda a, b: [[e for e in d if not e in c] for c, d in ((a, b), (b, a))]
+        diff = lambda a, b: [[e for e in d if e not in c] for c, d in ((a, b), (b, a))]
 
         add, remove = diff([b.original_widget.label for b in list(content)], players)
 
@@ -447,7 +447,7 @@ class UserClientFactory(ClientFactory):
 
         #read the config
         self.config = properties.load(properties.ClientProperties, open_resource('resources/mark2rc.default.properties'), os.path.expanduser('~/.mark2rc.properties'))
-        assert not self.config is None
+        assert self.config is not None
         self.stats_template = Template(self.config['stats'])
 
         #start apps

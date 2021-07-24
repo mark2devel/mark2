@@ -226,7 +226,7 @@ class Lang(Properties):
     def get_deaths(self):
         seen = []
         for k, v in self.get_by_prefix('death.'):
-            if not v in seen:
+            if v not in seen:
                 seen.append(v)
                 regex = reduce(lambda a, r: a.replace(*r),
                                ((r"\%{}\$s".format(i + 1),
