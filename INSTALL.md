@@ -3,9 +3,9 @@
 ## requirements
 
 * UNIX-like operating system (Linux, Mac OS X, BSD)
-* python 2.6/2.7 (+ dev package for psutil installation)
+* python 3.0+ (+ dev package for psutil installation)
 * psutil
-* urwid 1.x
+* urwid
 * twisted
 * twisted-web
 * twisted-words (for IRC support)
@@ -14,41 +14,22 @@
 
 ### debian/ubuntu
 
-This should suffice:
+    $ sudo apt-get install git libssl-dev python3-dev python3-pip
+    $ sudo pip3 install -r requirements.txt
 
-    $ sudo apt-get install git libssl-dev python-dev python-pip
-    $ sudo pip install -r requirements.txt
-    
 ### arch
 
-    # pacman -S --needed python2 python2-psutil python2-urwid python2-twisted python2-service-identity python2-feedparser python2-pyopenssl
-    
+    # pacman -S --needed python python-psutil python-urwid python-twisted python-service-identity python-feedparser python-pyopenssl
+
 The `--needed` flag will skip packages already installed.
 
 ### centos
 
-CentOS and some other distros ship an older version of python. First check you have python 2.6 or 2.7:
-
-    $ python2.6 -V
-    $ python2.7 -V
-
 If at least one of them works, you should be able to do:
 
-    $ sudo yum install python-devel
-    $ sudo easy_install pip
-    $ sudo pip install -r requirements.txt
-
-Otherwise, you need to install python 2.7. A decent guide for centos is
-[located here](http://toomuchdata.com/2012/06/25/how-to-install-python-2-7-3-on-centos-6-2/). Be sure to follow the
-instructions for installing distribute also.
-
-Next, install twisted from the package on [their website](http://twistedmatrix.com/). Don't use easy_install - you
-won't get the binaries that ship with twisted.
-
-easy_install for python 2.7 is probably in `/usr/local/bin/easy_install-2.7`. You should use it to install the remaining
-mark2 dependencies:
-
-    $ sudo /usr/local/bin/easy_install-2.7 psutil urwid feedparser
+    $ sudo yum install python3-devel
+    $ sudo yum install python3-pip
+    $ sudo pip3 install -r requirements.txt
 
 ## installation
 
