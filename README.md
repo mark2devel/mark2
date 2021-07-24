@@ -26,10 +26,6 @@ See [INSTALL.md](INSTALL.md) for requirements and installation instructions
 
 See [USAGE.md](USAGE.md) for details on how to use mark2
 
-## NOTICE
-
-mark2 is currently not fully functional in this port. Errors are going to happen due to how old mark2 code was. Please report them.
-
 ## Features
 
 * Your server runs in the background
@@ -73,7 +69,3 @@ Typical leave regex: `mark2.regex.quit=\\[(.*)\\]: (?P<username>[A-Za-z0-9_]{1,1
 ### Missing process information in the right side panel
 
 This usually happens when the `psutils` module is installed incorrectly or for the wrong python version. You should double check you installed it properly using `pip install psutil` on ubunutu or install it manually in the python 2 environment
-
-### mark2 has some sort of python error or exception upon starting
-
-This can happen for a few reasons but the most likely reason is you are trying to run mark2 using python 3. In the terminal, run `python -V`, ensure that it is a version of Python 2 (Python 2.7 is best). If for some reason the above command says python 3, you need to change your system to point the `python` command to a python 2 install. Once you point the python command to the correct python version, you'll have to install all the requirements again. Once you do that, you shouldn't have python errors when running mark2.
