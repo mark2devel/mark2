@@ -3,3 +3,4 @@ psutil==5.8.0
 pyOpenSSL==20.0.1
 Twisted==21.2.0
 urwid==2.1.2
+service_identity==21.1.0
