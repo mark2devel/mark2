@@ -56,7 +56,7 @@ class Monitor(Plugin):
     crash_enabled  = Plugin.Property(default=True)
     crash_timeout  = Plugin.Property(default=3)
     crash_warn     = Plugin.Property(default=0)
-    crash_unknown_cmd_message    = Plugin.Property(default="Unknown command.*")
+    crash_unknown_cmd_message    = Plugin.Property(default="Unknown.*command.*")
     crash_check_command    = Plugin.Property(default="")
 
     oom_enabled          = Plugin.Property(default=True)
