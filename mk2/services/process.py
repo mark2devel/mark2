@@ -54,7 +54,7 @@ class Process(Plugin):
     transport = None
     failsafe = None
     stat_process = None
-    done_pattern = Plugin.Property(default='Done \\(([0-9\\.]+)s\\)\\!.*')
+    done_pattern = Plugin.Property(default='Done \(([0-9\.]+)s\)!.*')
     stop_cmd = Plugin.Property(default='stop\n')
     java_path = Plugin.Property(default='java')
     server_args = Plugin.Property(default='')
