@@ -1,7 +1,6 @@
 import getpass
 import glob
 import json
-from mk2.events.server import ServerStart
 import os
 import re
 from string import Template
