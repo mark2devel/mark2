@@ -18,7 +18,7 @@ class RedisProtocol(protocol.Protocol):
         lines = []
         lines.append('*' + str(len(args)))
         for a in args:
-            if isinstance(a, unicode):
+            if isinstance(a, str):
                 a = a.encode('utf8')
             lines.append('$' + str(len(a)))
             lines.append(a)
@@ -55,7 +55,7 @@ class Redis(Plugin):
             if ty:
                 self.register(self.on_event, ty)
             else:
-                self.console("redis: couldn't bind to event: {0}".format(ev))
+                self.console("redis: couldn't bind to event: {}".format(ev))
 
     def on_event(self, event):
         self.factory.relay(event.serialize())

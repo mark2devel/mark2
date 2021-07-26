@@ -4,15 +4,16 @@ from setuptools.command.install import install
 import os
 import sys
 
-MARK2_VERSION = "0.1.4.3"
+MARK2_VERSION = "2.0"
 
 requirements = ["{0}=={1}".format(*s) for s in [
 
-("feedparser", "5.1.3"),
-("psutil",     "0.6.1"),
-("pyOpenSSL",  "0.13"),
-("Twisted",    "13.0.0"),
-("urwid",      "1.1.1"),
+("feedparser",       "6.0.8"),
+("psutil",           "5.8.0"),
+("pyOpenSSL",        "20.0.1"),
+("Twisted",          "21.2.0"),
+("urwid",            "2.1.2"),
+("service_identity", "21.1.0")
 
 ] if "MARK2_NO_{0}".format(s[0].upper()) not in os.environ]
 
@@ -54,7 +55,7 @@ def getframe(depth=0):
     i = 0
     while i <= depth:
         frame = _getframe(i)
-        if frame.f_code == mark2install.run.im_func.func_code:
+        if frame.f_code == mark2install.run.__code__:
             depth += 1
         i += 1
     return frame

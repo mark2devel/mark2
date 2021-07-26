@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from os import path
 import imp
 import inspect
@@ -17,13 +16,13 @@ class PluginLoadError(Exception):
         self.exc = exc
 
     def format(self, name):
-        l = ["{0}: {1}".format(name, self.message)]
+        l = ["{}: {}".format(name, self.message)]
         if self.exc:
             l += ''.join(traceback.format_exception(*self.exc)).split('\n')
         return l
 
 
-class PluginLoader(object):
+class PluginLoader:
     def __init__(self, search_path):
         self.search_path = search_path
 
@@ -41,9 +40,9 @@ class ResourcePluginLoader(PluginLoader):
                 if issubclass(cls, Plugin) and not cls is Plugin:
                     return cls, None
             #if we've reached this point, there's no subclass of Plugin in the file!
-            raise PluginLoadError("a file for '{0}' exists, but there is no plugin in it".format(name))
+            raise PluginLoadError("a file for '{}' exists, but there is no plugin in it".format(name))
         except Exception:
-            raise PluginLoadError("'{0}' failed to load".format(name), sys.exc_info())
+            raise PluginLoadError("'{}' failed to load".format(name), sys.exc_info())
 
     def find_plugins(self):
         for f in pkg_resources.resource_listdir('mk2', self.search_path):
@@ -55,36 +54,36 @@ class ResourcePluginLoader(PluginLoader):
 
 class EntryPointPluginLoader(PluginLoader):
     def load_plugin(self, name):
-        pl = list(pkg_resources.iter_entry_points('mark2.{0}'.format(self.search_path), name))
+        pl = list(pkg_resources.iter_entry_points('mark2.{}'.format(self.search_path), name))
         if len(pl) == 0:
             return False
         elif len(pl) > 1:
             def_list = ', '.join(ep.dist.project_name for ep in pl)
-            raise PluginLoadError("{0} is multiply provided (by {1})".format(name, def_list))
+            raise PluginLoadError("{} is multiply provided (by {})".format(name, def_list))
         # we've established that pl contains exactly one EntryPoint
         ep = pl[0]
         try:
             ep.require()
         except ImportError:
-            raise PluginLoadError("couldn't load requirements for {0}".format(name), sys.exc_info())
+            raise PluginLoadError("couldn't load requirements for {}".format(name), sys.exc_info())
         try:
             # force reloading
             if ep.module_name in sys.modules:
                 del sys.modules[ep.module_name]
             cls = ep.load(require=False)
         except ImportError:
-            raise PluginLoadError("couldn't load '{0}'".format(name), sys.exc_info())
+            raise PluginLoadError("couldn't load '{}'".format(name), sys.exc_info())
         # cls must be a Plugin subclass
         if not issubclass(cls, Plugin):
-            raise PluginLoadError("'{0}' was advertised, but is not a Plugin".format(name))
+            raise PluginLoadError("'{}' was advertised, but is not a Plugin".format(name))
         return cls, ep.dist.version
 
     def find_plugins(self):
-        for ep in pkg_resources.iter_entry_points('mark2.{0}'.format(self.search_path)):
+        for ep in pkg_resources.iter_entry_points('mark2.{}'.format(self.search_path)):
             yield ep.name
 
 
-class _PluginProperty(object):
+class _PluginProperty:
     def __init__(self, default=None, type_=None, required=False):
         self.default = default
         self.required = required
@@ -120,9 +119,7 @@ class PluginMetaclass(type):
         return type.__init__(cls, name, bases, dict)
 
 
-class Plugin:
-    __metaclass__ = PluginMetaclass
-
+class Plugin(metaclass=PluginMetaclass):
     Property = _PluginProperty
 
     enabled = Property()
@@ -146,20 +143,20 @@ class Plugin:
 
         self._args = {}
 
-        missing = set(self._requires) - set(kwargs.iterkeys())
-        excess = set(kwargs.iterkeys()) - set(self._contains)
+        missing = set(self._requires) - set(kwargs.keys())
+        excess = set(kwargs.keys()) - set(self._contains)
         if missing:
-            raise Exception("Plugin {0} missing properties: {1}".
-                            format(self.__class__.__name__, ", ".join(missing)))
+            raise Exception("Plugin {} missing properties: {}"
+                            .format(self.__class__.__name__, ", ".join(missing)))
         elif excess:
-            raise Exception("Plugin {0} got extraneous properties: {1}".
-                            format(self.__class__.__name__, ", ".join(excess)))
-        for k, v in kwargs.iteritems():
+            raise Exception("Plugin {0} got extraneous properties: {1}"
+                            .format(self.__class__.__name__, ", ".join(excess)))
+        for k, v in kwargs.items():
             try:
                 setattr(self, k, v)
             except ValueError:
                 expected_type = getattr(self.__class__, k).type.__name__
-                raise Exception("{0!r} is invalid for {1}.{2} which expects type {3}".format(v, self.__class__.__name__, k, expected_type))
+                raise Exception("{!r} is invalid for {}.{} which expects type {}".format(v, self.__class__.__name__, k, expected_type))
         
         self.register(self.server_started, ServerStarted)
         self.register(self.server_stopping, ServerStopping)
@@ -203,10 +200,10 @@ class Plugin:
             self.unregister(ident)
     
     def save_state(self):
-        return dict((k, getattr(self, k)) for k in self.restore)
+        return {k: getattr(self, k) for k in self.restore}
 
     def load_state(self, state):
-        [setattr(self, k, v) for k, v in state.iteritems()]
+        [setattr(self, k, v) for k, v in state.items()]
     
     def delayed_task(self, callback, delay, name=None):
         hook = self._task(callback, name)
@@ -239,7 +236,7 @@ class Plugin:
         self.dispatch(ServerInput(line=l))
 
     def send_format(self, l, **kw):
-        kw = dict((k, FormatWrapper(v)) for k, v in kw.iteritems())
+        kw = {k: FormatWrapper(v) for k, v in kw.items()}
         self.send(l.format(**kw))
     
     def action_chain_cancellable(self, spec, callbackWarn, callbackAction, callbackCancel=None):
@@ -318,7 +315,7 @@ class PluginManager(dict):
     def load(self, name):
         kwargs = self.get_config(name)
         if self.require_config and kwargs in (None, False):
-            self.parent.console("not loading {0}: no config".format(name))
+            self.parent.console("not loading {}: no config".format(name))
             return None
 
         for loader in self.loaders:
@@ -337,7 +334,7 @@ class PluginManager(dict):
                     plugin = cls(self.parent, name, **kwargs)
                     plugin._version = version
                 except Exception:
-                    raise PluginLoadError("'{0}' failed to initialize".format(name), sys.exc_info())
+                    raise PluginLoadError("'{}' failed to initialize".format(name), sys.exc_info())
 
                 #restore state
                 if name in self.states:
@@ -354,7 +351,7 @@ class PluginManager(dict):
                     self.parent.console(line)
                 return None
 
-        self.parent.console("couldn't find plugin: {0}".format(name))
+        self.parent.console("couldn't find plugin: {}".format(name))
 
     def unload(self, name, forget=False):
         assert name in self
@@ -372,8 +369,8 @@ class PluginManager(dict):
         return self.load(name)
 
     def unload_all(self):
-        for name in self.keys():
-            self.unload(name)
+        for plugin in set(self):
+            self.unload(plugin)
 
     def reload_all(self):
         self.unload_all()

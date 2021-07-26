@@ -2,17 +2,18 @@ import getpass
 import glob
 import json
 import os
+import re
 from string import Template
+
+import psutil
+import urwid
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory, ProcessProtocol
 from twisted.internet.task import LoopingCall
 from twisted.protocols.basic import LineReceiver
-import properties
-import psutil
-import re
-import sys
-import urwid
-from shared import console_repr, open_resource
+
+from . import properties
+from .shared import console_repr, open_resource
 
 
 class TabEvent:
@@ -25,7 +26,7 @@ class TabEvent:
         else:
             self.left, right = line[:pos], line[pos:]
 
-        self.players = filter(lambda p: re.match(right, p, re.I), players)
+        self.players = [player for player in players if re.match(right, p, re.I)]
         if len(self.players) == 0:
             self.fail = line
         self.index = 0
@@ -104,7 +105,7 @@ class Prompt(urwid.Edit):
 
 class PMenuButton(urwid.Button):
     def __init__(self, caption, *a):
-        super(PMenuButton, self).__init__(caption, *a)
+        super().__init__(caption, *a)
         self._w = urwid.SelectableIcon(caption, 0)
 
 
@@ -122,7 +123,7 @@ class PMenuWrap(urwid.WidgetPlaceholder):
 
         self.first()
 
-        super(PMenuWrap, self).__init__(self._pmenu_widgets[0][1])
+        super().__init__(self._pmenu_widgets[0][1])
 
     def fill(self, index, items):
         name, contents = self._pmenu_lists[index]
@@ -140,7 +141,7 @@ class PMenuWrap(urwid.WidgetPlaceholder):
         acc = self._pmenu_acc
         acc.append(result)
         #run command?
-        if (self._pmenu_stage == 1 and not (result in ('kick', 'ban') and len(self._pmenu_lists[2][1]) > 0)) or\
+        if (self._pmenu_stage == 1 and (result not in ('kick', 'ban') and len(self._pmenu_lists[2][1]) > 0)) or\
            (self._pmenu_stage == 2):
             self.dispatch(' '.join([acc[1]] + [acc[0]] + acc[2:]))
             self.first()
@@ -170,7 +171,7 @@ class PMenuWrap(urwid.WidgetPlaceholder):
 
     def set_players(self, players):
         content = self._pmenu_lists[0][1]
-        diff = lambda a, b: [[e for e in d if not e in c] for c, d in ((a, b), (b, a))]
+        diff = lambda a, b: [[e for e in d if e not in c] for c, d in ((a, b), (b, a))]
 
         add, remove = diff([b.original_widget.label for b in list(content)], players)
 
@@ -286,22 +287,22 @@ class UI:
         new = []
         for s in sorted(servers):
             if s == current:
-                e = urwid.AttrMap(urwid.Text((urwid.AttrSpec('default,standout','default'), " %s " % s)), 'server_current')
+                e = urwid.AttrMap(urwid.Text((urwid.AttrSpec('default,standout', 'default'), " {} ".format(s))), 'server_current')
                 self.g_output_wrap.set_title(s)
             else:
-                e = urwid.AttrMap(PMenuButton(" %s " % s, lambda button, _s=s: self.connect_to_server(_s)), 'server')
+                e = urwid.AttrMap(PMenuButton(" {} ".format(s), lambda button, _s=s: self.connect_to_server(_s)), 'server')
             new.append((e, self.g_servers.options('pack')))
 
         contents = self.g_servers.contents
         del contents[0:len(contents)]
-        contents.append((urwid.AttrMap(urwid.Text(u' mark2 '), 'mark2'), self.g_servers.options('pack')))
+        contents.append((urwid.AttrMap(urwid.Text(' mark2 '), 'mark2'), self.g_servers.options('pack')))
         contents.extend(new)
         contents.append((urwid.Divider(), self.g_users.options()))
 
     def set_users(self, users):
         new = []
         for user, attached in users:
-            e = urwid.Text(" %s " % user)
+            e = urwid.Text(" {} ".format(user))
             e = urwid.AttrMap(e, 'user_attached' if attached else 'user')
             new.append((e, self.g_users.options('pack')))
 
@@ -354,7 +355,7 @@ class UI:
         self.redraw()
 
     def set_filter(self, filter_):
-        if isinstance(filter_, basestring):
+        if isinstance(filter_, str):
             return self.set_filter(self.filters[filter_])
         self.filter = filter_.apply
         self.set_output()
@@ -375,11 +376,11 @@ class SystemUsers(set):
 
     def update_users(self):
         self.clear()
-        for u in psutil.get_users():
+        for u in psutil.users():
             self.add(u.name)
 
 
-class App(object):
+class App:
     def __init__(self, name, interval, update, shell, command):
         self.name = name
         self.interval = interval
@@ -398,6 +399,8 @@ class App(object):
         reactor.spawnProcess(p, self.cmd[0], self.cmd)
 
     def got_out(self, d):
+        if type(d) != str:
+            d = d.decode("utf-8")
         self.buff += d
 
     def got_exit(self, *a):
@@ -444,7 +447,7 @@ class UserClientFactory(ClientFactory):
 
         #read the config
         self.config = properties.load(properties.ClientProperties, open_resource('resources/mark2rc.default.properties'), os.path.expanduser('~/.mark2rc.properties'))
-        assert not self.config is None
+        assert self.config is not None
         self.stats_template = Template(self.config['stats'])
 
         #start apps
@@ -478,7 +481,7 @@ class UserClientFactory(ClientFactory):
         self.ui.main()
 
     def buildProtocol(self, addr):
-        self.client = UserClientProtocol(self.socket_from(addr.name), self.system_users.me, self)
+        self.client = UserClientProtocol(self.socket_from(addr.name).decode("utf-8"), self.system_users.me, self)
         self.update_servers()
         return self.client
 
@@ -576,7 +579,7 @@ class UserClientFactory(ClientFactory):
                 m = p.match(msg['data'])
                 return m and m.end() == len(msg['data'])
             return _filter
-        patterns = dict((k, makefilter(p)) for k, p in cfg.iteritems())
+        patterns = {k: makefilter(p) for k, p in cfg.items()}
 
         patterns['all'] = lambda a: True
 
@@ -598,14 +601,14 @@ class UserClientFactory(ClientFactory):
         self.ui.set_filter(self.config['use_filter'])
 
 
-class NullFactory(object):
+class NullFactory:
     def __getattr__(self, name):
         return lambda *a, **k: None
 
 
 class UserClientProtocol(LineReceiver):
     MAX_LENGTH = 999999
-    delimiter = '\n'
+    delimiter = b'\n'
     enabled = False
 
     def __init__(self, name, user, factory):
@@ -664,7 +667,7 @@ class UserClientProtocol(LineReceiver):
     def send(self, ty, **d):
         d['type'] = ty
         if self.alive:
-            self.sendLine(json.dumps(d))
+            self.sendLine(json.dumps(d).encode("utf-8"))
 
     def run_command(self, command):
         self.send("input", line=command, user=self.user)
@@ -688,9 +691,9 @@ def colorize(text):
                         '8':30, '9':34, 'a':32, 'b':36, 'c':31, 'd':35, 'e':33, 'f':37}
 #                        '8':38, '9':42, 'a':40, 'b':44, 'c':39, 'd':43, 'e':41, 'f':45}
 
-    if text.find(u'\u00A7') != -1:
+    if text.find('\u00A7') != -1:
         for code in mappings_mc_ansi:
-            text = text.replace(u'\u00A7' + code, '\033[' + str(mappings_mc_ansi[code]) + u'm')
+            text = text.replace('\u00A7' + code, '\033[' + str(mappings_mc_ansi[code]) + 'm')
 
     """
     Convert ansi escape codes to urwid display attributes
@@ -701,7 +704,7 @@ def colorize(text):
 
     text_attributed = []
 
-    parts = unicode(text).split(u'\x1b')
+    parts = str(text).split('\x1b')
 
     regex = re.compile(r"^\[([;\d]*)m(.*)$", re.UNICODE | re.DOTALL)
 

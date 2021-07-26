@@ -2,12 +2,15 @@ import os
 import re
 import shlex
 import zipfile
+from functools import reduce
+
+from collections import OrderedDict
 
 
 def load(cls, *files):
     o = None
     for f in files:
-        if isinstance(f, basestring):
+        if isinstance(f, str):
             if os.path.isfile(f):
                 with open(f) as f:
                     o = cls(f, o)
@@ -29,13 +32,13 @@ def load_jar(jar, *path):
     return None
 
 
-class Properties(dict):
+class Properties(OrderedDict):
     def __init__(self, f, parent=None):
-        dict.__init__(self)
+        OrderedDict.__init__(self)
 
         if parent:
             self.update(parent)
-            self.types = dict(parent.types)
+            self.types = OrderedDict(parent.types)
         else:
             self.types = {}
 
@@ -55,9 +58,9 @@ class Properties(dict):
         r_seperator  = r_unescaped + r_whitespace + r_unescaped + '[' + re.escape(''.join(c_seperator + c_whitespace)) + ']'
 
         #This handles backslash escapes in keys/values
-        def parse(input):
-            token = list(input)
-            out = u""
+        def parse(inp):
+            token = list(inp)
+            out = ""
             uni = False
             while len(token) > 0:
                 c = token.pop(0)
@@ -65,31 +68,35 @@ class Properties(dict):
                     try:
                         c = token.pop(0)
                         if c in c_escapes:
-                            out += ('\\'+c).decode('string-escape')
+                            out += ('\\' + c).encode('latin1') \
+                                             .decode('unicode-escape') \
+                                             .encode('latin1') \
+                                             .decode('utf-8')
                         elif c == 'u':
                             b = ""
                             for i in range(4):
                                 b += token.pop(0)
-                            out += unichr(int(b, 16))
+                            out += chr(int(b, 16))
                             uni = True
                         else:
                             out += c
                     except IndexError:
-                        raise ValueError("Invalid escape sequence in input: %s" % input)
+                        raise ValueError("Invalid escape sequence in input: %s" % inp)
                 else:
                     out += c
 
-            if not uni:
-                out = out.encode('ascii')
             return out
-
-        d = f.read()
+        
+        if f.mode == "rb":
+            d = f.read().decode('utf-8')
+        else:
+            d = f.read()
 
         #Deal with Windows / Mac OS linebreaks
-        d = d.replace('\r\n','\n')
+        d = d.replace('\r\n', '\n')
         d = d.replace('\r', '\n')
         #Strip leading whitespace
-        d = re.sub('(?m)\n\s*', '\n', d)
+        d = re.sub('(?m)\n\\s*', '\n', d)
         #Split logical lines
         d = re.split('(?m)' + r_unescaped + '\n', d)
 
@@ -114,7 +121,7 @@ class Properties(dict):
             k = parse(k).replace('-', '_')
             v = parse(v)
 
-            if re.match('^\-?\d+$', v):
+            if re.match(r'^\-?\d+$', v):
                 ty = 'int'
             elif v in ('true', 'false'):
                 ty = 'bool'
@@ -130,7 +137,7 @@ class Properties(dict):
         f.close()
 
     def get_by_prefix(self, prefix):
-        for k, v in self.iteritems():
+        for k, v in self.items():
             if k.startswith(prefix):
                 yield k[len(prefix):], v
 
@@ -139,8 +146,8 @@ class Mark2Properties(Properties):
     def get_plugins(self):
         plugins = {}
         enabled = []
-        for k, v in self.iteritems():
-            m = re.match('^plugin\.(.+)\.(.+)$', k)
+        for k, v in self.items():
+            m = re.match(r'^plugin\.(.+)\.(.+)$', k)
             if m:
                 plugin, k2 = m.groups()
                 
@@ -156,14 +163,14 @@ class Mark2Properties(Properties):
         return [(n, plugins[n]) for n in sorted(enabled)]
 
     def get_service(self, service):
-        return self.get_by_prefix('mark2.service.{0}.'.format(service))
+        return self.get_by_prefix('mark2.service.{}.'.format(service))
 
     def get_jvm_options(self):
         options = []
         if self.get('java.cli_prepend', '') != '':
             options.extend(shlex.split(self['java.cli_prepend']))
-        for k, v in self.iteritems():
-            m = re.match('^java\.cli\.([^\.]+)\.(.+)$', k)
+        for k, v in self.items():
+            m = re.match(r'^java\.cli\.([^\.]+)\.(.+)$', k)
             if m:
                 a, b = m.groups()
                 if a == 'D':
@@ -180,15 +187,15 @@ class Mark2Properties(Properties):
                     else:
                         options.append('-XX:%s=%s' % (b, v))
                 else:
-                    print "Unknown JVM option type: %s" % a
+                    print("Unknown JVM option type: {}".format(a))
         if self.get('java.cli_extra', '') != '':
             options.extend(shlex.split(self['java.cli_extra']))
         return options
     
     def get_format_options(self):
         options = {}
-        for k, v in self.iteritems():
-            m = re.match('^mark2\.format\.(.*)$', k)
+        for k, v in self.items():
+            m = re.match(r'^mark2\.format\.(.*)$', k)
             if m:
                 options[m.group(1)] = v
         return options
@@ -219,16 +226,16 @@ class Lang(Properties):
     def get_deaths(self):
         seen = []
         for k, v in self.get_by_prefix('death.'):
-            if not v in seen:
+            if v not in seen:
                 seen.append(v)
                 regex = reduce(lambda a, r: a.replace(*r),
-                               ((r"\%{0}\$s".format(i + 1),
+                               ((r"\%{}\$s".format(i + 1),
                                  "(?P<{0}>[A-Za-z0-9]{{1,32}})".format(x))
                                 for i, x in enumerate(("username", "killer", "weapon"))),
                                re.escape(v))
                 format = reduce(lambda a, r: a.replace(*r),
-                                (("%{0}$s".format(i + 1),
+                                (("%{}$s".format(i + 1),
                                   "{{{0}}}".format(x))
                                  for i, x in enumerate(("username", "killer", "weapon"))),
                                 v)
-                yield k, ("^{0}$".format(regex), format)
+                yield k, ("^{}$".format(regex), format)

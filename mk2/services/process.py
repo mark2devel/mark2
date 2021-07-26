@@ -11,7 +11,7 @@ from mk2.plugins import Plugin
 
 
 class ProcessProtocol(protocol.ProcessProtocol):
-    obuff = u""
+    obuff = ""
     alive = True
 
     def __init__(self, dispatch, locale):
@@ -24,7 +24,8 @@ class ProcessProtocol(protocol.ProcessProtocol):
     def childDataReceived(self, fd, data):
         if data[0] == '\b':
             data = data.lstrip(' \b')
-        data = data.decode(self.locale)
+        if type(data) == bytes:
+            data = data.decode(self.locale)
         data = data.split("\n")
         data[0] = self.obuff + data[0]
         self.obuff = data.pop()
@@ -38,7 +39,7 @@ class ProcessProtocol(protocol.ProcessProtocol):
         self.alive = False
         if isinstance(reason.value, error.ProcessTerminated) and reason.value.exitCode:
             self.dispatch(events.ServerEvent(cause='server/error/exit-failure',
-                                             data="server exited abnormally: {0}".format(reason.getErrorMessage()),
+                                             data="server exited abnormally: {}".format(reason.getErrorMessage()),
                                              priority=1))
             self.dispatch(events.FatalError(reason=reason.getErrorMessage()))
         else:
@@ -53,7 +54,7 @@ class Process(Plugin):
     transport = None
     failsafe = None
     stat_process = None
-    done_pattern = Plugin.Property(default='Done \\(([0-9\\.]+)s\\)\\!.*')
+    done_pattern = Plugin.Property(default='Done \(([0-9\.]+)s\)!.*')
     stop_cmd = Plugin.Property(default='stop\n')
     java_path = Plugin.Property(default='java')
     server_args = Plugin.Property(default='')
@@ -117,7 +118,7 @@ class Process(Plugin):
         e.handled = True
         if self.protocol is None or not self.protocol.alive:
             if e.respawn == events.ServerStop.TERMINATE:
-                print "I'm stopping the reactor now! Reason: %s" % e.reason
+                print("I'm stopping the reactor now! Reason: {}".format(e.reason))
                 reactor.stop()
                 return
             else:
@@ -136,7 +137,7 @@ class Process(Plugin):
             self.transport.signalProcess('KILL')
         else:
             self.parent.console("stopping %s (caused by %s)" % (self.parent.server_name,e.reason))
-            self.transport.write(self.stop_cmd)
+            self.transport.write(self.stop_cmd.encode(self.locale))
             self.failsafe = self.parent.events.dispatch_delayed(events.ServerStop(respawn=e.respawn, reason=e.reason, kill=True, announce=False), self.parent.config['mark2.shutdown_timeout'])
 
     def server_stopping(self, e):
@@ -157,13 +158,13 @@ class Process(Plugin):
         elif self.service_stopping:
             self.service_stopping.callback(0)
         else:
-            print "I'm stopping the reactor now"
+            print("I'm stopping the reactor now")
             reactor.stop()
 
     def update_stat(self, process):
         try:
-            self.parent.events.dispatch(events.StatProcess(cpu=process.get_cpu_percent(interval=0), memory=process.get_memory_percent()))
-        except psutil.error.NoSuchProcess:
+            self.parent.events.dispatch(events.StatProcess(cpu=process.cpu_percent(interval=0), memory=process.memory_percent()))
+        except psutil.NoSuchProcess:
             pass
 
     def before_reactor_stop(self):

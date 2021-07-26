@@ -9,10 +9,12 @@ from mk2.plugins import Plugin
 
 class PingProtocol(Protocol):
     def connectionMade(self):
-        self.buff = ""
-        self.transport.write('\xFE\x01')
+        self.buff = b""
+        self.transport.write(b'\xFE\x01')
     
     def dataReceived(self, data):
+        if type(data) is str:
+            data = data.encode("utf-8")
         self.buff += data
         if len(self.buff) >= 3:
             l = struct.unpack('>h', self.buff[1:3])[0]

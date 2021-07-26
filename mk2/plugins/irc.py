@@ -140,7 +140,7 @@ class IRCBot(irc.IRCClient):
 
     def request_cap(self, *caps):
         self.cap_requests |= set(caps)
-        self.sendLine("CAP REQ :{0}".format(' '.join(caps)))
+        self.sendLine("CAP REQ :{}".format(' '.join(caps)))
 
     @defer.inlineCallbacks
     def end_cap(self):
@@ -170,7 +170,7 @@ class IRCBot(irc.IRCClient):
                 if cap == 'sasl':
                     self.sasl_next()
             if ack:
-                self.sendLine("CAP ACK :{0}".format(' '.join(ack)))
+                self.sendLine("CAP ACK :{}".format(' '.join(ack)))
             if not self.cap_requests:
                 self.end_cap()
         elif subcommand == "NAK":
@@ -185,12 +185,12 @@ class IRCBot(irc.IRCClient):
             cert = self.transport.getPeerCertificate()
             fp = cert.digest("sha1")
             verified = "verified" if self.factory.parent.server_fingerprint else "unverified"
-            self.console("irc: connected securely. server fingerprint: {0} ({1})".format(fp, verified))
+            self.console("irc: connected securely. server fingerprint: {} ({})".format(fp, verified))
         else:
             self.console("irc: connected")
         
         if self.ns_username and self.ns_password and not self.sasl_login:
-            self.msg('NickServ', 'IDENTIFY {0} {1}'.format(self.ns_username, self.ns_password))
+            self.msg('NickServ', 'IDENTIFY {} {}'.format(self.ns_username, self.ns_password))
         
         self.join(self.channel, self.key)
 
@@ -362,7 +362,7 @@ class IRCBot(irc.IRCClient):
 
     def sasl_start(self, cap_list):
         if 'sasl' not in cap_list:
-            print cap_list
+            print(cap_list)
             return
         self.request_cap('sasl')
         self.sasl_result = defer.Deferred()
@@ -409,11 +409,11 @@ class IRCBot(irc.IRCClient):
             self.console("irc: failed to log in.")
 
     def irc_904(self, prefix, params):
-        print params
+        print(params)
         self.sasl_failed()
 
     def irc_905(self, prefix, params):
-        print params
+        print(params)
         self.sasl_failed()
 
     def irc_906(self, prefix, params):
@@ -424,7 +424,7 @@ class IRCBot(irc.IRCClient):
 
     def irc_900(self, prefix, params):
         self.sasl_login = params[2]
-        self.console("irc: logged in as '{0}' (using {1})".format(self.sasl_login, self.sasl_auth.name))
+        self.console("irc: logged in as '{}' (using {})".format(self.sasl_login, self.sasl_auth.name))
 
     def irc_903(self, prefix, params):
         self.sasl_finish()
@@ -482,38 +482,38 @@ class IRC(Plugin):
 
     #general
     cancel_highlight     = Plugin.Property(default=False, type_=False)
-    cancel_highlight_str = Plugin.Property(default=u"_")
+    cancel_highlight_str = Plugin.Property(default="_")
 
     #game -> irc settings
     game_columns = Plugin.Property(default=True)
 
     game_status_enabled = Plugin.Property(default=True)
-    game_status_format  = Plugin.Property(default=u"!, | server {what}.")
+    game_status_format  = Plugin.Property(default="!, | server {what}.")
 
     game_chat_enabled = Plugin.Property(default=True)
-    game_chat_format  = Plugin.Property(default=u"{username}, | {message}")
+    game_chat_format  = Plugin.Property(default="{username}, | {message}")
     game_chat_private = Plugin.Property(default=None)
 
     game_join_enabled = Plugin.Property(default=True)
-    game_join_format  = Plugin.Property(default=u"*, | --> {username}")
+    game_join_format  = Plugin.Property(default="*, | --> {username}")
 
     game_quit_enabled = Plugin.Property(default=True)
-    game_quit_format  = Plugin.Property(default=u"*, | <-- {username}")
+    game_quit_format  = Plugin.Property(default="*, | <-- {username}")
 
     game_death_enabled = Plugin.Property(default=True)
-    game_death_format  = Plugin.Property(default=u"*, | {text}")
+    game_death_format  = Plugin.Property(default="*, | {text}")
 
     game_server_message_enabled = Plugin.Property(default=True)
-    game_server_message_format  = Plugin.Property(default=u"#server, | {message}")
+    game_server_message_format  = Plugin.Property(default="#server, | {message}")
 
     #bukkit only
     game_me_enabled = Plugin.Property(default=True)
-    game_me_format  = Plugin.Property(default=u"*, | {username} {message}")
+    game_me_format  = Plugin.Property(default="*, | {username} {message}")
 
     #irc -> game settings
     irc_chat_enabled    = Plugin.Property(default=True)
-    irc_chat_command    = Plugin.Property(default=u"say [IRC] <{nickname}> {message}")
-    irc_action_command  = Plugin.Property(default=u"say [IRC] * {nickname} {message}")
+    irc_chat_command    = Plugin.Property(default="say [IRC] <{nickname}> {message}")
+    irc_action_command  = Plugin.Property(default="say [IRC] * {nickname} {message}")
     irc_chat_status     = Plugin.Property(default=None)
 
     irc_command_prefix  = Plugin.Property(default="!")
@@ -522,7 +522,7 @@ class IRC(Plugin):
     irc_command_mark2   = Plugin.Property(default=False)
 
     irc_players_enabled = Plugin.Property(default=True)
-    irc_players_format  = Plugin.Property(default=u"*, | players currently in game: {players}")
+    irc_players_format  = Plugin.Property(default="*, | players currently in game: {players}")
 
     def setup(self):
         self.players = []
@@ -611,7 +611,7 @@ class IRC(Plugin):
 
     def format(self, format, **data):
         if self.game_columns:
-            f = unicode(format).split(',', 1)
+            f = str(format).split(',', 1)
             f[0] = f[0].format(**data)
             if len(f) == 2:
                 f[0] = f[0].rjust(self.column_width)

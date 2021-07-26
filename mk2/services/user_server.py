@@ -1,9 +1,9 @@
+import json
+import os
+
 from twisted.internet import reactor
 from twisted.internet.protocol import Factory
 from twisted.protocols.basic import LineReceiver
-
-import os
-import json
 
 from mk2 import events
 from mk2.plugins import Plugin
@@ -28,7 +28,7 @@ class Scrollback:
 
 class UserServerProtocol(LineReceiver):
     MAX_LENGTH = 999999
-    delimiter = '\n'
+    delimiter = b'\n'
     
     tab_last = None
     tab_index = 0
@@ -52,7 +52,7 @@ class UserServerProtocol(LineReceiver):
         self._handlers = []
     
     def lineReceived(self, line):
-        msg = json.loads(str(line))
+        msg = json.loads(line.decode("utf-8"))
         ty = msg["type"]
         
         if ty == "attach":
@@ -81,7 +81,7 @@ class UserServerProtocol(LineReceiver):
         
     def send_helper(self, ty, **k):
         k["type"] = ty
-        self.sendLine(json.dumps(k))
+        self.sendLine(json.dumps(k).encode("utf-8"))
     
     def console_helper(self, event):
         self.send_helper("console", **event.serialize())
@@ -109,7 +109,7 @@ class UserServerFactory(Factory):
         self.parent.events.register(self.handle_players,      events.StatPlayers)
         self.parent.events.register(self.handle_process,      events.StatProcess)
         
-        self.stats = dict((k, '___') for k in ('memory', 'cpu', 'players_current', 'players_max'))
+        self.stats = {k: '___' for k in ('memory', 'cpu', 'players_current', 'players_max')}
     
     def buildProtocol(self, addr):
         p = UserServerProtocol()
@@ -138,7 +138,7 @@ class UserServerFactory(Factory):
     
     def handle_process(self, event):
         for n in ('cpu', 'memory'):
-            self.stats[n] = '{0:.2f}'.format(event[n])
+            self.stats[n] = '{:.2f}'.format(event[n])
 
 
 class UserServer(Plugin):

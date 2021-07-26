@@ -216,7 +216,7 @@ class CommandTySelective(CommandTyStateful):
 
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.connect(self.shared('sock'))
-        s.send(d)
+        s.send(d.encode())
         s.close()
 
 
@@ -257,17 +257,17 @@ class CommandTyTerminal(CommandTySelective):
                     continue
 
                 if line[0] in (" ", "\t"):
-                    print line
+                    print(line)
                     continue
 
                 line = line.split(" ", 3)
                 if line[2] == '[mark2]':
                     line2 = line[3].split(" ", 2)
                     if re.search(self.wait, line2[2]):
-                        print line[3]
+                        print(line[3])
                         return
                     elif not self.only:
-                        print line[3]
+                        print(line[3])
 
 
 class CommandHelp(Command):
@@ -276,20 +276,21 @@ class CommandHelp(Command):
     value_spec = "[COMMAND]"
     def run(self):
         if self.value is None:
-            print help_text.format(
+            print(help_text.format(
                 usage=usage_text,
                 commands=self.columns([(c.name, c.value_spec, c.__doc__) for c in commands]))
+            )
         elif self.value in commands_d:
             cls = commands_d[self.value]
-            print help_sub_text.format(
+            print(help_sub_text.format(
                 subcommand = self.value,
                 doc = cls.__doc__,
                 value_spec = cls.value_spec
+                )
             )
             opts = cls.get_options_spec()
             if len(opts) > 0:
-                print "options:"
-                print self.columns([(' '.join(o[1]), o[2], o[3]) for o in opts]) + "\n"
+                print("options: \n{}\n".format(self.columns([(' '.join(o[1]), o[2], o[3]) for o in opts])))
         else:
             raise Mark2Error("Unknown command: %s" % self.value)
 
@@ -302,7 +303,7 @@ class CommandHelp(Command):
                 line += " "*(((i+1)*12)-len(line))
             o.append(line)
 
-        return "\n".join(("  "+l for l in o))
+        return "\n".join("  "+l for l in o)
 
 
 class CommandStart(CommandTyTerminal):
@@ -331,7 +332,7 @@ class CommandStart(CommandTyTerminal):
             return
         if os.path.exists(os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'config'))):
             new_dir = os.path.dirname(new_cfg)
-            raise Mark2Error("mark2's configuration location has changed! move your config files to {0}".format(new_dir))
+            raise Mark2Error("mark2's configuration location has changed! move your config files to {}".format(new_dir))
         else:
             raise Mark2Error("mark2 is unconfigured! run `mark2 config` or `mkdir /etc/mark2 && touch /etc/mark2/mark2.properties` as root")
 
@@ -353,8 +354,8 @@ class CommandStart(CommandTyTerminal):
         if os.fork() > 0:
             sys.exit(0)
 
-        null = os.open('/dev/null', os.O_RDWR)
-        for fileno in (1, 2, 3):
+        null = os.open(os.devnull, os.O_RDWR)
+        for fileno in (sys.stdin.fileno(), sys.stdout.fileno(), sys.stderr.fileno()):
             try:
                 os.dup2(null, fileno)
             except:
@@ -393,7 +394,7 @@ class CommandStart(CommandTyTerminal):
 
         if self.daemonize() == 0:
             with open(self.shared('pid'), 'w') as f:
-                f.write("{0}\n".format(os.getpid()))
+                f.write("{}\n".format(os.getpid()))
 
             mgr = manager.Manager(self.shared_path, self.server_name, self.server_path, self.jar_file)
             reactor.callWhenRunning(mgr.startup)
@@ -401,7 +402,7 @@ class CommandStart(CommandTyTerminal):
 
             sys.exit(0)
 
-        self.wait = '# mark2 started|stopped\.'
+        self.wait = r'# mark2 started|stopped\.'
         self.wait_from_start = True
 
 
@@ -462,7 +463,7 @@ class CommandConfig(Command):
                 file_new.write(data)
 
         if "MARK2_TEST" not in os.environ and self.options.get('ask', False):
-            response = raw_input('would you like to configure mark2 now? [yes] ') or 'yes'
+            response = input('would you like to configure mark2 now? [yes] ') or 'yes'
             if response != 'yes':
                 return write_config() if not os.path.exists(path_new) else None
 
@@ -499,7 +500,7 @@ class CommandList(CommandTyStateful):
     name = 'list'
     def run(self):
         for s in self.servers:
-            print s
+            print(s)
 
 
 class CommandAttach(CommandTySelective):
@@ -515,7 +516,7 @@ class CommandStop(CommandTyTerminal):
     name = 'stop'
     def run(self):
         self.do_send('~stop')
-        self.wait='# mark2 stopped\.'
+        self.wait=r'# mark2 stopped\.'
 
 
 class CommandKill(CommandTyTerminal):
@@ -523,7 +524,7 @@ class CommandKill(CommandTyTerminal):
     name = 'kill'
     def run(self):
         self.do_send('~kill')
-        self.wait = '# mark2 stopped\.'
+        self.wait = r'# mark2 stopped\.'
 
 
 class CommandSend(CommandTyTerminal):
@@ -553,15 +554,15 @@ class CommandJarList(Command):
     def run(self):
         def err(what):
             if reactor.running: reactor.stop()
-            print "error: %s" % what.value
+            print("error: {}".format(what.value))
 
         def handle(listing):
             if reactor.running: reactor.stop()
             if len(listing) == 0:
-                print "error: no server jars found!"
+                print("error: no server jars found!")
             else:
-                print "The following server jars/zips are available:"
-            print listing
+                print("The following server jars/zips are available:")
+            print(listing)
 
         def start():
             d = servers.jar_list()
@@ -583,17 +584,17 @@ class CommandJarGet(Command):
 
         def err(what):
             #reactor.stop()
-            print "error: %s" % what.value
+            print("error: {}".format(what.value))
 
-        def handle((filename, data)):
+        def handle(filename, data):
             reactor.stop()
             if os.path.exists(filename):
-                print "error: %s already exists!" % filename
+                print("error: {} already exists!").format(filename)
             else:
                 f = open(filename, 'wb')
                 f.write(data)
                 f.close()
-                print "success! saved as %s" % filename
+                print("success! saved as {}".format(filename))
 
         def start():
             d = servers.jar_get(self.value)
@@ -625,6 +626,6 @@ def main():
 
         return 0
     except Mark2Error as e:
-        print e
+        print(e)
 
         return 1

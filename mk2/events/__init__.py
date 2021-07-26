@@ -2,12 +2,13 @@ import inspect
 import itertools
 import sys
 import time
+import json
 
 from twisted.internet import reactor, task
 from twisted.internet.defer import succeed, maybeDeferred
 
 
-class _EventArg(object):
+class _EventArg:
     def __init__(self, default=None, required=False):
         self.default = default
         self.required = required
@@ -29,9 +30,7 @@ class EventMetaclass(type):
         return type.__init__(cls, name, bases, dict)
 
 
-class Event(object):
-    __metaclass__ = EventMetaclass
-
+class Event(metaclass=EventMetaclass):
     Arg = _EventArg
 
     EAT = 1
@@ -43,15 +42,15 @@ class Event(object):
         args.update(d)
         self._args = {}
 
-        missing = set(self._requires) - set(args.iterkeys())
-        excess = set(args.iterkeys()) - set(self._contains)
+        missing = set(self._requires) - set(args.keys())
+        excess = set(args.keys()) - set(self._contains)
         if missing:
-            raise Exception("Event type {0} missing argument(s): {1}".
-                            format(self.__class__.__name__, ", ".join(missing)))
+            raise Exception("Event type {} missing argument(s): {}"
+                            .format(self.__class__.__name__, ", ".join(missing)))
         elif excess:
-            raise Exception("Event type {0} got extraneous argument(s): {1}".
-                            format(self.__class__.__name__, ", ".join(excess)))
-        for k, v in args.iteritems():
+            raise Exception("Event type {} got extraneous argument(s): {}"
+                            .format(self.__class__.__name__, ", ".join(excess)))
+        for k, v in args.items():
             setattr(self, k, v)
 
         self.setup()
@@ -66,16 +65,16 @@ class Event(object):
     def _prefilter_argcheck(cls, args):
         spec = inspect.getargspec(cls.prefilter)
 
-        args = set(args.iterkeys())
+        args = set(args.keys())
         required_args = set(spec.args[1:-len(spec.defaults or [])])
 
         if required_args - args:
-            return (False, "missing arguments for prefilter: {0}".format(
+            return (False, "missing arguments for prefilter: {}".format(
                     ", ".join(required_args - args)))
         if spec.keywords is None:
             allowed_args = set(spec.args[1:])
             if args - allowed_args:
-                return (False, "excess arguments for prefilter: {0}".format(
+                return (False, "excess arguments for prefilter: {}".format(
                     ", ".join(args - allowed_args)))
         return (True, "")
 
@@ -86,12 +85,12 @@ class Event(object):
         pass
 
     def serialize(self):
-        data = dict((k, getattr(self, k)) for k in self._contains)
+        data = {k: getattr(self, k) for k in self._contains}
         data['class_name'] = self.__class__.__name__
         return data
 
     def __repr__(self):
-        return "{0}({1})".format(self.__class__.__name__, self.serialize())
+        return "{}({})".format(self.__class__.__name__, self.serialize())
 
 
 class EventPriority:
@@ -99,7 +98,7 @@ class EventPriority:
         self.priority, self.monitor = priority, monitor
 
     def __str__(self):
-        return "P{0}".format(self.priority)
+        return "P{}".format(self.priority)
 
     def __repr__(self):
         return str(self)
@@ -131,7 +130,7 @@ class EventList:
     def _build_cache(self):
         def key(i):
             return i[1][0].priority
-        handlers = itertools.groupby(sorted(self._handlers.iteritems(),
+        handlers = itertools.groupby(sorted(self._handlers.items(),
                                             key=key,
                                             reverse=True), key)
         handlers = (l for group, l in handlers)
@@ -164,7 +163,7 @@ class EventList:
         return i
 
     def remove_handler(self, id_):
-        assert id_ in self._handlers, "{0} is not registered".format(id_)
+        assert id_ in self._handlers, "{} is not registered".format(id_)
         self._invalidate()
         del self._handlers[id_]
         self._istack.append(id_)
@@ -210,7 +209,7 @@ class EventDispatcher:
     def _next_event(self, event, iter_, handled=False):
         while True:
             try:
-                id_, callback, args = iter_.next()
+                id_, callback, args = next(iter_)
             except StopIteration:
                 return succeed(handled)
             if event.prefilter(**args):
@@ -276,10 +275,10 @@ def from_json(data):
     data = json.loads(data)
     return get_by_name(data['name'])(**data['data'])
 
-from console import *
-from error   import *
-from hook    import *
-from player  import *
-from server  import *
-from stat    import *
-from user    import *
+from .console import *
+from .error   import *
+from .hook    import *
+from .player  import *
+from .server  import *
+from .stat    import *
+from .user    import *

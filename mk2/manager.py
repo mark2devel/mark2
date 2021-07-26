@@ -1,13 +1,13 @@
 import os
-import traceback
 import signal
+import traceback
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
 from twisted.python import log, logfile
 
 #mark2 things
-from . import events, properties, plugins
+from . import events, plugins, properties
 from .events import EventPriority
 from .services import process
 from .shared import find_config, open_resource
@@ -38,7 +38,7 @@ class Manager(object):
             self.really_start()
         except Exception:
             for l in traceback.format_exc().split("\n"):
-                print l
+                print(l)
                 self.console(l, kind='error')
             self.shutdown()
 
@@ -101,7 +101,7 @@ class Manager(object):
                 continue
             result = self.services.load(name)
             if not result:
-                return self.fatal_error(reason="couldn't load service: '{0}'".format(name))
+                return self.fatal_error(reason="couldn't load service: '{}'".format(name))
 
         #load plugins
         self.plugins = plugins.PluginManager(self,
@@ -118,7 +118,7 @@ class Manager(object):
         o  = "An event handler threw an exception: \n"
         o += "  Callback: %s\n" % callback
         o += "  Event: \n"
-        o += "".join(("    %s: %s\n" % (k, v) for k, v in event.serialize().iteritems()))
+        o += "".join(("    %s: %s\n" % (k, v) for k, v in event.serialize().items()))
 
         # log the message and a very verbose exception log to the log file
         log.msg(o)
@@ -168,7 +168,7 @@ class Manager(object):
             reactor.callInThread(lambda: os.kill(os.getpid(), signal.SIGINT))
 
     def console(self, line, **k):
-        for l in unicode(line).split(u"\n"):
+        for l in str(line).split("\n"):
             k['line'] = l
             self.events.dispatch(events.Console(**k))
     
@@ -188,7 +188,7 @@ class Manager(object):
                                             data=event.data))
 
     def handle_console(self, event):
-        for line in event.value().encode('utf8').split("\n"):
+        for line in event.value().split("\n"):
             log.msg(line, system="mark2")
     
     def handle_fatal(self, event):
@@ -227,11 +227,11 @@ class Manager(object):
         self.send(text)
 
     def handle_player_join(self, event):
-        self.players.add(str(event.username))
+        self.players.add(event.username.decode("utf-8"))
         self.events.dispatch(events.StatPlayers(players=list(self.players)))
 
     def handle_player_quit(self, event):
-        self.players.discard(str(event.username))
+        self.players.discard(event.username.decode("utf-8"))
         self.events.dispatch(events.StatPlayers(players=list(self.players)))
 
     def handle_server_stopped(self, event):

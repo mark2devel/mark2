@@ -17,7 +17,7 @@ class Alert(Plugin):
     def setup(self):
         self.register(self.count_check, StatPlayerCount)
         if self.path and os.path.exists(self.path):
-            f = open(self.path, 'r')
+            f = open(self.path)
             for l in f:
                 l = l.strip()
                 if l:

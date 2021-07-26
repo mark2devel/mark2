@@ -12,7 +12,7 @@ from mk2 import events
 time_bounds = [(0, 59), (0, 23), (1, 31), (1, 12), (1, 7)]
 
 
-class ScriptEntry(object):
+class ScriptEntry:
     event = None
     ranges = None
     
@@ -77,7 +77,7 @@ class ScriptEntry(object):
         elif cmd.startswith('/'):
             self.plugin.send(cmd[1:])
         elif cmd.startswith('#'):
-            self.plugin.console("#{0}".format(cmd[1:]), user=source, source="user")
+            self.plugin.console("#{}".format(cmd[1:]), user=source, source="user")
         elif cmd:
             self.plugin.console("couldn't understand script input: %s" % cmd)
 
@@ -103,7 +103,7 @@ class Script(Plugin):
         if not os.path.isfile(self.path):
             return
         
-        with open(self.path, 'r') as f:
+        with open(self.path) as f:
             for line in f:
                 line = line.strip()
                 if line.startswith('#') or line == '':

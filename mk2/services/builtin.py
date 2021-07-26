@@ -1,9 +1,6 @@
-from mk2 import events, properties
+from mk2 import events
 from mk2.services import process
-from mk2.shared import find_config, open_resource
 from mk2.plugins import Plugin
-
-import os
 
 
 class Builtin(Plugin):
@@ -22,7 +19,7 @@ class Builtin(Plugin):
             m = max(m, len(name))
         
         for name, doc in sorted(v, key=lambda x: x[0]):
-            self.console(" ~%s | %s" % (name.ljust(m), doc))
+            self.console(" ~{} | {}".format(name.ljust(m), doc))
 
     def handle_cmd_help(self, event):
         o = []
@@ -44,7 +41,7 @@ class Builtin(Plugin):
     def handle_cmd_reload_plugin(self, event):
         if event.args in self.parent.plugins:
             self.parent.plugins.reload(event.args)
-            self.console("%s reloaded." % event.args)
+            self.console("{} reloaded.".format(event.args))
         else:
             self.console("unknown plugin.")
 
@@ -64,7 +61,7 @@ class Builtin(Plugin):
         for p in requires_reload:
             self.parent.plugins.reload(p)
         reloaded = filter(None, requires_reload)
-        self.console("%d plugins reloaded: %s" % (len(reloaded), ", ".join(reloaded)))
+        self.console("{} plugins reloaded: {}".format(len(reloaded), ", ".join(reloaded)))
 
     def handle_cmd_reload(self, event):
         self.parent.plugins.unload_all()
@@ -77,7 +74,7 @@ class Builtin(Plugin):
             self.parent.config['mark2.jar_path'].split(';'),
             event.args)
         if new_jar:
-            self.console("I will switch to {0} at the next restart".format(new_jar))
+            self.console("I will switch to {} at the next restart".format(new_jar))
             self.parent.jar_file = new_jar
         else:
             self.console("Can't find a matching jar file.")
