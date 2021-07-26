@@ -1,6 +1,7 @@
 import getpass
 import glob
 import json
+from mk2.events.server import ServerStart
 import os
 import re
 from string import Template
@@ -287,10 +288,10 @@ class UI:
         new = []
         for s in sorted(servers):
             if s == current:
-                e = urwid.AttrMap(urwid.Text((urwid.AttrSpec('default,standout','default'), " %s " % s)), 'server_current')
+                e = urwid.AttrMap(urwid.Text((urwid.AttrSpec('default,standout', 'default'), " {} ".format(s))), 'server_current')
                 self.g_output_wrap.set_title(s)
             else:
-                e = urwid.AttrMap(PMenuButton(" %s " % s, lambda button, _s=s: self.connect_to_server(_s)), 'server')
+                e = urwid.AttrMap(PMenuButton(" {} ".format(s), lambda button, _s=s: self.connect_to_server(_s)), 'server')
             new.append((e, self.g_servers.options('pack')))
 
         contents = self.g_servers.contents
@@ -302,7 +303,7 @@ class UI:
     def set_users(self, users):
         new = []
         for user, attached in users:
-            e = urwid.Text(" %s " % user)
+            e = urwid.Text(" {} ".format(user))
             e = urwid.AttrMap(e, 'user_attached' if attached else 'user')
             new.append((e, self.g_users.options('pack')))
 
@@ -481,12 +482,12 @@ class UserClientFactory(ClientFactory):
         self.ui.main()
 
     def buildProtocol(self, addr):
-        self.client = UserClientProtocol(self.socket_from(addr.name), self.system_users.me, self)
+        self.client = UserClientProtocol(self.socket_from(addr.name).decode("utf-8"), self.system_users.me, self)
         self.update_servers()
         return self.client
 
     def switch_server(self, delta=1):
-        index = self.servers.index(self.client.name.decode("utf-8"))
+        index = self.servers.index(self.client.name)
         self.update_servers()
         if len(self.servers) == 0:  # no running servers
             return self.ui.stop()
