@@ -26,7 +26,7 @@ class TabEvent:
         else:
             self.left, right = line[:pos], line[pos:]
 
-        self.players = [player for player in players if re.match(right, p, re.I)]
+        self.players = [player for player in players if re.match(right, player, re.I)]
         if len(self.players) == 0:
             self.fail = line
         self.index = 0
