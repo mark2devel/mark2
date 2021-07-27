@@ -313,12 +313,6 @@ class UI:
         contents.append((urwid.Divider(), self.g_users.options()))
         contents.extend(new)
 
-    def safe_unicode(self, text):
-        if urwid.supports_unicode():
-            return text
-        else:
-            return text.encode('ascii', errors='replace')
-
     def append_output(self, line):
         scroll = False
         del self.lines[:-999]
@@ -336,7 +330,7 @@ class UI:
         except IndexError:  # nothing in listbox
             pass
 
-        self.g_output_list.append(urwid.Text(colorize(self.safe_unicode(console_repr(line)))))
+        self.g_output_list.append(urwid.Text(colorize(line)))
         if scroll:
             self.g_output.focus_position += 1
 
@@ -348,7 +342,7 @@ class UI:
         lines = [l for l in lines if self.filter(l)]
 
         for line in lines:
-            contents.append(urwid.Text(colorize(self.safe_unicode(console_repr(line)))))
+            contents.append(urwid.Text(colorize(line)))
 
         try:
             self.g_output.focus_position = len(lines) - 1
@@ -688,16 +682,27 @@ class UserClientProtocol(LineReceiver):
 
 mappings_mc_ansi = {'0':30, '1':34, '2':32, '3':36, '4':31, '5':35, '6':33, '7':37,
                     '8':30, '9':34, 'a':32, 'b':36, 'c':31, 'd':35, 'e':33, 'f':37,
-                    'r':37}
+                    'r':0}
+
+
+def safe_unicode(text):
+    """
+    Returns a safe unicode version of the text
+    """
+    if urwid.supports_unicode():
+        return text
+    else:
+        return text.encode('ascii', errors='replace')
 
 
 def replace_ampersand_colors(text):
     """
     Convert ampersand minecraft color codes to unicode section sign ones
     """
-    for code in mappings_mc_ansi:
-        if text.find('&' + code):
-            text = text.replace('&' + code, '\u00A7' + code)
+    if isinstance(text, str):
+        for code in mappings_mc_ansi:
+            if text.find('&' + code) != -1:
+                text = text.replace('&' + code, '\u00A7' + code)
     return text
 
 
@@ -705,26 +710,37 @@ def ansi_replace(text):
     """
     Convert minecraft color codes to ansi escape codes
     """
-    if isinstance(text, str):
-        if text.find('&') != -1:
-            for code in mappings_mc_ansi:
-                if text.find('&' + code):
-                    text = text.replace('&' + code, '\033[' + str(mappings_mc_ansi[code]) + 'm')
-        if text.find('\u00A7') != -1:
+    # First replace all ampersand colors with unicode section side ones
+    text = replace_ampersand_colors(text)
+    if isinstance(text, str) != -1:
+        # Replace unicode section signs with ansi colors
+        if text.find('\u00A7'):
             for code in mappings_mc_ansi:
                 text = text.replace('\u00A7' + code, '\033[' + str(mappings_mc_ansi[code]) + 'm')
+        
+        # Highlight lines with certain log level. (SEE ANSI COLOR CODES FOR WHAT EACH ONE LOOKS LIKE)
+        if text.find("[WARN]") != -1:
+            # Yellow
+            text = text.replace("[WARN]", '\033[33m[WARN]')
+        if text.find("[WARNING]") != -1:
+            # Yellow
+            text = text.replace("[WARNING[", '\033[33m[WARNING]')
+        if text.find("[ERROR]") != -1:
+            # Red
+            text = text.replace("[ERROR]", '\033[31m[ERROR]')
         return text
     else:
-        print(text)
+        return text
 
 
 def colorize(text):
     """
     Convert ansi escape codes to urwid display attributes
     """
-    text = ansi_replace(text)
+    # Convert console line to something this function can use.
+    text = ansi_replace(safe_unicode(console_repr(text)))
 
-    mappings_fg = {30: 'black', 31: 'light red', 32: 'light green', 33: 'yellow', 34: 'light blue', 35: 'light magenta', 36: 'light cyan', 37: 'dark gray'}
+    mappings_fg = {30: 'black', 31: 'light red', 32: 'light green', 33: 'yellow', 34: 'light blue', 35: 'light magenta', 36: 'light cyan', 37: 'dark gray', 0: 'default'}
     mappings_bg = {40: 'black', 41: 'dark red', 42: 'dark green', 43: 'brown', 44: 'dark blue', 45: 'dark magenta', 46: 'dark cyan', 47: 'light gray'}
 
     text_attributed = []
