@@ -42,9 +42,9 @@ def find_config(name, create=True, ignore_errors=False):
 def console_repr(e):
     s = "{} {} ".format(e['time'], {'server': '|', 'mark2': '#', 'user': '>'}.get(e['source'], '?'))
     if e['source'] == 'server' and e['level'] != 'INFO':
-        s += "[%s] " % e['level']
+        s += "[{}] ".format(e['level'])
     elif e['source'] == 'user':
-        s += "(%s) " % e['user']
+        s += "({}) ".format(e['user'])
     
-    s += "%s" % e['data']
+    s += "{}".format(e['data'])
     return s
