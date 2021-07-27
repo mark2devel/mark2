@@ -259,7 +259,9 @@ class UI:
     def filter_input(self, keys, raw):
         passthru = []
         for key in keys:
-            if key in ('page up', 'page down', 'up', 'down'):
+            if key in ('page up', 'page down', 'meta up', 'meta down'):
+                if key in ('meta up', 'meta down'):
+                    key = key.replace('meta ', '')
                 self.g_output.keypress((0, 16), key)
             elif key == 'home':
                 self.g_output.set_focus(0)
