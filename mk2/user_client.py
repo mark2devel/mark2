@@ -637,7 +637,7 @@ class UserClientProtocol(LineReceiver):
         msg = json.loads(line)
         ty = msg["type"]
 
-        if ty == "console":
+        if ty == "console":    
             self.factory.server_output(msg)
 
         elif ty == "scrollback":
@@ -670,6 +670,8 @@ class UserClientProtocol(LineReceiver):
             self.sendLine(json.dumps(d).encode("utf-8"))
 
     def run_command(self, command):
+        if command.startswith("say"):
+            command = replace_ampersand_colors(command)
         self.send("input", line=command, user=self.user)
 
     def get_players(self):
@@ -681,23 +683,43 @@ class UserClientProtocol(LineReceiver):
     def get_users(self):
         self.send("get_users")
 
-def colorize(text):
 
+mappings_mc_ansi = {'0':30, '1':34, '2':32, '3':36, '4':31, '5':35, '6':33, '7':37,
+                        '8':30, '9':34, 'a':32, 'b':36, 'c':31, 'd':35, 'e':33, 'f':37}
+
+
+def replace_ampersand_colors(text):
+    """
+    Convert ampersand minecraft color codes to unicode section sign ones
+    """
+    for code in mappings_mc_ansi:
+        if text.find('&' + code):
+            text = text.replace('&' + code, '\u00A7' + code)
+    return text
+
+
+def ansi_replace(text):
     """
     Convert minecraft color codes to ansi escape codes
     """
+    if isinstance(text, str):
+        if text.find('&') != -1:
+            for code in mappings_mc_ansi:
+                if text.find('&' + code):
+                    text = text.replace('&' + code, '\033[' + str(mappings_mc_ansi[code]) + 'm')
+        if text.find('\u00A7') != -1:
+            for code in mappings_mc_ansi:
+                text = text.replace('\u00A7' + code, '\033[' + str(mappings_mc_ansi[code]) + 'm')
+        return text
+    else:
+        print(text)
 
-    mappings_mc_ansi = {'0':30, '1':34, '2':32, '3':36, '4':31, '5':35, '6':33, '7':37,
-                        '8':30, '9':34, 'a':32, 'b':36, 'c':31, 'd':35, 'e':33, 'f':37}
-#                        '8':38, '9':42, 'a':40, 'b':44, 'c':39, 'd':43, 'e':41, 'f':45}
 
-    if text.find('\u00A7') != -1:
-        for code in mappings_mc_ansi:
-            text = text.replace('\u00A7' + code, '\033[' + str(mappings_mc_ansi[code]) + 'm')
-
+def colorize(text):
     """
     Convert ansi escape codes to urwid display attributes
     """
+    text = ansi_replace(text)
 
     mappings_fg = {30: 'black', 31: 'light red', 32: 'light green', 33: 'yellow', 34: 'light blue', 35: 'light magenta', 36: 'light cyan', 37: 'dark gray'}
     mappings_bg = {40: 'black', 41: 'dark red', 42: 'dark green', 43: 'brown', 44: 'dark blue', 45: 'dark magenta', 46: 'dark cyan', 47: 'light gray'}
