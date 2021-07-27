@@ -685,7 +685,8 @@ class UserClientProtocol(LineReceiver):
 
 
 mappings_mc_ansi = {'0':30, '1':34, '2':32, '3':36, '4':31, '5':35, '6':33, '7':37,
-                        '8':30, '9':34, 'a':32, 'b':36, 'c':31, 'd':35, 'e':33, 'f':37}
+                    '8':30, '9':34, 'a':32, 'b':36, 'c':31, 'd':35, 'e':33, 'f':37,
+                    'r':37}
 
 
 def replace_ampersand_colors(text):
