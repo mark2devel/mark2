@@ -738,7 +738,7 @@ def colorize(text):
 
         if r:
             if r.group(2) != '':
-                foreground = 'white'
+                foreground = 'default'
                 background = 'default'
                 for code in filter(None, r.group(1).split(';')):
                     if (int(code) in mappings_fg):
