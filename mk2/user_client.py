@@ -1,3 +1,4 @@
+import datetime
 import getpass
 import glob
 import json
@@ -6,6 +7,7 @@ import re
 from string import Template
 
 import psutil
+import pyperclip
 import urwid
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory, ProcessProtocol
@@ -37,6 +39,20 @@ class TabEvent:
         i = self.index % len(self.players)
         self.index += 1
         return self.left + self.players[i]
+
+
+class Mark2ListBox(urwid.ListBox):
+    def focus_next(self):
+        try: 
+                self.body.set_focus(self.body.get_next(self.body.get_focus()[1])[1])
+        except:
+            pass
+
+    def focus_previous(self):
+        try: 
+            self.body.set_focus(self.body.get_prev(self.body.get_focus()[1])[1])
+        except:
+            pass
 
 
 class Prompt(urwid.Edit):
@@ -116,7 +132,7 @@ class PMenuWrap(urwid.WidgetPlaceholder):
         self.dispatch = dispatch
         self.escape = escape
         self._pmenu_lists   = [ (n, urwid.SimpleListWalker([])) for n    in self.names        ]
-        self._pmenu_widgets = [ (n, urwid.ListBox(l))           for n, l in self._pmenu_lists ]
+        self._pmenu_widgets = [ (n, Mark2ListBox(l))           for n, l in self._pmenu_lists ]
 
         self.fill(1, zip(actions, actions))
         self.fill(2, reasons)
@@ -209,6 +225,9 @@ class UI:
 
         self.g_output_list = urwid.SimpleFocusListWalker([])
 
+        # Encodes a str object or returns the original object if it's not a str. URWID will be the death of me...
+        self._encode_if_str = lambda x: x.encode("utf-8") if isinstance(x, str) else x
+
         self.build()
 
     def build(self):
@@ -218,7 +237,7 @@ class UI:
         g_head         = urwid.AttrMap(urwid.Columns((('weight', 3, self.g_servers), self.g_users)), 'head')
 
         #main
-        self.g_output      = urwid.ListBox(self.g_output_list)
+        self.g_output      = Mark2ListBox(self.g_output_list)
         self.g_output_wrap = urwid.LineBox(urwid.AttrMap(self.g_output, 'output'))
         self.g_stats       = urwid.Text("")
 
@@ -240,6 +259,9 @@ class UI:
 
         self.g_frame = urwid.Frame(g_main, g_head, g_prompt, focus_part='footer')
 
+        # Prevous focused widgets for copy paste
+        self._prev_focused = []
+
         #log.addObserver(lambda m: self.append_output(str(m['message'])))
 
     def main(self):
@@ -260,14 +282,25 @@ class UI:
         passthru = []
         for key in keys:
             if key in ('page up', 'page down', 'meta up', 'meta down'):
-                if key in ('meta up', 'meta down'):
-                    key = key.replace('meta ', '')
-                self.g_output.keypress((0, 16), key)
+                # See https://stackoverflow.com/q/19446840/9873471, uniform scrolling wasn't working properly.
+                if key == 'meta up':
+                    self.g_output.focus_previous()
+                elif key == 'meta down':
+                    self.g_output.focus_next()
+                else:
+                    self.g_output.keypress((0, 16), key)
+                self.set_focused()
             elif key == 'home':
                 self.g_output.set_focus(0)
             elif key == 'end':
                 self.g_output.set_focus_valign("bottom")
                 self.g_output.set_focus(len(self.g_output_list) - 1, coming_from='above')
+            elif key == 'meta c':
+                focused_text_widget, _ = self.g_output_list.get_focus()
+                try:
+                    pyperclip.copy(focused_text_widget.get_text()[0])
+                except pyperclip.PyperclipException:
+                    self.append_output("Cannot copy to clipboard. Is the client windows?")
             elif key == 'meta left':
                 self.switch_server(-1)
             elif key == 'meta right':
@@ -284,6 +317,26 @@ class UI:
     def redraw(self):
         if self.loop:
             self.loop.draw_screen()
+    
+    def set_focused(self):
+        focused_text, pos = self.g_output.get_focus()
+
+        text_val = self._encode_if_str(focused_text.get_text()[0])
+        old_attr = focused_text.get_text()[1]
+        new_text = urwid.Text((urwid.AttrSpec('default,standout', 'default'), text_val))
+        self.g_output_list[pos] = new_text
+
+        for prev in self._prev_focused:
+            _text_val = self._encode_if_str(prev[0][0].get_text()[0])
+            _old_attr = prev[0][1] if len(prev[0][1]) > 0 else 'default'
+            _pos = prev[1]
+            _new_text = urwid.Text(('', _text_val))
+            self.g_output_list[_pos] = _new_text
+
+        self._prev_focused.clear()
+        self._prev_focused.append(((new_text, old_attr), pos))
+        self.redraw()
+        self.g_output.set_focus(pos)
 
     def set_servers(self, servers, current=None):
         new = []
@@ -314,6 +367,15 @@ class UI:
         contents.extend(new)
 
     def append_output(self, line):
+        # Code to allow easy appending of strings to the output of mark2 console
+        if isinstance(line, str):
+            line_dict = {
+                'source': 'mark2',
+                'data': line,
+                'time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            line = line_dict
+
         scroll = False
         del self.lines[:-999]
         self.lines.append(line)
