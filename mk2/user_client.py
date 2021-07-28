@@ -44,7 +44,7 @@ class TabEvent:
 class Mark2ListBox(urwid.ListBox):
     def focus_next(self):
         try: 
-                self.body.set_focus(self.body.get_next(self.body.get_focus()[1])[1])
+            self.body.set_focus(self.body.get_next(self.body.get_focus()[1])[1])
         except:
             pass
 
