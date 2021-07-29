@@ -16,7 +16,7 @@ First off, we'd like to thank you for helping improve mark2 and maintain it for 
 
 ## Getting Started
 
-To get started you're going to need to setup an development environment to develop for mark2. The easiest way to do this would be to work on linux (since mark2 requires a UNIX-like operating system to function), but if you aren't willing to run linux on your main computer, you can install a VM or use a spare computer to run the code. The setup process is identical to that of the [install guide](install.md#installation)
+To get started you're going to need to setup an development environment to develop for mark2. The easiest way to do this would be to work on linux (since mark2 requires a UNIX-like operating system to function), but if you aren't willing to run linux on your main computer, you can install a VM or use a spare computer to run the code. The setup process is identical to that of the [install guide](INSTALL.md)
 
 ## Code Style
 
