@@ -329,9 +329,20 @@ class UI:
 
         for prev in self._prev_focused:
             _text_val = self._encode_if_str(prev[0][0].get_text()[0])
+            # Attr encoded as [('attr', x), ('attr', y)] where x and y are run lengths of the attribute on the text
             _old_attr = prev[0][1] if len(prev[0][1]) > 0 else 'default'
+            final_text = []
+            if isinstance(_old_attr, str):
+                final_text.append((_old_attr, _text_val))
+            else:
+                offset = 0
+                for attr, attr_length in _old_attr:
+                    text_to_apply = _text_val[offset : attr_length + offset]
+                    offset += attr_length
+                    final_text.append((attr, text_to_apply))
+
             _pos = prev[1]
-            _new_text = urwid.Text(('', _text_val))
+            _new_text = urwid.Text(final_text)
             self.g_output_list[_pos] = _new_text
 
         self._prev_focused.clear()
