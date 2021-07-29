@@ -226,8 +226,8 @@ class UI:
         self.g_output_list = urwid.SimpleFocusListWalker([])
 
         # Encodes/decodes a str object or returns the original object as encoded/decoded str. URWID will be the death of me...
-        self._encode_if_str = lambda x: x.encode("utf-8") if isinstance(x, str) else str(x).encode('utf-8')
-        self._decode_if_str = lambda x: x.decode("utf-8") if isinstance(x, bytes) else str(x)
+        self._encode_if_str = lambda x: x.encode("utf-8") if isinstance(x, str) else x
+        self._decode_if_str = lambda x: x.decode("utf-8") if isinstance(x, bytes) else x
 
         self.build()
 
