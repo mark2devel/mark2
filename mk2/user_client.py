@@ -259,7 +259,7 @@ class UI:
 
         self.g_frame = urwid.Frame(g_main, g_head, g_prompt, focus_part='footer')
 
-        # Prevous focused widgets for copy paste
+        # Previous focused widgets for copy paste
         self._prev_focused = []
 
         #log.addObserver(lambda m: self.append_output(str(m['message'])))

@@ -70,7 +70,7 @@ The recommended X-Server for windows is [VcXsrv](https://sourceforge.net/project
 Testing the X-Server install worked
 
 1. Connect to the UNIX Server running mark2
-2. Type in the console `echo 'testing123' | xclip -i` and then try to paste somewhere on the windows client, you should see `testing123` was copies to your clipboard.
+2. Type in the console `echo 'testing123' | xclip -i` and then try to paste somewhere on the windows client, you should see `testing123` was copied to your clipboard.
 
 Now whenever you want to use mark2's copy feature, just run the VcXsvr shortcut on your desktop and then connect to the UNIX server running mark2
 
