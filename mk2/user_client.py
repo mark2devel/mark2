@@ -227,7 +227,7 @@ class UI:
 
         # Encodes/decodes a str object or returns the original object as encoded/decoded str. URWID will be the death of me...
         self._encode_if_str = lambda x: x.encode("utf-8") if isinstance(x, str) else x
-        self._decode_if_str = lambda x: x.decode("utf-8") if isinstance(x, bytes) else x
+        self._decode_if_bytes = lambda x: x.decode("utf-8") if isinstance(x, bytes) else x
 
         self.build()
 
@@ -299,7 +299,7 @@ class UI:
             elif key == 'meta c':
                 focused_text_widget, _ = self.g_output_list.get_focus()
                 try:
-                    pyperclip.copy(self._decode_if_str(focused_text_widget.get_text()[0]))
+                    pyperclip.copy(self._decode_if_bytes(focused_text_widget.get_text()[0]))
                 except pyperclip.PyperclipException:
                     self.append_output("Cannot copy to clipboard. Is the client windows?")
             elif key == 'meta left':
