@@ -337,6 +337,10 @@ class UI:
             else:
                 offset = 0
                 for attr, attr_length in _old_attr:
+                    # Ensure that standout lines are set properly
+                    if isinstance(attr, urwid.AttrSpec):
+                        if attr.foreground == 'default,standout':
+                            attr.foreground = 'default'
                     text_to_apply = _text_val[offset : attr_length + offset]
                     offset += attr_length
                     final_text.append((attr, text_to_apply))
