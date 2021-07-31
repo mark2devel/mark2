@@ -48,24 +48,22 @@ See [USAGE.md](USAGE.md) for details on how to use mark2
 
 ## Common Issues
 
-### `ServerStarted` event does not run scripts properly.
+### `ServerStarted` event does not run scripts properly
 
 This can happen due to the done message in the prompt from starting the server not being caught. Edit the `mark2.properties` in the server directory and add a line like the following that matches the "Done" message for when the server fully starts.
 
 A typical done message regex looks like this: `mark2.service.process.done-pattern=\\[(.*?)\\]: Done \\(([0-9]*\.?[0-9]*)s\\)\\!.*`
 
 ### mark2 says server may have crashed or is not responding
-The regex for the unknown command message is broken. In order to set it for that server, edit the `mark2.properties` in the server directory and add a line like the following that matches the unknown command message: 
+
+The regex for the unknown command message is broken. In order to set it for that server, edit the `mark2.properties` in the server directory and add a line like the following that matches the unknown command message:
 
 `plugin.monitor.crash-unknown-cmd-message=\\[(.*?)\\]: Unknown command.*`
 
 ### Player list on the right hand side is empty
+
 This happens when the join/quit regexes are not set properly for that server. Edit the `mark2.properties` in the server directory and add a line like the following that matches the join/quit messages in the console:
 
 Typical join regex: `mark2.regex.join=\\[(.*)\\]: (?P<username>[A-Za-z0-9_]{1,16}).*\\[\/(?P<ip>[0-9.:%]*)\\] logged in with entity id .+`
 
 Typical leave regex: `mark2.regex.quit=\\[(.*)\\]: (?P<username>[A-Za-z0-9_]{1,16}) lost connection: (?P<reason>.+)`
-
-### Missing process information in the right side panel
-
-This usually happens when the `psutils` module is installed incorrectly or for the wrong python version. You should double check you installed it properly using `pip install psutil` on ubunutu or install it manually in the python 2 environment
