@@ -337,7 +337,7 @@ class UI:
             else:
                 offset = 0
                 for attr, attr_length in _old_attr:
-                    # Ensure that standout lines are set properly
+                    # Ensure that standout lines are unset properly
                     if isinstance(attr, urwid.AttrSpec):
                         if attr.foreground == 'default,standout':
                             attr.foreground = 'default'
@@ -788,9 +788,9 @@ def ansi_replace(text):
     """
     Convert minecraft color codes to ansi escape codes
     """
-    # First replace all ampersand colors with unicode section side ones
+    # First replace all ampersand colors with unicode section sign ones
     text = replace_ampersand_colors(text)
-    if isinstance(text, str) != -1:
+    if isinstance(text, str):
         # Replace unicode section signs with ansi colors
         if text.find('\u00A7'):
             for code in mappings_mc_ansi:
