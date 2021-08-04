@@ -136,7 +136,7 @@ Issued when a player dies. *Generally doesn't work in recent minecraft versions 
 
 Issued when a player connects to the server. Triggered by the `<username> logged in...` message
 
-#### PlayerQuit`
+#### `PlayerQuit`
 
 Issued when a player disconnects from the server. Triggered by the `<username> lost connection...` message
 
