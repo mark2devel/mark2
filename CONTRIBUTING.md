@@ -13,6 +13,11 @@ First off, we'd like to thank you for helping improve mark2 and maintain it for 
     - [User Server](#user-server)
     - [User Client](#user-client)
 - [Event Documentation](#event-documentation)
+  - [General Events](#general-events)
+  - [Player Events](#player-events)
+  - [Server Events](#server-events)
+  - [Stat Events](#stat-events)
+  - [User Events](#user-events)
 
 ## Getting Started
 
@@ -76,4 +81,137 @@ It uses the `UserServerProtocol` to receive data from the client and uses it's e
 
 ## Event Documentation
 
-### WIP
+A [good message](https://github.com/gsand/mark2/issues/123#issuecomment-889285837) from [edk0](https://github.com/edk0) covered some of what will be outlined here, it's suggested you read it before continuing.
+
+Events are how plugins communicate with each other and how almost everything that happens is orchestrated.
+
+Some of these events can be used in conjunction with the scripts plugin to execute commands (shell and minecraft!) as well as mark2 commands when a certain event is fired. Only some of these events make sense to be used with the scripts plugin. The reason events can be used in scripts is because it was a convenient. As such, scripts can technically listen to any mark2 event when they definitely should not use most of them.
+
+To get a list of all events mark2 has, open up a server console and type `~events` in it.
+
+Here is a brief overview of the events mark2 uses.
+
+### General Events
+
+#### `Console`
+
+Issued by the manager when the server gives output  
+Used by plugins (like the user server) to handle console output from the server
+
+#### `Error`
+
+Unused event for a generic error
+
+#### `Event`
+
+Base event class used for all other events
+
+#### `FatalError`
+
+Issued when a fatal error causes the server process to close. Issued from the `Process` service  
+Tells the manager to exit with an error message
+
+#### `Hook`
+
+Issued as a general purpose event to have dynamically addable events.  
+Only used at the moment to register mark2 prompt commands
+
+### Player Events
+
+Issued from the `ConsoleTracking` service
+
+#### `PlayerEvent`
+
+Base player event class used for all other player events.
+
+#### `PlayerChat`
+
+Issued when a player sends a chat message. Triggered by chat messages in the console.
+
+#### `PlayerDeath`
+
+Issued when a player dies. *Generally doesn't work in recent minecraft versions due to changes with the death messages.*
+
+#### `PlayerJoin`
+
+Issued when a player connects to the server. Triggered by the `<username> logged in...` message
+
+#### PlayerQuit`
+
+Issued when a player disconnects from the server. Triggered by the `<username> lost connection...` message
+
+### Server Events
+
+#### `ServerEvent`
+
+Issued to inform plugins something is happening with the server
+Mainly used in the push plugin to send a push notifications.
+
+#### `ServerInput`
+
+Issued to send data to the server's stdin.
+
+#### `ServerOutput`
+
+Issued when the server gives a line on stdout. Allows the use of a pattern to only receive lines matching the pattern.
+
+#### `ServerStart`
+
+Issued to start the server
+
+#### `ServerStarted`
+
+Issued when the server has finished starting. Triggered by the `Done (123.456s)!` message and fired from the `Process` service
+Typical usage of this event in the scripts is for scheduling a server restart with the `~restart` command
+
+#### `ServerStarting`
+
+Issued to inform plugins the server is starting
+
+#### `ServerStop`
+
+Issued to stop the server
+
+#### `ServerStopping`
+
+Issued to inform plugins the server is stopping
+
+#### `ServerStopped`
+
+Issued when the server stops fully.
+
+### Stat Events
+
+#### `StatEvent`
+
+Base stat event class used for all other stat events
+
+#### `StatPlayerCount`
+
+Issued by the `Ping` service to send the number of players and max number of players on a server to plugins.
+
+#### `StatPlayers`
+
+Issued by the manager to send a list of players to plugins.
+Player information is gathered by the [player events](#player-events)
+
+#### `StatProcess`
+
+Issued by the `Process` service to inform plugins of the CPU and memory usage of the server process.
+
+### User Events
+
+Issued from the `UserServer` service after receiving data from the `UserClient`
+
+#### `UserAttach`
+
+Issued to alert plugins that a user attached to the console
+
+#### `UserDetach`
+
+Issued to alert plugins that a user detached from the console
+
+#### `UserInput`
+
+Issued when a user sends a line in the prompt.
+Handled by the manager to either forward the input to plugins as a [Hook](#hook) event or to dispatch a [ServerInput](#serverinput) event.
