@@ -1,5 +1,8 @@
 # mark2
 
+![GitHub last commit](https://img.shields.io/github/last-commit/gsand/mark2?label=Latest%20Commit)
+[![Discord](https://img.shields.io/discord/872557175095037983?label=Join%20our%20Discord%21&logo=discord)](https://discord.gg/HCvqE6TdXY)
+
      mark2  server01  server02                                        user
     ┌────────────── server01 ──────────────┐┌─────────── stats ───────────┐
     │2015-06-04 13:55:34 | Server          ││cpu: 0.20%                   │
