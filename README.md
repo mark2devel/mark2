@@ -26,6 +26,10 @@ See [INSTALL.md](INSTALL.md) for requirements and installation instructions
 
 See [USAGE.md](USAGE.md) for details on how to use mark2
 
+Want to contribute or are just curious how mark2 works? See the [Contribution Guide](CONTRIBUTING.md).
+
+See the [Event Documentation](CONTRIBUTING.md#event-documentation) for details on mark2 events.
+
 ## Features
 
 * Your server runs in the background
@@ -44,7 +48,7 @@ See [USAGE.md](USAGE.md) for details on how to use mark2
 * Read an RSS feed (such as a subreddit feed) and announce new entries in-game
 * Back up your map and server log when the server stops
 * Print a random message at an interval, e.g. '[SERVER] Lock your chests with /lock'
-* Respond to user commands, e.g. '<Notch> !teamspeak' could `msg Notch Join our teamspeak server at xyz.com`
+* Respond to user commands, e.g. '\<Notch> !teamspeak' could `msg Notch Join our teamspeak server at xyz.com`
 
 ## Common Issues
 
