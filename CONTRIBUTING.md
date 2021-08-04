@@ -89,7 +89,7 @@ Some of these events can be used in conjunction with the scripts plugin to execu
 
 To get a list of all events mark2 has, open up a server console and type `~events` in it.
 
-Here is a brief overview of the events mark2 uses.
+Here is a brief overview of the events mark2 has to offer
 
 ### General Events
 
@@ -113,8 +113,8 @@ Tells the manager to exit with an error message
 
 #### `Hook`
 
-Issued as a general purpose event to have dynamically addable events.  
-Only used at the moment to register mark2 prompt commands
+Issued as a general purpose event to have dynamically addable events
+Only used at the moment for mark2 prompt commands
 
 ### Player Events
 
@@ -122,15 +122,15 @@ Issued from the `ConsoleTracking` service
 
 #### `PlayerEvent`
 
-Base player event class used for all other player events.
+Base player event class used for all other player events
 
 #### `PlayerChat`
 
-Issued when a player sends a chat message. Triggered by chat messages in the console.
+Issued when a player sends a chat message. Triggered by chat messages in the console
 
 #### `PlayerDeath`
 
-Issued when a player dies. *Generally doesn't work in recent minecraft versions due to changes with the death messages.*
+Issued when a player dies. *Generally doesn't work in recent minecraft versions due to changes with the death messages*
 
 #### `PlayerJoin`
 
@@ -145,15 +145,15 @@ Issued when a player disconnects from the server. Triggered by the `<username> l
 #### `ServerEvent`
 
 Issued to inform plugins something is happening with the server
-Mainly used in the push plugin to send a push notifications.
+Mainly used in the push plugin to send a push notifications
 
 #### `ServerInput`
 
-Issued to send data to the server's stdin.
+Issued to send data to the server's stdin
 
 #### `ServerOutput`
 
-Issued when the server gives a line on stdout. Allows the use of a pattern to only receive lines matching the pattern.
+Issued when the server gives a line on stdout. Allows the use of a pattern to only receive lines matching the pattern
 
 #### `ServerStart`
 
@@ -178,7 +178,7 @@ Issued to inform plugins the server is stopping
 
 #### `ServerStopped`
 
-Issued when the server stops fully.
+Issued when the server stops fully
 
 ### Stat Events
 
@@ -188,16 +188,16 @@ Base stat event class used for all other stat events
 
 #### `StatPlayerCount`
 
-Issued by the `Ping` service to send the number of players and max number of players on a server to plugins.
+Issued by the `Ping` service to send the number of players and max number of players on a server to plugins
 
 #### `StatPlayers`
 
-Issued by the manager to send a list of players to plugins.
+Issued by the manager to send a list of players to plugins
 Player information is gathered by the [player events](#player-events)
 
 #### `StatProcess`
 
-Issued by the `Process` service to inform plugins of the CPU and memory usage of the server process.
+Issued by the `Process` service to inform plugins of the CPU and memory usage of the server process
 
 ### User Events
 
@@ -214,4 +214,4 @@ Issued to alert plugins that a user detached from the console
 #### `UserInput`
 
 Issued when a user sends a line in the prompt.
-Handled by the manager to either forward the input to plugins as a [Hook](#hook) event or to dispatch a [ServerInput](#serverinput) event.
+Handled by the manager to either forward the input to plugins as a [Hook](#hook) event or to dispatch a [ServerInput](#serverinput) event
