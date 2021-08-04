@@ -297,9 +297,21 @@ class UI:
                 self.g_output.set_focus_valign("bottom")
                 self.g_output.set_focus(len(self.g_output_list) - 1, coming_from='above')
             elif key == 'meta c':
+                # Copy focused widget to clipboard
                 focused_text_widget, _ = self.g_output_list.get_focus()
                 try:
                     pyperclip.copy(self._decode_if_bytes(focused_text_widget.get_text()[0]))
+                except pyperclip.PyperclipException:
+                    self.append_output("Cannot copy to clipboard. Is the client windows?")
+            elif key == 'meta x':
+                # Append focused widget to clipboard
+                focused_text_widget, _ = self.g_output_list.get_focus()
+                try:
+                    copied_text = pyperclip.paste()
+                    if copied_text is not None:
+                        copied_text += "\n"
+                    copied_text += self._decode_if_bytes(focused_text_widget.get_text()[0])
+                    pyperclip.copy(copied_text)
                 except pyperclip.PyperclipException:
                     self.append_output("Cannot copy to clipboard. Is the client windows?")
             elif key == 'meta left':
@@ -320,6 +332,8 @@ class UI:
             self.loop.draw_screen()
     
     def set_focused(self):
+        """ Sets the focused widget in the terminal to a standout color and resets old standout widgets to their original formatting
+        """
         focused_text, pos = self.g_output.get_focus()
 
         text_val = self._encode_if_str(focused_text.get_text()[0])
@@ -336,6 +350,7 @@ class UI:
                 final_text.append((_old_attr, _text_val))
             else:
                 offset = 0
+                # Loops over the old attributes and applies them properly for the _new_text widget
                 for attr, attr_length in _old_attr:
                     # Ensure that standout lines are unset properly
                     if isinstance(attr, urwid.AttrSpec):
