@@ -13,6 +13,8 @@
 # instead of specifying a time, you may specify an event to listen out for.
 # a list of available events can be seen by running ~events from console.
 # to use, replace the time spec with '@eventname', e.g. '@serverstopped'
+# You can also specify arguments from the event to format using '{arg_name}'.
+# See the '@playerchat' line below for an example.
 
 # COMMAND FORMAT
 #    #       print the # and everything following it to the mark2 console
@@ -33,6 +35,7 @@
      */15  *    *    *    *    ~save 1m
      0    */6  *    *    *    ~restart 10m;5m;1m
      @serverstopped           $rm server.log
+     @playerchat              /msg {username} I saw your chat message. It said: {message}
 #    */5  *    *    *    *    /tps
 #    @serverstopped           ~backup
 #    @serverstopped           $carto.sh
