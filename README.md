@@ -1,7 +1,7 @@
 # mark2
 
-![GitHub last commit](https://img.shields.io/github/last-commit/gsand/mark2?label=Latest%20Commit)
-[![Discord](https://img.shields.io/discord/872557175095037983?label=Join%20our%20Discord%21&logo=discord)](https://discord.gg/HCvqE6TdXY)
+[![Discord](https://img.shields.io/discord/872557175095037983?label=Join%20the%20Discord&logo=discord&style=for-the-badge)](https://discord.gg/HCvqE6TdXY)  
+![GitHub last commit](https://img.shields.io/github/last-commit/gsand/mark2?label=Last%20Commit&logo=github&style=for-the-badge)
 
      mark2  server01  server02                                        user
     ┌────────────── server01 ──────────────┐┌─────────── stats ───────────┐
@@ -52,25 +52,3 @@ See the [Event Documentation](CONTRIBUTING.md#event-documentation) for details o
 * Back up your map and server log when the server stops
 * Print a random message at an interval, e.g. '[SERVER] Lock your chests with /lock'
 * Respond to user commands, e.g. '\<Notch> !teamspeak' could `msg Notch Join our teamspeak server at xyz.com`
-
-## Common Issues
-
-### `ServerStarted` event does not run scripts properly
-
-This can happen due to the done message in the prompt from starting the server not being caught. Edit the `mark2.properties` in the server directory and add a line like the following that matches the "Done" message for when the server fully starts.
-
-A typical done message regex looks like this: `mark2.service.process.done-pattern=\\[(.*?)\\]: Done \\(([0-9]*\.?[0-9]*)s\\)\\!.*`
-
-### mark2 says server may have crashed or is not responding
-
-The regex for the unknown command message is broken. In order to set it for that server, edit the `mark2.properties` in the server directory and add a line like the following that matches the unknown command message:
-
-`plugin.monitor.crash-unknown-cmd-message=\\[(.*?)\\]: Unknown command.*`
-
-### Player list on the right hand side is empty
-
-This happens when the join/quit regexes are not set properly for that server. Edit the `mark2.properties` in the server directory and add a line like the following that matches the join/quit messages in the console:
-
-Typical join regex: `mark2.regex.join=\\[(.*)\\]: (?P<username>[A-Za-z0-9_]{1,16}).*\\[\/(?P<ip>[0-9.:%]*)\\] logged in with entity id .+`
-
-Typical leave regex: `mark2.regex.quit=\\[(.*)\\]: (?P<username>[A-Za-z0-9_]{1,16}) lost connection: (?P<reason>.+)`
