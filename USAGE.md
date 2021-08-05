@@ -19,7 +19,7 @@ There are examples of these in the `samples/` directory
 
 To start a minecraft server:
 
-    $ mark2 start /path/to/servers/server-name
+    mark2 start /path/to/servers/server-name
 
 If you're already in the right directory, you can omit the path.
 
@@ -32,7 +32,7 @@ details.
 
 To attach to a wrapped server:
 
-    $ mark2 attach -n server-name
+    mark2 attach -n server-name
 
 Swap out 'server-name' for whatever your server is actually called, for example 'pvp' or 'creative'.
 
@@ -63,11 +63,11 @@ admins.
 
 You can send commands to the server from the command line, for example:
 
-    $ mark2 send -n server-name kick Notch
+    mark2 send -n server-name kick Notch
 
 ## stopping/restarting
 
-    $ mark2 stop -n server-name
-    $ mark2 kill -n server-name
+    mark2 stop -n server-name
+    mark2 kill -n server-name
 
 `stop` will attempt to gracefully shut down the server, and will kill it after a configurable timeout.
