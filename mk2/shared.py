@@ -48,3 +48,17 @@ def console_repr(e):
     
     s += "{}".format(e['data'])
     return s
+
+
+def decode_if_bytes(val):
+    if isinstance(val, bytes):
+        return val.decode("utf-8")
+    else:
+        return val
+
+
+def encode_if_str(val):
+    if isinstance(val, str):
+        return val.encode("utf-8")
+    else:
+        return val

@@ -15,7 +15,7 @@ from twisted.internet.task import LoopingCall
 from twisted.protocols.basic import LineReceiver
 
 from . import properties
-from .shared import console_repr, open_resource
+from .shared import console_repr, open_resource, decode_if_bytes, encode_if_str
 
 
 class TabEvent:
@@ -225,10 +225,6 @@ class UI:
 
         self.g_output_list = urwid.SimpleFocusListWalker([])
 
-        # Encodes/decodes a str object or returns the original object as encoded/decoded str. URWID will be the death of me...
-        self._encode_if_str = lambda x: x.encode("utf-8") if isinstance(x, str) else x
-        self._decode_if_bytes = lambda x: x.decode("utf-8") if isinstance(x, bytes) else x
-
         self.build()
 
     def build(self):
@@ -300,7 +296,7 @@ class UI:
                 # Copy focused widget to clipboard
                 focused_text_widget, _ = self.g_output_list.get_focus()
                 try:
-                    pyperclip.copy(self._decode_if_bytes(focused_text_widget.get_text()[0]))
+                    pyperclip.copy(decode_if_bytes(focused_text_widget.get_text()[0]))
                 except pyperclip.PyperclipException:
                     self.append_output("Cannot copy to clipboard. Is the client windows?")
             elif key == 'meta x':
@@ -310,7 +306,7 @@ class UI:
                     copied_text = pyperclip.paste()
                     if copied_text is not None:
                         copied_text += "\n"
-                    copied_text += self._decode_if_bytes(focused_text_widget.get_text()[0])
+                    copied_text += decode_if_bytes(focused_text_widget.get_text()[0])
                     pyperclip.copy(copied_text)
                 except pyperclip.PyperclipException:
                     self.append_output("Cannot copy to clipboard. Is the client windows?")
@@ -336,13 +332,13 @@ class UI:
         """
         focused_text, pos = self.g_output.get_focus()
 
-        text_val = self._encode_if_str(focused_text.get_text()[0])
+        text_val = encode_if_str(focused_text.get_text()[0])
         old_attr = focused_text.get_text()[1]
         new_text = urwid.Text((urwid.AttrSpec('default,standout', 'default'), text_val))
         self.g_output_list[pos] = new_text
 
         for prev in self._prev_focused:
-            _text_val = self._encode_if_str(prev[0][0].get_text()[0])
+            _text_val = encode_if_str(prev[0][0].get_text()[0])
             # Attr encoded as [('attr', x), ('attr', y)] where x and y are run lengths of the attribute on the text
             _old_attr = prev[0][1] if len(prev[0][1]) > 0 else 'default'
             final_text = []

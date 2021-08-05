@@ -8,8 +8,15 @@ from twisted.internet import protocol, reactor, defer
 
 from mk2.plugins import Plugin
 from mk2 import events
+from mk2.shared import decode_if_bytes
 
 time_bounds = [(0, 59), (0, 23), (1, 31), (1, 12), (1, 7)]
+
+
+class SafeDict(dict):
+    """ Safe dict for use with string formatting """
+    def __missing__(self, key):
+        return '{' + key + '}'
 
 
 class ScriptEntry:
@@ -26,7 +33,7 @@ class ScriptEntry:
             event = events.get_by_name(event_name)
             if not event:
                 raise ValueError("unknown event: %s" % event_name)
-            self.plugin.register(lambda e: self.execute(command), event)
+            self.plugin.register(lambda e: self.execute(command, e), event)
         else:
             self.type = "time"
             bits = re.split(r'\s+', line, 5)
@@ -46,7 +53,7 @@ class ScriptEntry:
                 ranges.append(Range(int(n), int(top or n), int(skip or 1)))
         return ranges
  
-    def execute(self, cmd):
+    def execute(self, cmd, event=None):
         execute = defer.succeed(None)
 
         def execute_next(fn, *a, **kw):
@@ -54,6 +61,11 @@ class ScriptEntry:
             execute.addErrback(lambda f: True)
 
         if cmd.startswith('$'):
+            if event is not None:
+                # Collect all the event args and format them into the command string
+                event_dict = event.serialize()
+                event_args = SafeDict({k: decode_if_bytes(event_dict[k]) for k in event_dict})
+                cmd = cmd.format_map(event_args)
             cmd = cmd[1:]
             d = defer.Deferred()
 
@@ -66,10 +78,15 @@ class ScriptEntry:
             d.addCallback(lambda r: execute)
             return d
         else:
-            return self.execute_reduced(cmd)
+            return self.execute_reduced(cmd, event)
     
     @defer.inlineCallbacks
-    def execute_reduced(self, cmd, source='script'):
+    def execute_reduced(self, cmd, event=None, source='script'):
+        if event is not None:
+            # Collect all the event args and format them into the command string
+            event_dict = event.serialize()
+            event_args = SafeDict({k: decode_if_bytes(event_dict[k]) for k in event_dict})
+            cmd = cmd.format_map(event_args)
         if cmd.startswith('~'):
             handled = yield self.plugin.dispatch(events.Hook(line=cmd))
             if not handled:
@@ -91,7 +108,7 @@ class ScriptEntry:
             if not t in range(r.min, r.max + 1, r.skip):
                 return
         
-        self.execute(self.command)
+        self.execute(self.command, None)
 
 
 class Script(Plugin):
