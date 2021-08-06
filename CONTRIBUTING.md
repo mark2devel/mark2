@@ -81,6 +81,8 @@ It uses the `UserServerProtocol` to receive data from the client and uses it's e
 
 ## Event Documentation
 
+**NOTE: Event documentation is still a WIP, event data is missing for now and will be added at a later date!**
+
 A [good message](https://github.com/gsand/mark2/issues/123#issuecomment-889285837) from [edk0](https://github.com/edk0) covered some of what will be outlined here, it's suggested you read it before continuing.
 
 Events are how plugins communicate with each other and how almost everything that happens is orchestrated.
