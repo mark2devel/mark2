@@ -42,7 +42,7 @@ class Discord(Plugin):
         if self.webhook_url.find("https://discord.com/") != -1:
             self.webhook_url = self.webhook_url.replace("https://discord.com/", "/")
         self.headers = {'Content-type': 'application/json'}
-        
+
         self.register(self.handle_server_event,    ServerEvent, priority=EventPriority.MONITOR)
         self.register(self.handle_server_starting, ServerStarting)
         self.register(self.handle_server_started,  ServerStarted)
@@ -89,7 +89,7 @@ class Discord(Plugin):
         webhook_builder = WebhookBuilder(self.webhook_name)
         title = "Server Stopping Event"
         fields = [
-            {"name": decode_if_bytes(self.server_name), "value": "Server is stopping!"},
+            {"name": decode_if_bytes(self.server_name), "value": "Server is stopping"},
             {"name": "Reason", "value": event.reason},
             {"name": "Respawn", "value": event.respawn}
         ]
