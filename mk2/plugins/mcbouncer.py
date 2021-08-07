@@ -2,7 +2,8 @@ from twisted.python import log
 import urllib
 import json
 
-from twisted.web.client import HTTPClientFactory, getPage
+from twisted.web.client import HTTPClientFactory
+import treq
 HTTPClientFactory.noisy = False
 
 from mk2.plugins import Plugin
@@ -23,9 +24,9 @@ class BouncerAPI:
             args = [urllib.quote(a.encode('utf8'), "") for a in args]
             callback = kwargs.get('callback', None)
             addr = '/'.join([self.api_base, method, self.api_key] + args)
-            deferred = getPage(addr)
+            deferred = treq.get(addr)
             if callback:
-                deferred.addCallback(lambda d: callback(json.loads(str(d))))
+                deferred.addCallback(lambda d: callback(json.loads(str(d.text()))))
                 deferred.addErrback(self.errback)
         return inner
 

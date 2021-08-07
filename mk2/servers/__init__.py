@@ -2,7 +2,8 @@ import json
 import sys
 
 from twisted.internet import reactor, defer
-from twisted.web.client import getPage, HTTPClientFactory
+from twisted.web.client import HTTPClientFactory
+import treq
 
 try:
     from twisted.internet import ssl
@@ -36,7 +37,7 @@ class JarProvider:
         self.work()
 
     def get(self, url, callback):
-        d = getPage(str(url))
+        d = treq.get(str(url))
         d.addCallback(callback)
         d.addErrback(self.error)
         return d
@@ -63,7 +64,7 @@ class JenkinsJarProvider(JarProvider):
         self.get('{}job/{}/lastSuccessfulBuild/api/json'.format(self.base, self.project), self.handle_data)
 
     def handle_data(self, data):
-        data = json.loads(data)
+        data = json.loads(data.text())
         url = '{}job/{}/lastSuccessfulBuild/artifact/{}'.format(self.base, self.project, data['artifacts'][0]['relativePath'])
         self.add((self.name, 'Latest'), (None, None), url)
         self.commit()
