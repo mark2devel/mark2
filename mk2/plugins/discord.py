@@ -6,6 +6,7 @@ from mk2.shared import decode_if_bytes
 
 
 class WebhookObject(dict):
+    """ Custom dict object that represents a discord webhook object """
     def __init__(self, username):
         self.username = username
         self.content = ""
@@ -38,10 +39,6 @@ class Discord(Plugin):
     }
 
     def setup(self):
-        # Strip the address part of the url from the URL to just leave the api call
-        # if self.webhook_url.find("https://discord.com/") != -1:
-        #     self.webhook_url = self.webhook_url.replace("https://discord.com/", "/")
-
         self.register(self.handle_server_event,    ServerEvent, priority=EventPriority.MONITOR)
         self.register(self.handle_server_starting, ServerStarting)
         self.register(self.handle_server_started,  ServerStarted)
@@ -104,5 +101,4 @@ class Discord(Plugin):
         self.send_webhook(webhook)
 
     def send_webhook(self, data):
-        """ Sends the webhook and closes the client instance """
         d = treq.post(self.webhook_url, json=data.__dict__)
