@@ -37,6 +37,12 @@ class Discord(Plugin):
     webhook_name = Plugin.Property(default="mark2")
     server_name = Plugin.Property(required=True)
 
+    stop_types = {
+        0: "Terminate",
+        1: "Restart",
+        2: "Hold"
+    }
+
     def setup(self):
         # Strip the address part of the url from the URL to just leave the api call
         if self.webhook_url.find("https://discord.com/") != -1:
@@ -91,7 +97,7 @@ class Discord(Plugin):
         fields = [
             {"name": decode_if_bytes(self.server_name), "value": "Server is stopping"},
             {"name": "Reason", "value": event.reason},
-            {"name": "Respawn", "value": event.respawn}
+            {"name": "Stop Type", "value": self.stop_types.get(event.respawn)}
         ]
         webhook_builder.add_embed(title, fields)
         webhook_data = webhook_builder.get_webhook_data()
