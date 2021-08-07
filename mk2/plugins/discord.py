@@ -1,12 +1,10 @@
-import json
-from http import client
+import treq
 
 from mk2.events import EventPriority, ServerEvent, ServerStarted, ServerStopped, ServerStopping, ServerStarting
 from mk2.plugins import Plugin
 from mk2.shared import decode_if_bytes
 
 
-class WebhookBuilder:
 class WebhookObject(dict):
     def __init__(self, username):
         self.username = username
@@ -107,7 +105,4 @@ class Discord(Plugin):
 
     def send_webhook(self, data):
         """ Sends the webhook and closes the client instance """
-        _client = client.HTTPSConnection("discord.com")
-        _client.request("POST", self.webhook_url, data, self.headers)
-        _ = _client.getresponse()
-        del _client, _
+        d = treq.post(self.webhook_url, json=data.__dict__)
