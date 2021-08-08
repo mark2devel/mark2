@@ -47,15 +47,10 @@ class Discord(Plugin):
     def setup(self):
         # Register event handlers
         self.register(self.handle_server_event, ServerEvent, priority=EventPriority.MONITOR)
-
-        if self.server_starting_enabled:
-            self.register(self.handle_server_starting, ServerStarting)
-        if self.server_started_enabled:
-            self.register(self.handle_server_started, ServerStarted)
-        if self.server_stopping_enabled:
-            self.register(self.handle_server_stopping, ServerStopping)
-        if self.server_stopped_enabled:
-            self.register(self.handle_server_stopped, ServerStopped)
+        self.register(self.handle_server_starting, ServerStarting)
+        self.register(self.handle_server_started, ServerStarted)
+        self.register(self.handle_server_stopping, ServerStopping)
+        self.register(self.handle_server_stopped, ServerStopped)
 
     def handle_server_event(self, event):
         webhook = WebhookObject(self.webhook_name)
@@ -69,48 +64,52 @@ class Discord(Plugin):
         self.send_webhook(webhook)
     
     def handle_server_starting(self, event):
-        webhook = WebhookObject(self.webhook_name)
-        title = "Server Starting Event"
-        fields = []
-        fields = [
-            {"name": decode_if_bytes(self.server_name), "value": "Server is starting"},
-            {"name": "PID", "value": event.pid},
-        ]
-        webhook.add_embed(title, fields)
+        if self.server_starting_enabled:
+            webhook = WebhookObject(self.webhook_name)
+            title = "Server Starting Event"
+            fields = []
+            fields = [
+                {"name": decode_if_bytes(self.server_name), "value": "Server is starting"},
+                {"name": "PID", "value": event.pid},
+            ]
+            webhook.add_embed(title, fields)
 
-        self.send_webhook(webhook)
+            self.send_webhook(webhook)
 
     def handle_server_started(self, event):
-        webhook = WebhookObject(self.webhook_name)
-        title = "Server Started Event"
-        fields = [
-            {"name": decode_if_bytes(self.server_name), "value": "Server Started"}
-        ]
-        webhook.add_embed(title, fields)
+        if self.server_started_enabled:
+            webhook = WebhookObject(self.webhook_name)
+            title = "Server Started Event"
+            fields = [
+                {"name": decode_if_bytes(self.server_name), "value": "Server Started"}
+            ]
+            webhook.add_embed(title, fields)
 
-        self.send_webhook(webhook)
+            self.send_webhook(webhook)
 
     def handle_server_stopping(self, event):
-        webhook = WebhookObject(self.webhook_name)
-        title = "Server Stopping Event"
-        fields = [
-            {"name": decode_if_bytes(self.server_name), "value": "Server is stopping"},
-            {"name": "Reason", "value": event.reason},
-            {"name": "Stop Type", "value": self.stop_types.get(event.respawn)}
-        ]
-        webhook.add_embed(title, fields)
+        if self.server_stopping_enabled:
+            webhook = WebhookObject(self.webhook_name)
+            title = "Server Stopping Event"
+            fields = [
+                {"name": decode_if_bytes(self.server_name), "value": "Server is stopping"},
+                {"name": "Reason", "value": event.reason},
+                {"name": "Stop Type", "value": self.stop_types.get(event.respawn)}
+            ]
+            webhook.add_embed(title, fields)
 
-        self.send_webhook(webhook)
+            self.send_webhook(webhook)
     
     def handle_server_stopped(self, event):
-        webhook = WebhookObject(self.webhook_name)
-        title = "Server Stopped Event"
-        fields = [
-            {"name": decode_if_bytes(self.server_name), "value": "Server Stopped"}
-        ]
-        webhook.add_embed(title, fields)
+        if self.server_stopped_enabled:
+            webhook = WebhookObject(self.webhook_name)
+            title = "Server Stopped Event"
+            fields = [
+                {"name": decode_if_bytes(self.server_name), "value": "Server Stopped"}
+            ]
+            webhook.add_embed(title, fields)
 
-        self.send_webhook(webhook)
+            self.send_webhook(webhook)
 
     def send_webhook(self, data):
         d = treq.post(self.webhook_url, json=data.__dict__)
