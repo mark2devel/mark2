@@ -32,6 +32,12 @@ class Discord(Plugin):
     webhook_name = Plugin.Property(default="mark2")
     server_name = Plugin.Property(required=True)
 
+    # Server event toggles
+    server_started_enabled = Plugin.Property(default=True)
+    server_stopped_enabled = Plugin.Property(default=True)
+    server_starting_enabled = Plugin.Property(default=False)
+    server_stopping_enabled = Plugin.Property(default=False)
+
     stop_types = {
         0: "Terminate",
         1: "Restart",
@@ -39,11 +45,17 @@ class Discord(Plugin):
     }
 
     def setup(self):
-        self.register(self.handle_server_event,    ServerEvent, priority=EventPriority.MONITOR)
-        self.register(self.handle_server_starting, ServerStarting)
-        self.register(self.handle_server_started,  ServerStarted)
-        self.register(self.handle_server_stopping, ServerStopping)
-        self.register(self.handle_server_stopped,  ServerStopped)
+        # Register event handlers
+        self.register(self.handle_server_event, ServerEvent, priority=EventPriority.MONITOR)
+
+        if self.server_starting_enabled:
+            self.register(self.handle_server_starting, ServerStarting)
+        if self.server_started_enabled:
+            self.register(self.handle_server_started, ServerStarted)
+        if self.server_stopping_enabled:
+            self.register(self.handle_server_stopping, ServerStopping)
+        if self.server_stopped_enabled:
+            self.register(self.handle_server_stopped, ServerStopped)
 
     def handle_server_event(self, event):
         webhook = WebhookObject(self.webhook_name)
