@@ -14,7 +14,7 @@ import tempfile
 from . import manager
 
 #config:
-from .shared import find_config, open_resource
+from .shared import find_config, open_resource, decode_if_bytes
 
 #attach:
 from . import user_client
@@ -420,21 +420,19 @@ class CommandConfig(Command):
         ) == 0
 
     def copy_config(self, src, dest, header=''):
-        f0 = src
-        f1 = dest
         l0 = ''
 
         while l0.strip() == '' or l0.startswith('### ###'):
-            l0 = f0.readline()
+            l0 = decode_if_bytes(src.readline())
 
-        f1.write(header)
+        dest.write(header)
 
         while l0 != '':
-            f1.write(l0)
-            l0 = f0.readline()
+            dest.write(l0)
+            l0 = decode_if_bytes(src.readline())
 
-        f0.close()
-        f1.close()
+        src.close()
+        dest.close()
 
     def diff_config(self, src, dest):
         diff = ""
@@ -450,7 +448,6 @@ class CommandConfig(Command):
                 for l1 in d1[j0:j1]:
                     if l1.strip(ignore) != '':
                         diff += l1
-
         return diff
 
     def run(self):
