@@ -36,8 +36,10 @@ class JarProvider:
         self.response = []
         self.work()
 
+    @defer.inlineCallbacks
     def get(self, url, callback):
-        d = treq.get(str(url))
+        resp = yield treq.get(str(url))
+        d = resp.text()
         d.addCallback(callback)
         d.addErrback(self.error)
         return d
