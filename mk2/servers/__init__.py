@@ -36,12 +36,15 @@ class JarProvider:
         self.response = []
         self.work()
 
-    @defer.inlineCallbacks
     def get(self, url, callback):
-        resp = yield treq.get(str(url))
-        d = resp.text()
-        d.addCallback(callback)
-        d.addErrback(self.error)
+        d = defer.Deferred()
+        def handle_resp(resp):
+           d = resp.text()
+           d.addCallback(callback)
+           d.addErrback(self.error)
+        resp_defer = treq.get(str(url))
+        resp_defer.addCallback(handle_resp)
+        resp_defer.addErrback(self.error)
         return d
 
     def add(self, *a, **k):
@@ -51,6 +54,7 @@ class JarProvider:
         self.deferred.callback(self.response)
 
     def error(self, d=None):
+        print("error in jar provider: {}".format(d))
         self.deferred.errback(d)
 
     def work(self):
@@ -117,7 +121,7 @@ def jar_list():
             o.append((left, right))
 
         for left, right in sorted(o):
-            listing += "  %s | %s\n" % (left.ljust(m), right)
+            listing += "  {} | {}\n".format(left.ljust(m), right)
 
         d_result.callback(listing.rstrip())
 
