@@ -29,6 +29,6 @@ class Vanilla(JarProvider):
         
         d = defer.DeferredList(deferred_list)
         d.addCallback(self.commit)
-        d.addErrback(self.error)
+        d.addErrback(d.errback)
 
 ref = Vanilla

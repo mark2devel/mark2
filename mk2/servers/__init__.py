@@ -1,14 +1,8 @@
-import json
+import os
 import sys
 
-from twisted.internet import reactor, defer
-from twisted.web.client import HTTPClientFactory
 import treq
-
-try:
-    from twisted.internet import ssl
-except ImportError:
-    ssl = None
+from twisted.internet import defer
 
 
 class Jar:
@@ -130,41 +124,32 @@ def jar_list():
 
 def jar_get(name):
     d_result = defer.Deferred()
+    global did_download
+    did_download = True
 
-    def got_data(factory, data):
-        filename = factory.path.split('/')[-1]
-
-        #parse the Content-Disposition header
-        dis = factory.response_headers.get('content-disposition', None)
-        if dis:
-            dis = dis[0].split(';')
-            if dis[0] == 'attachment':
-                for param in dis[1:]:
-                    key, value = param.strip().split('=')
-                    if key == 'filename':
-                        filename = value.replace("\"", "")
-
-        d_result.callback((filename, data))
+    def err(_):
+        global did_download
+        did_download = False
 
     def got_results(results):
+        global did_download
         for r in results:
             if name == '-'.join(r.name_short):
-                factory = HTTPClientFactory(r.url)
-
-                if factory.scheme == 'https':
-                    if ssl:
-                        reactor.connectSSL(factory.host, factory.port, factory, ssl.ClientContextFactory())
-                    else:
-                        d_result.errback(Exception("{} is not available because this installation does not have SSL support!".format(name)))
+                filename = r.url.split('/')[-1]
+                if os.path.exists(filename):
+                    d_result.errback(Exception("File already exists!"))
                 else:
-                    reactor.connectTCP(factory.host, factory.port, factory)
-
-                factory.deferred.addCallback(lambda d: got_data(factory, d))
-                factory.deferred.addErrback(d_result.errback)
-                return
-
-        d_result.errback(Exception("{} is not available!".format(name)))
+                    print("Downloading file from {} to: {}".format(r.url, filename))
+                    f_out = open(filename, "wb")
+                    resp = treq.get(r.url, unbuffered=True)
+                    resp.addCallback(treq.collect, f_out.write)
+                    did_download = True
+                    resp.addCallback(lambda _: d_result.callback(filename))
+                    resp.addErrback(err)
+                    resp.addBoth(lambda _: f_out.close())
+        if not did_download:
+            d_result.errback(Exception("{} is not available!".format(name)))
 
     d = get_raw()
-    d.addCallbacks(got_results, d_result.errback)
+    d.addCallback(got_results)
     return d_result
