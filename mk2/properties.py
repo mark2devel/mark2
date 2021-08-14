@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import shlex
 import zipfile
 from functools import reduce
@@ -61,7 +62,6 @@ class Properties(OrderedDict):
         def parse(inp):
             token = list(inp)
             out = ""
-            uni = False
             while len(token) > 0:
                 c = token.pop(0)
                 if c == '\\':
@@ -86,6 +86,18 @@ class Properties(OrderedDict):
                     out += c
 
             return out
+        
+        # Try to load the file as json
+        if f.name.endswith(".json"):
+            try:
+                _json = json.load(f)
+                for k, v in _json.items():
+                    self[k] = v
+                print("Loaded properties from input file as json")
+                f.close()
+                return
+            except json.JSONDecodeError:
+                pass
         
         if f.mode == "rb":
             d = f.read().decode('utf-8')

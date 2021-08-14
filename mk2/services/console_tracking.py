@@ -7,11 +7,15 @@ from mk2.plugins import Plugin
 
 
 class ConsoleTracking(Plugin):
+    lang_file_path = Plugin.Property(default=None)
     deaths = tuple()
     chat_events = tuple()
 
     def setup(self):
-        lang = properties.load_jar(self.parent.jar_file, 'assets/minecraft/lang/en_US.lang', 'lang/en_US.lang')
+        if self.lang_file_path is None:
+            lang = properties.load_jar(self.parent.jar_file, 'assets/minecraft/lang/en_US.lang', 'lang/en_US.lang', "assets/minecraft/lang/en_us.json")
+        else:
+            lang = properties.load(properties.Lang, self.lang_file_path)
         if lang is not None:
             self.deaths = tuple(lang.get_deaths())
             self.register(self.death_handler, ServerOutput, pattern=".*")
