@@ -12,6 +12,7 @@ class Vanilla(JarProvider):
 
     @defer.inlineCallbacks
     def handle_data(self, data):
+        print("Getting download info for vanilla versions...")
         deferred_list = []
         def got_json(_json_data, ver_type):
             self.add(('Vanilla', ver_type.title()), (None, None), _json_data["downloads"]["server"]["url"])
@@ -19,7 +20,6 @@ class Vanilla(JarProvider):
         for k, v in data['latest'].items():
             for version in data["versions"]:
                 if version["id"].startswith(v) and version["type"] == k:
-                    print("Getting info for: {}-{} with URL: {}".format(v, k, version["url"]))
                     d = treq.get(version["url"])
                     resp = yield d
                     _json = yield resp.json()
