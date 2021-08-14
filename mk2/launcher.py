@@ -553,11 +553,13 @@ class CommandJarList(Command):
 
     def run(self):
         def err(what):
-            if reactor.running: reactor.stop()
             print("error: {}".format(what.value))
+            if reactor.running:
+                reactor.stop()
 
         def handle(listing):
-            if reactor.running: reactor.stop()
+            if reactor.running:
+                reactor.stop()
             if len(listing) == 0:
                 print("error: no server jars found!")
             else:
@@ -583,22 +585,22 @@ class CommandJarGet(Command):
             raise Mark2ParseError("missing jar type!")
 
         def err(what):
-            #reactor.stop()
             print("error: {}".format(what.value))
+            if reactor.running:
+                reactor.stop()
 
-        def handle(filename, data):
-            reactor.stop()
+        def handle(filename):
+            if reactor.running:
+                reactor.stop()
+            if filename is None:
+                print("There was an error when saving the file!")
             if os.path.exists(filename):
-                print("error: {} already exists!").format(filename)
-            else:
-                f = open(filename, 'wb')
-                f.write(data)
-                f.close()
                 print("success! saved as {}".format(filename))
 
         def start():
             d = servers.jar_get(self.value)
-            d.addCallbacks(handle, err)
+            d.addCallback(handle)
+            d.addErrback(err)
 
         reactor.callWhenRunning(start)
 

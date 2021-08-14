@@ -1,6 +1,7 @@
 import feedparser
 import re
 import treq
+from twisted.internet import defer
 
 from mk2.plugins import Plugin
 
@@ -41,8 +42,10 @@ class RSS(Plugin):
         d = treq.get(self.url)
         d.addCallback(self.update_feeds)
     
+    @defer.inlineCallbacks
     def update_feeds(self, data):
-        for entry in self.poller.parse(data.text()):
+        text = yield data.text()
+        for entry in self.poller.parse(text):
             m = reddit_link.match(entry['link'])
             if m:
                 entry['link'] = "http://redd.it/" + m.group(1)
