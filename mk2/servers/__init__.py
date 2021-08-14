@@ -39,7 +39,7 @@ class JarProvider:
     def get(self, url, callback):
         d = defer.Deferred()
         def handle_resp(resp):
-           d = resp.text()
+           d = resp.json()
            d.addCallback(callback)
            d.addErrback(self.error)
         resp_defer = treq.get(str(url))
@@ -54,7 +54,6 @@ class JarProvider:
         self.deferred.callback(self.response)
 
     def error(self, d=None):
-        print("error in jar provider: {}".format(d))
         self.deferred.errback(d)
 
     def work(self):
@@ -70,7 +69,6 @@ class JenkinsJarProvider(JarProvider):
         self.get('{}job/{}/lastSuccessfulBuild/api/json'.format(self.base, self.project), self.handle_data)
 
     def handle_data(self, data):
-        data = json.loads(data.text())
         url = '{}job/{}/lastSuccessfulBuild/artifact/{}'.format(self.base, self.project, data['artifacts'][0]['relativePath'])
         self.add((self.name, 'Latest'), (None, None), url)
         self.commit()

@@ -583,7 +583,7 @@ class CommandJarGet(Command):
             raise Mark2ParseError("missing jar type!")
 
         def err(what):
-            #reactor.stop()
+            if reactor.running: reactor.stop()
             print("error: {}".format(what.value))
 
         def handle(filename, data):
