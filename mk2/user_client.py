@@ -243,18 +243,20 @@ class UI:
             self.g_frame.focus_position='footer'
         self.g_pmenu = PMenuWrap(self.pmenu_actions, self.pmenu_reasons, self.run_command, escape)
 
-        g_sidebar = urwid.Pile((
+        self.g_sidebar = urwid.Pile((
             ('pack', urwid.AttrMap(urwid.LineBox(self.g_stats, title='stats'), 'stats')),
             urwid.AttrMap(urwid.LineBox(self.g_pmenu, title="players"), 'menu')))
-        g_main    = urwid.Columns((
+        self.g_main    = urwid.Columns((
             urwid.WidgetDisable(urwid.AttrMap(self.g_output_wrap, 'console')),
-            ('fixed', 31, g_sidebar)))
+            ('fixed', 31, self.g_sidebar)))
+
+        self.sidebar_visible = True
 
         #foot
         self.g_prompt = Prompt(self.get_players, self.run_command, ' > ')
         g_prompt = urwid.AttrMap(self.g_prompt, 'prompt', 'prompt_focus')
 
-        self.g_frame = urwid.Frame(g_main, g_head, g_prompt, focus_part='footer')
+        self.g_frame = urwid.Frame(self.g_main, g_head, g_prompt, focus_part='footer')
 
         # Previous focused widgets for copy paste
         self._prev_focused = []
@@ -318,6 +320,8 @@ class UI:
                 self.g_frame.focus_position = 'body'
             elif key == 'f8':
                 raise urwid.ExitMainLoop
+            elif key == 'f9':
+                self.toggle_sidebar()
             else:
                 passthru.append(key)
 
@@ -364,6 +368,14 @@ class UI:
         self._prev_focused.append(((new_text, old_attr), pos))
         self.redraw()
         self.g_output.set_focus(pos)
+    
+    def toggle_sidebar(self):
+        """ Toggles the visibility of the player menu and stats """
+        if self.sidebar_visible:
+            self.g_main.contents.pop(1)
+        else:
+            self.g_main.contents.append((self.g_sidebar, self.g_main.options('given', 31)))
+        self.sidebar_visible = not self.sidebar_visible
 
     def set_servers(self, servers, current=None):
         new = []
