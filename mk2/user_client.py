@@ -320,7 +320,7 @@ class UI:
                 self.g_frame.focus_position = 'body'
             elif key == 'f8':
                 raise urwid.ExitMainLoop
-            elif key == 'f11':
+            elif key == 'f9':
                 self.toggle_sidebar()
             else:
                 passthru.append(key)
