@@ -81,7 +81,7 @@ It uses the `UserServerProtocol` to receive data from the client and uses it's e
 
 ## Event Documentation
 
-**NOTE: Event documentation is still a WIP, event data is missing for now and will be added at a later date!**
+**NOTE:** _If an event doesn't have values for it's contents listed under it, you should not be listening to it in scripts!_
 
 A [good message](https://github.com/gsand/mark2/issues/123#issuecomment-889285837) from [edk0](https://github.com/edk0) covered some of what will be outlined here, it's suggested you read it before continuing.
 
@@ -95,25 +95,30 @@ Here is a brief overview of the events mark2 has to offer
 
 ### General Events
 
-#### `Console`
+#### Console
 
 Issued by the manager when the server gives output  
 Used by plugins (like the user server) to handle console output from the server
 
-#### `Error`
+#### Error
 
 Unused event for a generic error
 
-#### `Event`
+#### Event
 
 Base event class used for all other events
 
-#### `FatalError`
+#### FatalError
 
 Issued when a fatal error causes the server process to close. Issued from the `Process` service  
 Tells the manager to exit with an error message
 
-#### `Hook`
+- `exception` [Optional]
+  - The exception that caused the error
+- `reason` [Optional]
+  - The reason for the FatalError event
+
+#### Hook
 
 Issued as a general purpose event to have dynamically addable events
 Only used at the moment for mark2 prompt commands
@@ -122,98 +127,154 @@ Only used at the moment for mark2 prompt commands
 
 Issued from the `ConsoleTracking` service
 
-#### `PlayerEvent`
+#### PlayerEvent
 
 Base player event class used for all other player events
 
-#### `PlayerChat`
+#### PlayerChat
 
 Issued when a player sends a chat message. Triggered by chat messages in the console
 
-#### `PlayerDeath`
+- `username`
+  - The player's username
+- `message`
+  - The chat message they sent
+
+#### PlayerDeath
 
 Issued when a player dies. *Generally doesn't work in recent minecraft versions due to changes with the death messages*
 
-#### `PlayerJoin`
+- `text` [Optional]
+  - The full death message
+  - While _technically_ optional, is always present in my testing. It's generally the best thing to use if you just want the message.
+- `username`
+  - The player's username
+- `cause`
+  - What killed the player
+- `killer` [Optional]
+  - Who killed the player
+- `weapon` [Optional]
+  - What was used to kill the player
+
+#### PlayerJoin
 
 Issued when a player connects to the server. Triggered by the `<username> logged in...` message
 
-#### `PlayerQuit`
+- `username`
+  - The player's username
+- `message`
+  - The chat message sent when they joined
+
+#### PlayerQuit
 
 Issued when a player disconnects from the server. Triggered by the `<username> lost connection...` message
 
+- `username`
+  - The player's username
+- `message`
+  - The chat message sent when they joined
+
 ### Server Events
 
-#### `ServerEvent`
+#### ServerEvent
 
 Issued to inform plugins something is happening with the server
 Mainly used in the push plugin to send a push notifications
 
-#### `ServerInput`
+- `cause`
+  - The cause of the server event (Generally it looks like `server/error/<theerror>` or `server/warning/<thewarning>`)
+- `data`
+  - The reason why the server event was fired (Example: `server crashed for unknown reason`)
+
+#### ServerInput
 
 Issued to send data to the server's stdin
 
-#### `ServerOutput`
+#### ServerOutput
 
 Issued when the server gives a line on stdout. Allows the use of a pattern to only receive lines matching the pattern
 
-#### `ServerStart`
+#### ServerStart
 
 Issued to start the server
 
-#### `ServerStarted`
+#### ServerStarted
 
 Issued when the server has finished starting. Triggered by the `Done (123.456s)!` message and fired from the `Process` service
 Typical usage of this event in the scripts is for scheduling a server restart with the `~restart` command
 
-#### `ServerStarting`
+#### ServerStarting
 
 Issued to inform plugins the server is starting
 
-#### `ServerStop`
+#### ServerStop
 
 Issued to stop the server
 
-#### `ServerStopping`
+#### ServerStopping
 
 Issued to inform plugins the server is stopping
 
-#### `ServerStopped`
+- `reason`
+  - The reason the server stopped
+- `respawn`
+  - Whether the server will restart afterwards or not
+  - Respawn Types
+    - TERMINATE = 0
+    - RESTART = 1
+    - HOLD = 2
+- `kill`
+  - Is it a force kill
+
+#### ServerStopped
 
 Issued when the server stops fully
 
 ### Stat Events
 
-#### `StatEvent`
+#### StatEvent
 
 Base stat event class used for all other stat events
 
-#### `StatPlayerCount`
+#### StatPlayerCount
 
 Issued by the `Ping` service to send the number of players and max number of players on a server to plugins
 
-#### `StatPlayers`
+- `players_current`
+  - Number of players on the server
+- `players_max`
+  - Max number of players allowed on the server
+
+#### StatPlayers
 
 Issued by the manager to send a list of players to plugins
 Player information is gathered by the [player events](#player-events)
 
-#### `StatProcess`
+- `players`
+  - A list of players on the server
+
+#### StatProcess
 
 Issued by the `Process` service to inform plugins of the CPU and memory usage of the server process
+
+- `cpu`
+  - CPU usage in percentage
+- `memory`
+  - Memory usage in percentage
 
 ### User Events
 
 Issued from the `UserServer` service after receiving data from the `UserClient`
 
-#### `UserAttach`
+#### UserAttach
 
 Issued to alert plugins that a user attached to the console
 
-#### `UserDetach`
+#### UserDetach
 
 Issued to alert plugins that a user detached from the console
 
-#### `UserInput`
+#### UserInput
 
 Issued when a user sends a line in the prompt.
 Handled by the manager to either forward the input to plugins as a [Hook](#hook) event or to dispatch a [ServerInput](#serverinput) event
