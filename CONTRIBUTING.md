@@ -81,13 +81,13 @@ It uses the `UserServerProtocol` to receive data from the client and uses it's e
 
 ## Event Documentation
 
-**NOTE:** _If an event doesn't have values for it's contents listed under it, you should not be listening to it in scripts!_
+**NOTE:** _If an event doesn't have values for it's contents listed under it, you should probably not be listening to it in scripts! Use common sense!_
 
 A [good message](https://github.com/gsand/mark2/issues/123#issuecomment-889285837) from [edk0](https://github.com/edk0) covered some of what will be outlined here, it's suggested you read it before continuing.
 
 Events are how plugins communicate with each other and how almost everything that happens is orchestrated.
 
-Some of these events can be used in conjunction with the scripts plugin to execute commands (shell and minecraft!) as well as mark2 commands when a certain event is fired. Only some of these events make sense to be used with the scripts plugin. The reason events can be used in scripts is because it was a convenient. As such, scripts can technically listen to any mark2 event when they definitely should not use most of them.
+Some of these events can be used in conjunction with the scripts plugin to execute commands (shell and minecraft!) as well as mark2 commands when a certain event is fired. Only some of these events make sense to be used with the scripts plugin, if they have their contents listed or a note about a common use case, you can use them, otherwise you probably should not. The reason events can be used in scripts is because it was a convenient. As such, scripts can technically listen to any mark2 event when they definitely should not use most of them.
 
 To get a list of all events mark2 has, open up a server console and type `~events` in it.
 
@@ -172,7 +172,7 @@ Issued when a player disconnects from the server. Triggered by the `<username> l
 - `username`
   - The player's username
 - `message`
-  - The chat message sent when they joined
+  - The chat message sent when they quit
 
 ### Server Events
 
