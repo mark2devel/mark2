@@ -27,7 +27,7 @@ To get started you're going to need to setup an development environment to devel
 
 mark2 is not strict with code style. A small project like this that has a history of swapping maintainers can't be super picky about code style.
 
-The only vital thing is that your code is **neat**, **efficient** and **doesn't use aspects of Python 3 not available in earlier versions**, no `f'strings'` or walrus operators (`:=`)!
+The only vital thing is that your code is **neat**, **efficient**, **readable** and **doesn't use aspects of Python 3 not available in earlier versions**, no `f'strings'` or walrus operators (`:=`)!
 
 mark2 aims to be backwards compatible with early versions of Python 3, roughly shooting for compatibility with Python 3.5 or later
 
