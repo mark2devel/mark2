@@ -334,40 +334,44 @@ class UI:
     def set_focused(self):
         """ Sets the focused widget in the terminal to a standout color and resets old standout widgets to their original formatting
         """
-        focused_text, pos = self.g_output.get_focus()
+        try:
+            focused_text, pos = self.g_output.get_focus()
 
-        text_val = encode_if_str(focused_text.get_text()[0])
-        old_attr = focused_text.get_text()[1]
-        new_text = urwid.Text((urwid.AttrSpec('default,standout', 'default'), text_val))
-        self.g_output_list[pos] = new_text
+            text_val = encode_if_str(focused_text.get_text()[0])
+            old_attr = focused_text.get_text()[1]
+            new_text = urwid.Text((urwid.AttrSpec('default,standout', 'default'), text_val))
+            self.g_output_list[pos] = new_text
 
-        for prev in self._prev_focused:
-            _text_val = encode_if_str(prev[0][0].get_text()[0])
-            # Attr encoded as [('attr', x), ('attr', y)] where x and y are run lengths of the attribute on the text
-            _old_attr = prev[0][1] if len(prev[0][1]) > 0 else 'default'
-            final_text = []
-            if isinstance(_old_attr, str):
-                final_text.append((_old_attr, _text_val))
-            else:
-                offset = 0
-                # Loops over the old attributes and applies them properly for the _new_text widget
-                for attr, attr_length in _old_attr:
-                    # Ensure that standout lines are unset properly
-                    if isinstance(attr, urwid.AttrSpec):
-                        if attr.foreground == 'default,standout':
-                            attr.foreground = 'default'
-                    text_to_apply = _text_val[offset : attr_length + offset]
-                    offset += attr_length
-                    final_text.append((attr, text_to_apply))
+            for prev in self._prev_focused:
+                _text_val = encode_if_str(prev[0][0].get_text()[0])
+                # Attr encoded as [('attr', x), ('attr', y)] where x and y are run lengths of the attribute on the text
+                _old_attr = prev[0][1] if len(prev[0][1]) > 0 else 'default'
+                final_text = []
+                if isinstance(_old_attr, str):
+                    final_text.append((_old_attr, _text_val))
+                else:
+                    offset = 0
+                    # Loops over the old attributes and applies them properly for the _new_text widget
+                    for attr, attr_length in _old_attr:
+                        # Ensure that standout lines are unset properly
+                        if isinstance(attr, urwid.AttrSpec):
+                            if attr.foreground == 'default,standout':
+                                attr.foreground = 'default'
+                        text_to_apply = _text_val[offset : attr_length + offset]
+                        offset += attr_length
+                        final_text.append((attr, text_to_apply))
 
-            _pos = prev[1]
-            _new_text = urwid.Text(final_text)
-            self.g_output_list[_pos] = _new_text
+                _pos = prev[1]
+                _new_text = urwid.Text(final_text)
+                self.g_output_list[_pos] = _new_text
 
-        self._prev_focused.clear()
-        self._prev_focused.append(((new_text, old_attr), pos))
-        self.redraw()
-        self.g_output.set_focus(pos)
+            self._prev_focused.clear()
+            self._prev_focused.append(((new_text, old_attr), pos))
+            self.redraw()
+            self.g_output.set_focus(pos)
+        except IndexError:
+            # Fix for if the output somehow updates mid focus set.
+            pass
     
     def toggle_sidebar(self):
         """ Toggles the visibility of the player menu and stats """
