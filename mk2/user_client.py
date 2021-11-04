@@ -213,8 +213,8 @@ class UI:
         self.palette = palette
         self.get_players = get_players
         self.run_command = run_command
-        self.switch_server = switch_server
-        self.connect_to_server = connect_to_server
+        self._switch_server = switch_server
+        self._connect_to_server = connect_to_server
 
         self.pmenu_actions = pmenu_actions
         self.pmenu_reasons = pmenu_reasons
@@ -330,7 +330,17 @@ class UI:
     def redraw(self):
         if self.loop:
             self.loop.draw_screen()
+
+    def switch_server(self, direction):
+        """ Wrapper function to clear previous focussed list when switching servers """
+        self._prev_focused.clear()
+        self._switch_server(direction)
     
+    def connect_to_server(self, name):
+        """ Wrapper function to clear previous focussed list when connecting to different servers """
+        self._prev_focused.clear()
+        self._connect_to_server(name)
+
     def set_focused(self):
         """ Sets the focused widget in the terminal to a standout color and resets old standout widgets to their original formatting
         """
