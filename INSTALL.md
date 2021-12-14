@@ -13,9 +13,9 @@ If you are updating from the Python 2 version of mark2, please ensure you instal
 ## Installing mark2
 
 mark2 doesn't need to be installed to a particular directory, but if you have no reasonable ideas `/usr/mark2` will be
-okay. First, download mark2:
+okay. First, download mark2, this command clones the repo into your current directory so make sure it's in the folder you want to install to and not in your home directory or something else.
 
-    git clone https://github.com/gsand/mark2.git
+    git clone https://github.com/gsand/mark2.git .
 
 If you don't have git (and you probably should!) you could:
 
@@ -24,7 +24,7 @@ If you don't have git (and you probably should!) you could:
     rm master.tar.gz
     mv mark2-master mark2
 
-Next, symlink the `mark2` script into your executable path:
+Next, symlink the `mark2` script into your executable path (replace the first path with the path to your install directory and to the `mark2` script inside of it):
 
     sudo ln -s /usr/mark2/mark2 /usr/bin/mark2
 
