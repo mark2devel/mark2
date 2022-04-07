@@ -14,7 +14,7 @@ requirements = ["{0}=={1}".format(*s) for s in [
 ("Twisted",          "22.2.0"),
 ("urwid",            "2.1.2"),
 ("service_identity", "21.1.0"),
-("treq",             "21.5.0")
+("treq",             "22.2.0")
 
 ] if "MARK2_NO_{0}".format(s[0].upper()) not in os.environ]
 
