@@ -4,7 +4,7 @@ from mk2.events import ServerEvent, EventPriority
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, DeferredList
 from twisted.mail import smtp, relaymanager
-from twisted.web.client import getPage
+import treq
 
 from io import StringIO
 from email.mime.text import MIMEText
@@ -65,12 +65,12 @@ class HTTPEndpoint(Endpoint):
     
     def push(self, event):
         self.setup(event)
-        
-        defer = getPage(self.endpoint,
-                        method=self.method,
-                        postdata=urlencode(self.postdata),
-                        headers={"Content-type": "application/x-www-form-urlencoded"})
-        
+
+        defer = treq.request(self.method, 
+                             self.endpoint, 
+                             headers={"Content-type": "application/x-www-form-urlencoded"}, 
+                             data=urlencode(self.postdata))
+
         self.wait(defer)
 
 

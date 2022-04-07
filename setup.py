@@ -11,9 +11,10 @@ requirements = ["{0}=={1}".format(*s) for s in [
 ("feedparser",       "6.0.8"),
 ("psutil",           "5.8.0"),
 ("pyOpenSSL",        "20.0.1"),
-("Twisted",          "21.2.0"),
+("Twisted",          "22.2.0"),
 ("urwid",            "2.1.2"),
-("service_identity", "21.1.0")
+("service_identity", "21.1.0"),
+("treq",             "21.5.0")
 
 ] if "MARK2_NO_{0}".format(s[0].upper()) not in os.environ]
 
