@@ -52,3 +52,11 @@ See the [Event Documentation](CONTRIBUTING.md#event-documentation) for details o
 * Back up your map and server log when the server stops
 * Print a random message at an interval, e.g. '[SERVER] Lock your chests with /lock'
 * Respond to user commands, e.g. '\<Notch> !teamspeak' could `msg Notch Join our teamspeak server at xyz.com`
+
+## Compatibility
+
+As mark2 is a port of older python 2 code, there may be some growing pains down the line for deprecations or changes that cause issues.
+
+As of editing, mark2 was **tested and works on Python 3.11**, though it should work on Python 3.12 (just not tested atm)
+
+If you experience **any** odd behavior (mark2 behaving improperly, not issues with your minecraft servers), feel free to [create a GitHub issue report](https://github.com/mark2devel/mark2/issues/new) on the repo here and it will be fixed as soon as possible! Thank you!
