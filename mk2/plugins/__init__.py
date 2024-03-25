@@ -1,5 +1,5 @@
 from os import path
-import imp
+import importlib
 import inspect
 import pkg_resources
 import traceback
@@ -34,7 +34,10 @@ class ResourcePluginLoader(PluginLoader):
             return False
 
         try:
-            module = imp.load_source(name, pkg_resources.resource_filename('mk2', p))
+            spec = importlib.util.spec_from_file_location(name, pkg_resources.resource_filename('mk2', p))
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[name] = module
+            spec.loader.exec_module(module)
             classes = inspect.getmembers(module, inspect.isclass)
             for n, cls in classes:
                 if issubclass(cls, Plugin) and not cls is Plugin:
