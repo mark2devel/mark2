@@ -63,7 +63,13 @@ class Event(metaclass=EventMetaclass):
 
     @classmethod
     def _prefilter_argcheck(cls, args):
-        spec = inspect.getargspec(cls.prefilter)
+        # Patch for python 3.11 inspect changes
+        try:
+            spec = inspect.getargspec(cls.prefilter)
+            keywords = spec.keywords
+        except AttributeError:
+            spec = inspect.getfullargspec(cls.prefilter)
+            keywords = spec.varkw
 
         args = set(args.keys())
         required_args = set(spec.args[1:-len(spec.defaults or [])])
@@ -71,7 +77,7 @@ class Event(metaclass=EventMetaclass):
         if required_args - args:
             return (False, "missing arguments for prefilter: {}".format(
                     ", ".join(required_args - args)))
-        if spec.keywords is None:
+        if keywords is None:
             allowed_args = set(spec.args[1:])
             if args - allowed_args:
                 return (False, "excess arguments for prefilter: {}".format(
