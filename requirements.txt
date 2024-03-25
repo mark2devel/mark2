@@ -1,8 +1,8 @@
-feedparser==6.0.8
-psutil==5.8.0
-pyOpenSSL==20.0.1
-Twisted==22.2.0
-urwid==2.1.2
-service_identity==21.1.0
+feedparser==6.0.11
+psutil==5.9.8
+pyOpenSSL==24.1.0
+Twisted==24.3.0
+urwid==2.6.10
+service_identity==24.1.0
 pyperclip==1.8.2
-treq==22.2.0
+treq==23.11.0
