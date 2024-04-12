@@ -346,7 +346,7 @@ class UI:
         """
         try:
             focused_text, pos = self.g_output.get_focus()
-            
+
             text_val = encode_if_str(focused_text.get_text()[0])
             old_attr = focused_text.get_text()[1]
             new_text = urwid.Text((urwid.AttrSpec('default,standout', 'default'), text_val))
