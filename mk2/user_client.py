@@ -346,7 +346,7 @@ class UI:
         """
         try:
             focused_text, pos = self.g_output.get_focus()
-
+            
             text_val = encode_if_str(focused_text.get_text()[0])
             old_attr = focused_text.get_text()[1]
             new_text = urwid.Text((urwid.AttrSpec('default,standout', 'default'), text_val))
@@ -366,7 +366,7 @@ class UI:
                         # Ensure that standout lines are unset properly
                         if isinstance(attr, urwid.AttrSpec):
                             if attr.foreground == 'default,standout':
-                                attr.foreground = 'default'
+                                attr = attr.copy_modified(fg="default")
                         text_to_apply = _text_val[offset : attr_length + offset]
                         offset += attr_length
                         final_text.append((attr, text_to_apply))
