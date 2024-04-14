@@ -43,6 +43,7 @@ class Shutdown(Plugin):
     def server_started(self, event):
         self.restart_on_empty = False
         self.cancel_preempt = 0
+        self.cancel.clear()
     
     def warn_restart(self, delay):
         self.send_format(self.alert_command % self.restart_warn_message, delay=delay)
