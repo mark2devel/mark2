@@ -249,9 +249,12 @@ class Plugin(metaclass=PluginMetaclass):
         delayed_call = [None]
 
         def cancel(*args):
-            delayed_call[0].cancel()
-            if callbackCancel:
-                callbackCancel(*args)
+            if delayed_call[0].active():
+                delayed_call[0].cancel()
+                if callbackCancel:
+                    callbackCancel(*args)
+            else:
+                self.console("Skipping cancelling of already cancelled or called event")
         
         def action_chain_i(i_name, i_delay, i_action):
             t = reactor.callLater(i_delay, i_action) 
