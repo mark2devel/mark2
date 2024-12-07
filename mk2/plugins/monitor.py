@@ -58,7 +58,7 @@ class Monitor(Plugin):
     crash_warn     = Plugin.Property(default=0)
     crash_unknown_cmd_message    = Plugin.Property(default="Unknown.*command.*")
     crash_check_command          = Plugin.Property(default="")
-    crash_check_command_message  = Plugin.Property(default=".*{}.*".format(crash_check_command.coerce()))
+    crash_check_command_message  = Plugin.Property(default="")
 
     oom_enabled          = Plugin.Property(default=True)
     crash_report_enabled = Plugin.Property(default=True)
@@ -150,10 +150,6 @@ class Monitor(Plugin):
     def handle_crash_ok(self, event):
         self.console("Regex for crash check command: " + self.crash_check_command_message)
         self.checks["crash"].reset()
-        return Event.EAT | Event.UNREGISTER
-
-    # eats the console output for the crash check command
-    def eat_crash_check(self, event):
         return Event.EAT | Event.UNREGISTER
 
     # out of memory
