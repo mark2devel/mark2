@@ -148,7 +148,6 @@ class Monitor(Plugin):
 
     # crash
     def handle_crash_ok(self, event):
-        self.console("Regex for crash check command: " + self.crash_check_command_message)
         self.checks["crash"].reset()
         return Event.EAT | Event.UNREGISTER
 
