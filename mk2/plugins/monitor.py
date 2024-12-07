@@ -57,7 +57,8 @@ class Monitor(Plugin):
     crash_timeout  = Plugin.Property(default=3)
     crash_warn     = Plugin.Property(default=0)
     crash_unknown_cmd_message    = Plugin.Property(default="Unknown.*command.*")
-    crash_check_command    = Plugin.Property(default="")
+    crash_check_command          = Plugin.Property(default="")
+    crash_check_command_message  = Plugin.Property(default="")
 
     oom_enabled          = Plugin.Property(default=True)
     crash_report_enabled = Plugin.Property(default=True)
@@ -80,7 +81,7 @@ class Monitor(Plugin):
 
         if self.crash_report_enabled:
             self.register(self.handle_unknown_crash, ServerOutput, level='ERROR', pattern='This crash report has been saved to.*')
-        
+
         if self.jvm_crash_enabled:
             self.register(self.handle_jvm_crash, ServerOutput, level='RAW', pattern='.*A fatal error has been detected by the Java Runtime Environment:.*')
 
@@ -134,19 +135,22 @@ class Monitor(Plugin):
             self.register(self.handle_crash_ok, ServerOutput,
                           pattern=self.crash_unknown_cmd_message,
                           track=False)
+            self.register(self.handle_crash_ok, ServerOutput,
+                          pattern=self.crash_check_command_message,
+                          track=False)
             self.send(self.crash_check_command)  # Blank command to trigger 'Unknown command'
-    
+
     def reset_counts(self):
         for c in self.checks.values():
             c.reset()
 
     ### handlers
-    
+
     # crash
     def handle_crash_ok(self, event):
         self.checks["crash"].reset()
         return Event.EAT | Event.UNREGISTER
-    
+
     # out of memory
     def handle_oom(self, event):
         self.console('server out of memory, restarting...')
@@ -154,7 +158,7 @@ class Monitor(Plugin):
                                   data="server ran out of memory",
                                   priority=1))
         self.dispatch(ServerStop(reason='out of memory', respawn=ServerStop.RESTART))
-    
+
     # unknown crash
     def handle_unknown_crash(self, event):
         self.console('server crashed for unknown reason, restarting...')
@@ -162,7 +166,7 @@ class Monitor(Plugin):
                                   data="server crashed for unknown reason",
                                   priority=1))
         self.dispatch(ServerStop(reason='unknown reason', respawn=ServerStop.RESTART))
-    
+
     # jvm crash
     def handle_jvm_crash(self, event):
         self.console('server jvm crashed, restarting...')
@@ -170,12 +174,12 @@ class Monitor(Plugin):
                                   data="server jvm crashed",
                                   priority=1))
         self.dispatch(ServerStop(reason='jvm crash', respawn=ServerStop.RESTART))
-    
+
     # ping
     def handle_ping(self, event):
         if event.source == 'ping':
             self.checks["ping"].reset()
-    
+
     # pcount
     def handle_pcount(self, event):
         if event.players_current > 0:
