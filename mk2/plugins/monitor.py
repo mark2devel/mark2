@@ -58,7 +58,7 @@ class Monitor(Plugin):
     crash_warn     = Plugin.Property(default=0)
     crash_unknown_cmd_message    = Plugin.Property(default="Unknown.*command.*")
     crash_check_command          = Plugin.Property(default="")
-    crash_check_command_message  = Plugin.Property(default=".*{}.*".format(crash_check_command))
+    crash_check_command_message  = Plugin.Property(default=".*{}.*".format(crash_check_command.coerce()))
 
     oom_enabled          = Plugin.Property(default=True)
     crash_report_enabled = Plugin.Property(default=True)
