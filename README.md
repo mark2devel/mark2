@@ -1,6 +1,6 @@
 # mark2
 
-[![Discord](https://img.shields.io/discord/872557175095037983?label=Join%20the%20Discord&logo=discord&style=for-the-badge)](https://discord.gg/HCvqE6TdXY)  
+[![Discord](https://img.shields.io/discord/872557175095037983?label=Join%20the%20Discord&logo=discord&style=for-the-badge)](https://discord.gg/932ypGX3xP)
 ![GitHub last commit](https://img.shields.io/github/last-commit/gsand/mark2?label=Last%20Commit&logo=github&style=for-the-badge)
 
      mark2  server01  server02                                        user
